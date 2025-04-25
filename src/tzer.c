@@ -175,10 +175,9 @@ char *next_and_alloc(struct Tzer *t, char str[], long len, enum TCode *codeptr,
 	next(t);
 	return alloc_str_and_set_code(str, len, codeptr, code);
 }
-char *usable_chars = ";:\\/+-*=,";
-unsigned char usable_char(char c) {
-	for (int i = 0; usable_chars[i]; i++)
-		if (c == usable_chars[i])
+unsigned char char_in_str(char c, char *str) {
+	for (int i = 0; str[i]; i++)
+		if (c == str[i])
 			return 1;
 	return 0;
 }
@@ -235,6 +234,9 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 		else
 			view = alloc_str_and_set_code("=", 1, cp, EQU);
 		break;
+	case ',':
+		view = alloc_str_and_set_code(",", 1, cp, COMMA);
+		break;
 	default:
 		ee(t, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");
 	}
@@ -242,8 +244,6 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 	token->view = view;
 	return code;
 }
-
-enum TCode id_token(struct Tzer *t, struct Token *token) { return EOF; }
 
 enum TCode com_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, com_len = 1;
@@ -262,9 +262,28 @@ enum TCode com_token(struct Tzer *t, struct Token *token) {
 	return COM;
 }
 
+char *stop_id = " \r\t\n\"\\0123456789;:/+-*=,";
+enum TCode id_token(struct Tzer *t, struct Token *token) {
+	long start_pos = t->pos, id_len = 1;
+	next(t);
+	char *id_view;
+	while (!char_in_str(cur(t), stop_id)) {
+		next(t);
+		id_len++;
+	}
+
+	id_view = malloc(id_len + 1);
+	id_view[id_len] = 0;
+	strncpy(id_view, &t->code[start_pos], id_len);
+
+	token->view = id_view;
+	return ID;
+}
+
+char *usable_chars = ";:\\/+-*=,";
+char *white_space = " \r\t";
 struct Token *new_token(struct Tzer *t) {
-	while (cur(t) == ' ' || cur(t) == 13 ||
-		   cur(t) == '\t') // for sure for windows
+	while (char_in_str(cur(t), white_space))
 		next(t);
 
 	unsigned char c = cur(t);
@@ -284,7 +303,7 @@ struct Token *new_token(struct Tzer *t) {
 		code = num_token(t, token);
 	else if (c == '"')
 		code = str_token(t, token);
-	else if (usable_char(c))
+	else if (char_in_str(c, usable_chars))
 		code = usable_token(t, token);
 	else
 		code = id_token(t, token);

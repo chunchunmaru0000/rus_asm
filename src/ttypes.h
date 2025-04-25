@@ -9,6 +9,7 @@ enum TCode {
 	COLO,	// :
 	COM,	// comment
 	SLASH,	// \_
+	COMMA,	// ,
 	EOF,
 	// LITERALS
 	INT,  // int literal
