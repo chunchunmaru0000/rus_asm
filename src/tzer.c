@@ -34,4 +34,32 @@ struct Tzer *new_tzer(char *filename) {
 	return t;
 }
 
-struct Token *new_token(struct Tzer *t) {}
+#define next(t) (((t)->pos++, (t)->col++))
+#define cur(t) ((t)->code[(t)->pos])
+void next_line(struct Tzer *t) {
+	next(t);
+	t->col = 0;
+	t->line++;
+}
+
+struct Token *new_token(struct Tzer *t) {
+	while (cur(t) == 10 || cur(t) == 13) // for sure for windows
+		next(t);
+
+	char c = cur(t);
+	struct Token *token = malloc(sizeof(struct Token));
+	token->line = t->line;
+	token->col = t->col;
+
+	if (c == 0) {
+		token->code = EOF;
+	} else if (c == 10) {
+		next_line(t);
+		token->code = SLASHN;
+	} else {
+		fprintf(stderr, "НЕИЗВЕСТНЫЙ СИМВОЛ [%d]", c);
+		exit(1);
+	}
+
+	return token;
+}

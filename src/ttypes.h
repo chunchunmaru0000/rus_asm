@@ -6,6 +6,7 @@ enum TCode {
 	// OTHER
 	SLASHN, // \n
 	SEMI,	// ;
+	EOF,
 	// LITERALS
 	INT,  	// int literal
 	REAL, 	// float literal

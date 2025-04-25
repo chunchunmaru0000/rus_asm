@@ -9,5 +9,6 @@ struct Tzer {
 	char *code;
 };
 
-struct Tzer *new_tzer(char *filename);
-struct Token *new_token(struct Tzer *t);
+struct Tzer *new_tzer(char *);
+struct Token *new_token(struct Tzer *);
+struct Token **get_tokens(struct Tzer *);
