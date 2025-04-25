@@ -1,2 +1,2 @@
 main:
-	gcc main.c tzer.c -o main
+	gcc main.c utils.c tzer.c -o main

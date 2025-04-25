@@ -1,4 +1,5 @@
 #include "ttypes.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -310,4 +311,17 @@ struct Token *new_token(struct Tzer *t) {
 
 	token->code = code;
 	return token;
+}
+
+struct List *get_tokens(struct Tzer *t, long *count) {
+	struct Token *token;
+	struct List	*l = new_list(sizeof(struct Token*), 1);
+
+	token = new_token(t);
+	while (token->code != EOF) {
+		token = new_token(t);
+		list_add(l, struct Token*, token);
+	}
+
+	return l;
 }
