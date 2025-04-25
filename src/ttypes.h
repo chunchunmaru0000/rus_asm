@@ -31,6 +31,7 @@ struct Token {
 	long col;
 	// literals reserved than may not always be used
 	long number;
+	double fpn; // Floatimg Point Number
 	char *string;
 	long stringLen;
 };
