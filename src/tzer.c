@@ -1,18 +1,7 @@
-#include "ttypes.h"
-#include "utils.h"
+#include "tzer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-struct Tzer {
-	char *filename;
-	long line;
-	long col;
-
-	long pos;
-	char *code;
-	long codeLen;
-};
 
 char *EMPTY_STR = "_";
 
@@ -313,14 +302,15 @@ struct Token *new_token(struct Tzer *t) {
 	return token;
 }
 
-struct List *get_tokens(struct Tzer *t, long *count) {
+struct PList *get_tokens(struct Tzer *t, long list_cap) {
 	struct Token *token;
-	struct List	*l = new_list(sizeof(struct Token*), 1);
+	struct PList *l = new_list(list_cap);
 
 	token = new_token(t);
 	while (token->code != EOF) {
+		if (token->code != COM)
+			list_add(l, token);
 		token = new_token(t);
-		list_add(l, struct Token*, token);
 	}
 
 	return l;

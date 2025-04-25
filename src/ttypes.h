@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 enum TCode {
 	// WORD
 	ID, // identifier

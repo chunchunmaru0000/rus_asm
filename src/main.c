@@ -1,5 +1,4 @@
 #include "tzer.h"
-#include "utils.h"
 #include <stdio.h>
 
 int main() {
@@ -7,22 +6,13 @@ int main() {
 	struct Tzer *t = new_tzer(filename);
 	printf("%s:0:0\n%s\n", filename, t->code);
 
-	/*
-	struct List *l = get_tokens(t);
 	struct Token *token;
-	for (int i = 0; i < l->cap; i++) {
-		token = list_get(l, struct Token *, i);
+	struct PList *l = get_tokens(t, 10);
+	for (int i = 0; i < l->size; i++) {
+		token = list_get(l, i);
 		printf("%s:%ld:%ld:token: %s : %d\n", filename, token->line, token->col,
 			   token->view, token->code);
 	}
 
-	return 0;
-	*/
-	struct Token *token = new_token(t);
-	while (token->code != EOF) {
-		printf("%s:%ld:%ld:token: %s : %d\n", filename, token->line, token->col,
-			   token->view, token->code);
-		token = new_token(t);
-	}
 	return 0;
 }
