@@ -6,25 +6,29 @@ enum TCode {
 	// OTHER
 	SLASHN, // \n
 	SEMI,	// ;
+	COLO,	// :
 	COMM,	// comment
+	SLASH,	// \_
 	EOF,
 	// LITERALS
 	INT,  // int literal
 	REAL, // float literal
 	STR,  // string literal with ""
 	// MATH OPS
-	PLUS,	// +
 	INC,	// ++
-	MINUS,	// -
 	DEC,	// --
-	MUL,	// *
+	EQU,	// =
+	PLUS,	// +
+	MINUS,	// -
+	IMUL,	// *
 	DIV,	// /
-	SHL,	// //
-	SHR,	// \\
+	EQUE,	// ==
 	PLUSE,	// +=
 	MINUSE, // -=
 	IMULE,	// *=
 	DIVE,	// /=
+	SHL,	// //
+	SHR,	// \\_
 };
 
 struct Token {

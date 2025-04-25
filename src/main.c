@@ -9,7 +9,8 @@ int main() {
 
 	struct Token *token = new_token(t);
 	while (token->code != EOF) {
-		printf("token: %s\n", token->view);
+		printf("%s:%ld:%ld:token: %s : %d\n", filename, token->line, token->col,
+			   token->view, token->code);
 		token = new_token(t);
 	}
 	return 0;

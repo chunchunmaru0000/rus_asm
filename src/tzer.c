@@ -23,8 +23,8 @@ void ee(struct Tzer *t, char *msg) { // error exit
 struct Tzer *new_tzer(char *filename) {
 	struct Tzer *t = (struct Tzer *)malloc(sizeof(struct Tzer));
 	t->filename = filename;
-	t->line = 0;
-	t->col = 0;
+	t->line = 1;
+	t->col = 1;
 	t->pos = 0;
 
 	FILE *file = fopen(filename, "r");
@@ -51,7 +51,7 @@ struct Tzer *new_tzer(char *filename) {
 
 enum TCode next_line(struct Tzer *t, struct Token *token) {
 	next(t);
-	t->col = 0;
+	t->col = 1;
 	t->line++;
 	token->view = EMPTY_STR;
 	return SLASHN;
@@ -146,6 +146,10 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 	next(t);
 	// TODO: maybe do like \т\н\0\t\n\0
 	while (cur(t) != '"') {
+		if (cur(t) == '\n') {
+			t->col = 1;
+			t->line++;
+		}
 		next(t);
 		str_len++;
 	}
@@ -186,30 +190,50 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 	next(t);
 
 	switch (c) {
-	case ';':
-		view = alloc_str_and_set_code(";", 1, cp, code);
-		break;
 	case ':':
-		view = alloc_str_and_set_code(":", 1, cp, code);
+		view = alloc_str_and_set_code(":", 1, cp, COLO);
 		break;
 	case '\\':
-		view = alloc_str_and_set_code("\\", 1, cp, code);
+		if (n == '\\')
+			view = next_and_alloc(t, "\\\\", 2, cp, SHR);
+		else
+			view = alloc_str_and_set_code("\\", 1, cp, SLASH);
 		break;
 	case '+':
-		view = n == '+' ? next_and_alloc(t, "++", 2, cp, code)
-						: alloc_str_and_set_code("+", 1, cp, code);
+		if (n == '+')
+			view = next_and_alloc(t, "++", 2, cp, INC);
+		else if (n == '=')
+			view = next_and_alloc(t, "+=", 2, cp, PLUSE);
+		else
+			view = alloc_str_and_set_code("+", 1, cp, PLUS);
 		break;
 	case '-':
-		view = alloc_str_and_set_code("-", 1, cp, code);
+		if (n == '-')
+			view = next_and_alloc(t, "--", 2, cp, DEC);
+		else if (n == '=')
+			view = next_and_alloc(t, "-=", 2, cp, MINUSE);
+		else
+			view = alloc_str_and_set_code("-", 1, cp, MINUS);
 		break;
 	case '*':
-		view = alloc_str_and_set_code("*", 1, cp, code);
+		if (n == '=')
+			view = next_and_alloc(t, "*=", 2, cp, IMULE);
+		else
+			view = alloc_str_and_set_code("*", 1, cp, IMUL);
 		break;
 	case '/':
-		view = alloc_str_and_set_code("/", 1, cp, code);
+		if (n == '=')
+			view = next_and_alloc(t, "/=", 2, cp, DIVE);
+		else if (n == '/')
+			view = next_and_alloc(t, "//", 2, cp, SHL);
+		else
+			view = alloc_str_and_set_code("/", 1, cp, DIV);
 		break;
 	case '=':
-		view = alloc_str_and_set_code("=", 1, cp, code);
+		if (n == '=')
+			view = next_and_alloc(t, "==", 2, cp, EQUE);
+		else
+			view = alloc_str_and_set_code("=", 1, cp, EQU);
 		break;
 	default:
 		ee(t, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");
@@ -218,8 +242,9 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 	token->view = view;
 	return code;
 }
-enum TCode id_token(struct Tzer *t, struct Token *token) { return ID; }
-enum TCode com_token(struct Tzer *t, struct Token *token) { return ID; }
+
+enum TCode id_token(struct Tzer *t, struct Token *token) { return EOF; }
+enum TCode com_token(struct Tzer *t, struct Token *token) { return EOF; }
 
 struct Token *new_token(struct Tzer *t) {
 	while (cur(t) == ' ' || cur(t) == 13 ||
