@@ -2,18 +2,21 @@
 
 enum TCode {
 	// WORD
-	ID,		// identifier
+	ID, // identifier
 	// OTHER
 	SLASHN, // \n
 	SEMI,	// ;
+	COMM,	// comment
 	EOF,
 	// LITERALS
-	INT,  	// int literal
-	REAL, 	// float literal
-	STR,  	// string literal with ""
+	INT,  // int literal
+	REAL, // float literal
+	STR,  // string literal with ""
 	// MATH OPS
 	PLUS,	// +
-	MINUS,	//	-
+	INC,	// ++
+	MINUS,	// -
+	DEC,	// --
 	MUL,	// *
 	DIV,	// /
 	SHL,	// //

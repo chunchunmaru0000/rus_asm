@@ -142,24 +142,84 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 
 enum TCode str_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, str_len = 2;
-	char *num_view;
+	char *str_view;
 	next(t);
+	// TODO: maybe do like \т\н\0\t\n\0
 	while (cur(t) != '"') {
 		next(t);
 		str_len++;
 	}
 	next(t);
 
-	num_view = malloc(str_len + 1);
-	num_view[str_len] = 0;
-	strncpy(num_view, &t->code[start_pos], str_len);
+	str_view = malloc(str_len + 1);
+	str_view[str_len] = 0;
+	strncpy(str_view, &t->code[start_pos], str_len);
 
-	token->view = num_view;
+	token->view = str_view;
 	return STR;
 }
 
-enum TCode usable_token(struct Tzer *t, struct Token *token) { return EOF; }
-enum TCode usable_char(char c) { return EOF; }
+char *alloc_str_and_set_code(char str[], long len, enum TCode *codeptr,
+							 enum TCode code) {
+	char *s = malloc(len + 1);
+	memcpy(s, str, len + 1);
+	*codeptr = code;
+	return s;
+}
+char *next_and_alloc(struct Tzer *t, char str[], long len, enum TCode *codeptr,
+					 enum TCode code) {
+	next(t);
+	return alloc_str_and_set_code(str, len, codeptr, code);
+}
+char *usable_chars = ";:\\/+-*=,";
+unsigned char usable_char(char c) {
+	for (int i = 0; usable_chars[i]; i++)
+		if (c == usable_chars[i])
+			return 1;
+	return 0;
+}
+enum TCode usable_token(struct Tzer *t, struct Token *token) {
+	char *view;
+	enum TCode code;
+	enum TCode *cp = &code;
+	unsigned char c = cur(t), n = get(t, 1), nn = get(t, 2);
+	next(t);
+
+	switch (c) {
+	case ';':
+		view = alloc_str_and_set_code(";", 1, cp, code);
+		break;
+	case ':':
+		view = alloc_str_and_set_code(":", 1, cp, code);
+		break;
+	case '\\':
+		view = alloc_str_and_set_code("\\", 1, cp, code);
+		break;
+	case '+':
+		view = n == '+' ? next_and_alloc(t, "++", 2, cp, code)
+						: alloc_str_and_set_code("+", 1, cp, code);
+		break;
+	case '-':
+		view = alloc_str_and_set_code("-", 1, cp, code);
+		break;
+	case '*':
+		view = alloc_str_and_set_code("*", 1, cp, code);
+		break;
+	case '/':
+		view = alloc_str_and_set_code("/", 1, cp, code);
+		break;
+	case '=':
+		view = alloc_str_and_set_code("=", 1, cp, code);
+		break;
+	default:
+		ee(t, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");
+	}
+
+	token->view = view;
+	return code;
+}
+enum TCode id_token(struct Tzer *t, struct Token *token) { return ID; }
+enum TCode com_token(struct Tzer *t, struct Token *token) { return ID; }
 
 struct Token *new_token(struct Tzer *t) {
 	while (cur(t) == ' ' || cur(t) == 13 ||
@@ -175,6 +235,8 @@ struct Token *new_token(struct Tzer *t) {
 	// every of funcs that takes token shall assign view to token
 	if (c == '\0')
 		code = EOF;
+	else if (c == ';')
+		code = com_token(t, token);
 	else if (c == '\n')
 		code = next_line(t, token);
 	else if (c >= '0' && c <= '9')
@@ -184,7 +246,7 @@ struct Token *new_token(struct Tzer *t) {
 	else if (usable_char(c))
 		code = usable_token(t, token);
 	else
-		ee(t, "НЕИЗВЕСТНЫЙ СИМВОЛ");
+		code = id_token(t, token);
 
 	token->code = code;
 	return token;
