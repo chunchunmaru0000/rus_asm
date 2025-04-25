@@ -62,39 +62,79 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, num_len = 1;
 	enum TCode code = INT;
 	char *num_view;
+	int base = 10;
 
 	if (c == '0' && (n == 'x' || n == 'X' || n == 'b' || n == 'B' ||
-					 (n == 0b11010001 && nn == 0b10000101) || // х cyrillic
-					 (n == 0b11010000 && nn == 0b10100101) || // Х
-					 (n == 0b11010000 && nn == 0b10110001) || // б
-					 (n == 0b11010000 && nn == 0b10010001)))  // Б
-		ee(t, "ЦИФРЫ С ПРИСТАВКАМИ ПОКА ЕЩЕ НЕ СДЕЛАНЫ");
-
-	while (1) {
+					 (n == 0b11010001 && nn == 0b10000101) ||  // х cyrillic
+					 (n == 0b11010000 && nn == 0b10100101) ||  // Х
+					 (n == 0b11010000 && nn == 0b10110001) ||  // б
+					 (n == 0b11010000 && nn == 0b10010001))) { // Б
 		next(t);
 		c = cur(t);
-		if (c == '.') {
-			fpn++;
-			if (fpn > 1)
-				ee(t, "СЛИШКОМ МНОГО ТОЧЕК НА ОДНО ЧИСЛО");
-			code = REAL;
+		n = get(t, 1);
+		base = c == 'x' || c == 'X' || (c == 0b11010001 && n == 0b10000101) ||
+					   (c == 0b11010000 && n == 0b10100101)
+				   ? 16
+				   : 2;
+		if (c == 'x' || c == 'X' || c == 'b' || c == 'B')
+			next(t);
+		else {
+			next(t);
+			next(t);
+		}
+		ee(t, "НЕ РАБОТАЕТ ПОКА 0х и 0б, НАДО ПРИДУМАТЬ КАКФОРМАТ МЕНЯТЬ ОТ "
+			  "РУССКИХ БУКВ ИЛИ САМОМУ ОБРАБАТЫВАТЬ");
+		if (base == 16) {
+			while (1) {
+				next(t);
+				c = cur(t);
+				n = get(t, 1);
+				if ((c < '0' || c > '9') && (c < 'A' || c > 'F') &&
+					(c < 'a' || c > 'f') &&
+					(c == 0b11010000 && ((n < 0b10110000 && n > 0b10110110) &&
+										 (n < 0b10010000 && n > 0b10010110))))
+					break;
+				num_len++;
+			}
+		} else {
+			while (1) {
+				next(t);
+				c = cur(t);
+				if (c < '0' || c > '1')
+					break;
+				num_len++;
+			}
+		}
+	} else {
+		while (1) {
 			next(t);
 			c = cur(t);
+			if (c == '.') {
+				fpn++;
+				if (fpn > 1)
+					ee(t, "СЛИШКОМ МНОГО ТОЧЕК НА ОДНО ЧИСЛО");
+				code = REAL;
+				next(t);
+				c = cur(t);
+				num_len++;
+			}
+			if (c < '0' || c > '9')
+				break;
 			num_len++;
 		}
-		if (c < '0' || c > '9')
-			break;
-		num_len++;
 	}
 
 	num_view = malloc(num_len + 1);
 	num_view[num_len] = 0;
 	strncpy(num_view, &t->code[start_pos], num_len);
 
-	if (code == INT)
-		token->number = atol(num_view);
+	if (base == 10)
+		if (code == INT)
+			token->number = atol(num_view);
+		else
+			token->fpn = atof(num_view);
 	else
-		token->fpn = atof(num_view);
+		token->number = strtol(num_view, NULL, base);
 
 	token->view = num_view;
 	return code;
@@ -115,7 +155,7 @@ struct Token *new_token(struct Tzer *t) {
 	token->line = t->line;
 	token->col = t->col;
 
-	// everu of funcs that takes t and token shall assign view to token
+	// every of funcs that takes token shall assign view to token
 	if (c == '\0')
 		code = EOF;
 	else if (c == '\n')
