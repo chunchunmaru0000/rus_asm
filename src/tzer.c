@@ -140,7 +140,24 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 	return code;
 }
 
-enum TCode str_token(struct Tzer *t, struct Token *token) { return EOF; }
+enum TCode str_token(struct Tzer *t, struct Token *token) {
+	long start_pos = t->pos, str_len = 2;
+	char *num_view;
+	next(t);
+	while (cur(t) != '"') {
+		next(t);
+		str_len++;
+	}
+	next(t);
+
+	num_view = malloc(str_len + 1);
+	num_view[str_len] = 0;
+	strncpy(num_view, &t->code[start_pos], str_len);
+
+	token->view = num_view;
+	return STR;
+}
+
 enum TCode usable_token(struct Tzer *t, struct Token *token) { return EOF; }
 enum TCode usable_char(char c) { return EOF; }
 
