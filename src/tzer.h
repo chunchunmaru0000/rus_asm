@@ -10,5 +10,5 @@ struct Tzer {
 };
 
 struct Tzer *new_tzer(char *);
-struct Token *new_token(struct Token *);
+struct Token *new_token(struct Tzer *);
 struct Token **get_tokens(struct Tzer *);

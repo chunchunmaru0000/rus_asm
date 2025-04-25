@@ -13,13 +13,16 @@ struct Tzer {
 	long codeLen;
 };
 
+char *EMPTY_STR = "_";
+
 void ee(struct Tzer *t, char *msg) { // error exit
-	fprintf(stderr, "%s:%ld:%ld %s", t->filename, t->line, t->col, msg);
+	fprintf(stderr, "%s:%ld:%ld %s\n", t->filename, t->line, t->col, msg);
 	exit(1);
 }
 
 struct Tzer *new_tzer(char *filename) {
 	struct Tzer *t = (struct Tzer *)malloc(sizeof(struct Tzer));
+	t->filename = filename;
 	t->line = 0;
 	t->col = 0;
 	t->pos = 0;
@@ -42,15 +45,16 @@ struct Tzer *new_tzer(char *filename) {
 }
 
 #define next(t) (((t)->pos++, (t)->col++))
-#define cur(t) ((t)->pos < (t)->codeLen ? (t)->code[(t)->pos] : 0)
+#define cur(t) ((t)->pos < (t)->codeLen ? (t)->code[(t)->pos] : '\0')
 #define get(t, offset)                                                         \
-	((t)->pos + (offset) < (t)->codeLen ? (t)->code[(t)->pos + (offset)] : 0)
+	((t)->pos + (offset) < (t)->codeLen ? (t)->code[(t)->pos + (offset)] : '\0')
 
-enum TCode next_line(struct Tzer *t) {
+enum TCode next_line(struct Tzer *t, struct Token *token) {
 	next(t);
 	t->col = 0;
 	t->line++;
-	return EOF;
+	token->view = EMPTY_STR;
+	return SLASHN;
 }
 
 enum TCode num_token(struct Tzer *t, struct Token *token) {
@@ -78,7 +82,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 			c = cur(t);
 			num_len++;
 		}
-		if (c < '0' && c > '9')
+		if (c < '0' || c > '9')
 			break;
 		num_len++;
 	}
@@ -91,11 +95,18 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 		token->number = atol(num_view);
 	else
 		token->fpn = atof(num_view);
+
+	token->view = num_view;
 	return code;
 }
 
+enum TCode str_token(struct Tzer *t, struct Token *token) { return EOF; }
+enum TCode usable_token(struct Tzer *t, struct Token *token) { return EOF; }
+enum TCode usable_char(char c) { return EOF; }
+
 struct Token *new_token(struct Tzer *t) {
-	while (cur(t) == 10 || cur(t) == 13) // for sure for windows
+	while (cur(t) == ' ' || cur(t) == 13 ||
+		   cur(t) == '\t') // for sure for windows
 		next(t);
 
 	unsigned char c = cur(t);
@@ -104,10 +115,11 @@ struct Token *new_token(struct Tzer *t) {
 	token->line = t->line;
 	token->col = t->col;
 
-	if (c == 0)
+	// everu of funcs that takes t and token shall assign view to token
+	if (c == '\0')
 		code = EOF;
-	else if (c == 10)
-		code = next_line(t);
+	else if (c == '\n')
+		code = next_line(t, token);
 	else if (c >= '0' && c <= '9')
 		code = num_token(t, token);
 	else if (c == '"')
