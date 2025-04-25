@@ -244,7 +244,23 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 }
 
 enum TCode id_token(struct Tzer *t, struct Token *token) { return EOF; }
-enum TCode com_token(struct Tzer *t, struct Token *token) { return EOF; }
+
+enum TCode com_token(struct Tzer *t, struct Token *token) {
+	long start_pos = t->pos, com_len = 1;
+	next(t);
+	char *com_view;
+	while (cur(t) != '\n') {
+		next(t);
+		com_len++;
+	}
+
+	com_view = malloc(com_len + 1);
+	com_view[com_len] = 0;
+	strncpy(com_view, &t->code[start_pos], com_len);
+
+	token->view = com_view;
+	return COM;
+}
 
 struct Token *new_token(struct Tzer *t) {
 	while (cur(t) == ' ' || cur(t) == 13 ||

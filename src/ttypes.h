@@ -7,7 +7,7 @@ enum TCode {
 	SLASHN, // \n
 	SEMI,	// ;
 	COLO,	// :
-	COMM,	// comment
+	COM,	// comment
 	SLASH,	// \_
 	EOF,
 	// LITERALS
