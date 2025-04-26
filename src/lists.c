@@ -28,7 +28,6 @@ void *plist_set(struct PList *l, long i, void *p) {
 	return old;
 }
 
-
 struct BList *new_blist(long cap_pace) {
 	struct BList *l = malloc(sizeof(struct BList));
 	l->cap_pace = cap_pace;
