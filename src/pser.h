@@ -12,6 +12,7 @@ enum ICode {
 	IENTRY,
 	ISEGMENT,
 	ILABEL,
+	IMOV,
 	IADD,
 	ISUB,
 	IIMUL,

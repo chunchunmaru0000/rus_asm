@@ -29,14 +29,14 @@ struct Inst *new_inst(enum ICode code, struct PList *os, struct Token *t) {
 	return i;
 }
 
-struct Token *get(struct Pser *p, long off) {
+struct Token *gettp(struct Pser *p, long off) {
 	long i = p->pos + off;
 	return p->ts->size > i ? p->ts->st[i] : p->ts->st[p->ts->size - 1];
 }
 
 struct Token *next_get(struct Pser *p, long off) {
 	p->pos++;
-	return get(p, off);
+	return gettp(p, off);
 }
 
 // directives
@@ -46,7 +46,7 @@ const char *STR_SEG_TEXT = "\".текст\"";
 const char *STR_SEG_DATA = "\".данные\"";
 const char *STR_EOF = "__КФ__";
 // instruction words
-const char *STR_LET = "быть";
+const char *STR_IMOV = "быть";
 const char *STR_PLUS = "плюс";
 const char *STR_MINS = "минс";
 const char *STR_IMUL = "зумн";
@@ -65,7 +65,7 @@ const char *STR_RSP = "рсп";
 const char *STR_RBP = "рбп";
 
 uc sc(char *view, const char *str) {
-	printf("[%s]==[%s]\n", view, str);
+	// printf("[%s]==[%s]\n", view, str);
 	return strcmp(view, str) == 0;
 }
 uc cont_str(char *view, const char **strs, long strs_len) {
@@ -75,51 +75,74 @@ uc cont_str(char *view, const char **strs, long strs_len) {
 	return 0;
 }
 
-enum ICode entry_i(struct Pser *p) {
-	next_get(p, 0);
+enum ICode entry_i(struct Pser *p, struct PList *os) {
+	plist_add(os, next_get(p, 0));
 	next_get(p, 0);
 	return IENTRY;
 }
-enum ICode seg_i(struct Pser *p) {
-	next_get(p, 0);
+enum ICode seg_i(struct Pser *p, struct PList *os) {
+	plist_add(os, next_get(p, 0));
 	next_get(p, 0);
 	return ISEGMENT;
 }
-enum ICode two_ops_i(struct Pser *p) {
+enum ICode two_ops_i(struct Pser *p, struct PList *os) {
+	char *v = ((struct Token *)gettp(p, 0))->view;
+	enum ICode code;
+
+	plist_add(os, next_get(p, 0)); // skip inst get fst op
+	plist_add(os, next_get(p, 0)); // fst op    get snd op
+	next_get(p, 0);				   // skip snd op
+
+	if (sc(v, STR_IMOV))
+		code = IMOV;
+	else if (sc(v, STR_PLUS))
+		code = IADD;
+	else if (sc(v, STR_MINS))
+		code = ISUB;
+	else if (sc(v, STR_IMUL))
+		code = IIMUL;
+	// else
+
+	return code;
+}
+enum ICode syscall_i(struct Pser *p) {
 	next_get(p, 0);
-	next_get(p, 0);
-	next_get(p, 0);
-	return IADD;
+	return ISYSCALL;
 }
 
-enum ICode skip(struct Pser *p, long s) {
-	while (s--)
-		next_get(p, 0);
+enum ICode label_i(struct Pser *p, struct PList *os) {
+	plist_add(os, gettp(p, 0));
+	next_get(p, 0); // skip label
+	next_get(p, 0); // skip :
 	return ILABEL;
 }
 
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
-	struct Token *cur = get(p, 0);
+	struct Token *cur = gettp(p, 0), *n;
 	while (cur->code == SLASHN)
 		cur = next_get(p, 0);
 	char *cv = cur->view;
+	n = gettp(p, 1);
 	enum ICode code;
 
+	// fill *os in funcs
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
-		if (sc(cv, STR_ENTRY))
-			code = entry_i(p);
+		if (cont_str(cv, TWO_OPS_STRS, LTWO_OPS_STRS))
+			code = two_ops_i(p, os);
+		else if (sc(cv, STR_SCAL))
+			code = syscall_i(p);
+		else if (n->code == COLO)
+			code = label_i(p, os);
 		else if (sc(cv, STR_SEG))
-			code = seg_i(p);
-		else if (cont_str(cv, TWO_OPS_STRS, LTWO_OPS_STRS))
-			code = two_ops_i(p);
+			code = seg_i(p, os);
+		else if (sc(cv, STR_ENTRY))
+			code = entry_i(p, os);
 		else
-			code = skip(p, 2); // eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
-	} else if (cur->code == STR)
-		code = skip(p, 5);
-	else
+			eep(n, "НЕИЗВЕСТНАЯ КОМАНДА");
+	} else
 		eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 
 	return new_inst(code, os, cur);
