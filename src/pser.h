@@ -27,5 +27,6 @@ struct Inst {
 	struct PList *os; // operands
 	long col;
 	long line;
+	char *file;
 };
 struct Inst *new_inst(enum ICode, struct PList *, struct Token *);

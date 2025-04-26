@@ -26,6 +26,7 @@ struct Inst *new_inst(enum ICode code, struct PList *os, struct Token *t) {
 	i->os = os;
 	i->col = t->col;
 	i->line = t->line;
+	i->file = fn;
 	return i;
 }
 
