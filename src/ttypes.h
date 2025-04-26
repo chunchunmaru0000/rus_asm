@@ -8,7 +8,7 @@ enum TCode {
 	COM,	// comment
 	SLASH,	// \_
 	COMMA,	// ,
-	EOF,
+	EF,
 	// LITERALS
 	INT,  // int literal
 	REAL, // float literal

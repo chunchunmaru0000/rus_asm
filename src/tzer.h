@@ -1,5 +1,5 @@
 #include "ttypes.h"
-#include "plist.h"
+#include "lists.h"
 
 struct Tzer {
 	char *filename;

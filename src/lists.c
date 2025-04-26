@@ -1,7 +1,7 @@
-#include "plist.h"
+#include "lists.h"
 #include <stdlib.h>
 
-struct PList *new_list(long cap_pace) {
+struct PList *new_plist(long cap_pace) {
 	struct PList *l = malloc(sizeof(struct PList));
 	l->cap_pace = cap_pace;
 	l->cap = cap_pace;
@@ -10,7 +10,7 @@ struct PList *new_list(long cap_pace) {
 	return l;
 }
 
-long list_add(struct PList *l, void *p) {
+long plist_add(struct PList *l, void *p) {
 	if (l->size >= l->cap) {
 		l->cap += l->cap_pace;
 		l->st = realloc(l->st, l->cap * sizeof(void *));
@@ -20,9 +20,9 @@ long list_add(struct PList *l, void *p) {
 	return l->size;
 }
 
-void *list_get(struct PList *l, long i) { return l->st[i]; }
+void *plist_get(struct PList *l, long i) { return l->st[i]; }
 
-void *list_set(struct PList *l, long i, void *p) {
+void *plist_set(struct PList *l, long i, void *p) {
 	void *old = l->st[i];
 	l->st[i] = p;
 	return old;

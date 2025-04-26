@@ -9,7 +9,7 @@ int main() {
 	struct Token *token;
 	struct PList *l = get_tokens(t, 10);
 	for (int i = 0; i < l->size; i++) {
-		token = list_get(l, i);
+		token = plist_get(l, i);
 		printf("%s:%ld:%ld:token: %s : %d\n", filename, token->line, token->col,
 			   token->view, token->code);
 	}

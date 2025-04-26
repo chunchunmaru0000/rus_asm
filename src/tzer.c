@@ -284,7 +284,7 @@ struct Token *new_token(struct Tzer *t) {
 
 	// every of funcs that takes token shall assign view to token
 	if (c == '\0')
-		code = EOF;
+		code = EF;
 	else if (c == ';')
 		code = com_token(t, token);
 	else if (c == '\n')
@@ -304,14 +304,16 @@ struct Token *new_token(struct Tzer *t) {
 
 struct PList *get_tokens(struct Tzer *t, long list_cap) {
 	struct Token *token;
-	struct PList *l = new_list(list_cap);
+	struct PList *l = new_plist(list_cap);
 
 	token = new_token(t);
-	while (token->code != EOF) {
+	while (token->code != EF) {
 		if (token->code != COM)
-			list_add(l, token);
+			plist_add(l, token);
 		token = new_token(t);
 	}
+	token->view = EMPTY_STR;
+	plist_add(l, token);
 
 	return l;
 }
