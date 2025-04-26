@@ -13,4 +13,4 @@ struct Tzer {
 
 struct Tzer *new_tzer(char *);
 struct Token *new_token(struct Tzer *);
-struct PList *get_tokens(struct Tzer *, long);
+struct PList *tze(struct Tzer *, long);

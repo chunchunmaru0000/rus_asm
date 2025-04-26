@@ -1,3 +1,9 @@
+enum Target {
+	Linux_ELF_86_64,
+	Linux_OBJ_86_64,
+	Windows_EXE_86_64,
+};
+
 enum TCode {
 	// WORD
 	ID, // identifier

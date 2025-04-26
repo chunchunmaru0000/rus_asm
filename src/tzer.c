@@ -4,6 +4,7 @@
 #include <string.h>
 
 char *EMPTY_STR = "_";
+char *EOF_STR = "__КФ__"; // конец файла
 
 void ee(struct Tzer *t, char *msg) { // error exit
 	fprintf(stderr, "%s:%ld:%ld %s\n", t->filename, t->line, t->col, msg);
@@ -239,7 +240,7 @@ enum TCode com_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, com_len = 1;
 	next(t);
 	char *com_view;
-	while (cur(t) != '\n') {
+	while (cur(t) != '\n' && cur(t) != '\0') {
 		next(t);
 		com_len++;
 	}
@@ -302,15 +303,16 @@ struct Token *new_token(struct Tzer *t) {
 	return token;
 }
 
-struct PList *get_tokens(struct Tzer *t, long list_cap) {
-	struct Token *token;
+struct PList *tze(struct Tzer *t, long list_cap) {
 	struct PList *l = new_plist(list_cap);
 
-	token = new_token(t);
+	struct Token *token = new_token(t);
 	while (token->code != EF) {
 		if (token->code != COM)
 			plist_add(l, token);
 		token = new_token(t);
+		// printf("%s:%ld:%ld:%s\n", t->filename, token->line, token->col,
+		// token->view);
 	}
 	token->view = EMPTY_STR;
 	plist_add(l, token);
