@@ -33,11 +33,14 @@ struct ELFH { // ELF Header
 };
 
 struct ELFPH { // ELF Program Header
-
+	uc type[4];
+	uc flags[4]; // bits
+	uc offset[8];
+	uc vaddr[8];
+	uc paddr[8];
 };
 
 struct ELFSH { // ELF Segment Header
-
 };
 
 struct Gner *new_gner(struct PList *, enum Target t);
