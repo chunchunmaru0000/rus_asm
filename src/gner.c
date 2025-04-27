@@ -34,7 +34,8 @@ void gen(struct Gner *g) {
 
 	switch (g->t) {
 	case Linux_ELF_86_64:
-		gen_Linux_ELF_86_64_text(g, &entry);
+		entry = 0xb0;
+		// gen_Linux_ELF_86_64_text(g, &entry);
 		h = new_elfh(g, entry, 0x40, 0x01, 0x00, 0x00);
 		gen_Linux_ELF_86_64_prolog(g, h);
 
@@ -51,8 +52,13 @@ const uc ELFH_MAG[] = {0x7f, 0x45, 0x4c, 0x46};
 const uc ELFH_INDENT[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 const uc ELFH_TYPE_EXEC[] = {0x02, 0x00};
 const uc ELFH_TYPE_DYN[] = {0x03, 0x00}; // not sure about this
-const uc ELFH_MACHINE_AMDx86_64[] = {0x3e, 0x00};
+const uc ELFH_MACHINE_AMD_x86_64[] = {0x3e, 0x00};
 const uc ELFH_FORMAT_VERSION[] = {0x01, 0x00, 0x00, 0x00}; // only possible
+const uc ELFH_SHSTRNDX[] = {0x00, 0x00};
+const uc ELFH_FLAGS[] = {0x00, 0x00, 0x00, 0x00};
+const uc ELFH_EHSIZE[] = {0x40, 0x00}; // 64 for 64 bit
+const uc ELFH_PHSIZE[] = {0x38, 0x00}; // 56 for 64 bit
+const uc ELFH_SHSIZE[] = {0x40, 0x00}; // 64 for 64 bit
 
 struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 					  long shoff, short shn) {
@@ -65,11 +71,18 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 	h->osabi = 0;		// UNIX System V ABI
 	memcpy(h->indent, ELFH_INDENT, 8);
 
-	memcpy(h->machine, ELFH_MACHINE_AMDx86_64, 2);
+	memcpy(h->machine, ELFH_MACHINE_AMD_x86_64, 2);
 	memcpy(h->format_version, ELFH_FORMAT_VERSION, 4);
 	memcpy(h->entry, &entrytoff, sizeof(long));
 	memcpy(h->phoff, &phoff, sizeof(long));
 	memcpy(h->shoff, &shoff, sizeof(long));
+	memcpy(h->flags, ELFH_FLAGS, 4);
+	memcpy(h->ehsize, ELFH_EHSIZE, 2);
+	memcpy(h->phsize, ELFH_PHSIZE, 2);
+	memcpy(h->phnum, &phn, 2);
+	memcpy(h->shsize, ELFH_SHSIZE, 2);
+	memcpy(h->shnum, &shn, 2);
+	memcpy(h->shstrndx, ELFH_SHSTRNDX, 2);
 
 	switch (g->t) {
 	case Linux_ELF_86_64:

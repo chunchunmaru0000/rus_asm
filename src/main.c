@@ -3,6 +3,7 @@
 
 int main() {
 	char filename[] = "тест.асм";
+	char outname[] = "тест";
 	enum Target tr = Linux_ELF_86_64;
 
 	struct Pser *p = new_pser(filename);
@@ -10,11 +11,14 @@ int main() {
 	struct Inst *in;
 	for (int i = 0; i < is->size; i++) {
 		in = plist_get(is, i);
-		printf("i %s:%ld:%ld:t: %d\n", filename, in->line, in->col, in->code);
+		//printf("i %s:%ld:%ld:t: %d\n", filename, in->line, in->col, in->code);
 	}
 
-	struct Gner *g = new_gner(is);
-	gen(g, tr);
+	struct Gner *g = new_gner(is, tr);
+	gen(g);
+
+	FILE *f = fopen(outname, "wb");
+	fwrite(g->prol->st, 1, g->prol->size, f);
 
 	return 0;
 }
