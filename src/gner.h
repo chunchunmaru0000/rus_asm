@@ -1,4 +1,5 @@
 #include "pser.h"
+#include <stdint.h>
 
 struct Gner {
 	enum Target t;
@@ -33,11 +34,14 @@ struct ELFH { // ELF Header
 };
 
 struct ELFPH { // ELF Program Header
-	uc type[4];
-	uc flags[4]; // bits
-	uc offset[8];
-	uc vaddr[8];
-	uc paddr[8];
+	int type;
+	int flags; // bits
+	uint64_t offset;
+	uint64_t vaddr;  // addr
+	uint64_t paddr;  // addr
+	uint64_t filesz; // size
+	uint64_t memsz;  // size
+	uint64_t align;
 };
 
 struct ELFSH { // ELF Segment Header

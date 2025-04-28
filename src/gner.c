@@ -1,4 +1,5 @@
 #include "gner.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +26,7 @@ struct Gner *new_gner(struct PList *is, enum Target t) {
 }
 
 void gen_Linux_ELF_86_64_prolog(struct Gner *, struct ELFH *);
+struct ELFPH *new_ph(int, uc r, uc w, uc x, uint64_t, uint64_t, uint64_t);
 void gen_Linux_ELF_86_64_text(struct Gner *, long *);
 struct ELFH *new_elfh(struct Gner *, long, long, short, long, short);
 
@@ -38,6 +40,8 @@ void gen(struct Gner *g) {
 		// gen_Linux_ELF_86_64_text(g, &entry);
 		h = new_elfh(g, entry, 0x40, 0x01, 0x00, 0x00);
 		gen_Linux_ELF_86_64_prolog(g, h);
+		blat(g->prol, (uc *)new_ph(1, 1, 0, 1, 0, 10, 10),
+			 sizeof(struct ELFPH));
 
 		free(h);
 		break;
@@ -95,6 +99,21 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 		eeg("НЕ ДОСТУПНАЯ ЦЕЛЬ КОМПИЛЯЦИИ НА ДАННЫЙ МОМЕНТ", g->is->st[0]);
 	}
 	return h;
+}
+
+struct ELFPH *new_ph(int t, uc r, uc w, uc x, uint64_t off, uint64_t addr,
+					 uint64_t sz) {
+	struct ELFPH *ph = malloc(sizeof(struct ELFPH));
+	ph->type = t;
+	ph->flags = (r << 2) | (w << 1) | x;
+	ph->offset = off;
+	ph->vaddr = addr;
+	ph->paddr = addr;
+	ph->filesz = sz;
+	ph->memsz = sz;
+	ph->align = 0x0100;
+
+	return ph;
 }
 
 // machine codes
