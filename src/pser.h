@@ -1,5 +1,7 @@
 #include "tzer.h"
 
+uc sc(char *, const char *);
+
 struct Pser {
 	struct PList *ts; // tokens
 	long pos;

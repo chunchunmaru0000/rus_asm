@@ -1,16 +1,11 @@
 #include "pser.h"
 #include <stdint.h>
 
-struct Gner {
-	enum Target t;
-	struct PList *is;
-	long pos;
-	struct BList *prol;
-	struct BList *text;
-
-	uint64_t entry;
-	struct PList *phs; // program headers
-	struct PList *shs; // section headers
+// for label and maybe variables that have a string view and ptr to value
+struct Plov { // Pointer Label Of Value
+	char *l; // label
+	uint64_t a; // adress
+	// uint64_t size; // like for db dd dw dq
 };
 
 struct ELFH { // ELF Header
@@ -23,7 +18,7 @@ struct ELFH { // ELF Header
 	uc type[2];
 	uc machine[2];
 	uc format_version[4];
-	uc entry[8];
+	uint64_t entry;
 	uc phoff[8];
 	uc shoff[8];
 	uc flags[4];
@@ -39,14 +34,28 @@ struct ELFPH { // ELF Program Header
 	int type;
 	int flags; // bits
 	uint64_t offset;
-	uint64_t vaddr;  // addr
-	uint64_t paddr;  // addr
+	uint64_t vaddr;	 // addr
+	uint64_t paddr;	 // addr
 	uint64_t filesz; // size
-	uint64_t memsz;  // size
+	uint64_t memsz;	 // size
 	uint64_t align;
 };
 
 struct ELFSH { // ELF Segment Header
+};
+
+struct Gner {
+	enum Target t;
+	struct PList *is;
+	long pos;
+	struct BList *prol;
+	struct BList *text;
+
+	uint64_t pie;
+	struct ELFH *elfh;
+	struct PList *lps; // labels plovs
+	struct PList *phs; // program headers
+	struct PList *shs; // section headers
 };
 
 struct Gner *new_gner(struct PList *, enum Target t);

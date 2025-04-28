@@ -23,32 +23,31 @@ struct Gner *new_gner(struct PList *is, enum Target t) {
 	g->prol = new_blist(100);
 	g->text = new_blist(100);
 
-	g->entry = 0;
+	g->pie = 0x400000;
+	g->lps = new_plist(5);
 	g->phs = new_plist(3);
 	g->shs = new_plist(1);
 	return g;
 }
 
-void gen_Linux_ELF_86_64_prolog(struct Gner *, struct ELFH *);
+void gen_Linux_ELF_86_64_prolog(struct Gner *);
 void gen_Linux_ELF_86_64_text(struct Gner *);
 struct ELFPH *new_ph(int, int, uint64_t, uint64_t, uint64_t);
 struct ELFH *new_elfh(struct Gner *, long, long, short, long, short);
+struct Plov *new_label(struct Gner *, struct Inst *);
 
 void gen(struct Gner *g) {
 	switch (g->t) {
 	case Linux_ELF_86_64:
+		gen_Linux_ELF_86_64_prolog(g);
 		gen_Linux_ELF_86_64_text(g);
 
-		struct ELFH *h;
-		h = new_elfh(g, g->entry, 0x40, g->phs->size, 0x00, g->shs->size);
-
-		gen_Linux_ELF_86_64_prolog(g, h);
+		// is it should be here or do separate function like bze_prolog
+		blat(g->prol, (uc *)g->elfh, sizeof(struct ELFH));
 		for (int i = 0; i < g->phs->size; i++)
 			blat(g->prol, plist_get(g->phs, i), sizeof(struct ELFPH));
 		for (int i = 0; i < g->shs->size; i++)
 			blat(g->prol, plist_get(g->shs, i), sizeof(struct ELFSH));
-
-		free(h);
 		break;
 	case Linux_OBJ_86_64:
 		break;
@@ -82,7 +81,7 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 
 	memcpy(h->machine, ELFH_MACHINE_AMD_x86_64, 2);
 	memcpy(h->format_version, ELFH_FORMAT_VERSION, 4);
-	memcpy(h->entry, &entrytoff, sizeof(long));
+	h->entry = entrytoff;
 	memcpy(h->phoff, &phoff, sizeof(long));
 	memcpy(h->shoff, &shoff, sizeof(long));
 	memcpy(h->flags, ELFH_FLAGS, 4);
@@ -121,12 +120,39 @@ struct ELFPH *new_ph(int t, int flags, uint64_t off, uint64_t addr,
 	return ph;
 }
 
+struct Plov *new_label(struct Gner *g, struct Inst *in) {
+	struct Plov *p = malloc(sizeof(struct Plov));
+
+	p->l = ((struct Token *)in->os->st[0])->view;
+	p->a = g->pie; // + first ph memsz;
+
+	return p;
+}
+
 // machine codes
 const uc MLESYSCALL[] = {0x0f, 0x05};
 
-void gen_Linux_ELF_86_64_prolog(struct Gner *g, struct ELFH *h) {
-	struct BList *l = g->prol;
-	blat(l, (uc *)h, sizeof(struct ELFH));
+void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
+	long i;
+	int *flags;
+	struct Inst *in;
+	struct ELFPH *ph;
+	// struct ELFSH *sh;
+
+	for (i = 0; i < g->is->size; i++) {
+		in = plist_get(g->is, i);
+
+		if (in->code == ISEGMENT) {
+			flags = plist_get(in->os, 0);
+			// type =   1,  flags, offset,     adress,     size
+			ph = new_ph(1, *flags, 0x7366666f, 0x72646461, 0x657a6973);
+			plist_add(g->phs, ph);
+		} else if (in->code == ILABEL) {
+			plist_add(g->lps, new_label(g, in));
+		}
+	}
+	// entry = 0 but will be editet
+	g->elfh = new_elfh(g, 0, 0x40, g->phs->size, 0x00, g->shs->size);
 }
 
 void *alloc_len(long len, long *buf_len) {
@@ -134,40 +160,61 @@ void *alloc_len(long len, long *buf_len) {
 	return malloc(len);
 }
 
-long get_label_offset(char *label) { return 0xb0; }
+struct Plov *find_label(struct Gner *g, char *s) {
+	struct Plov *l;
+	for (long i = 0; i < g->lps->size; i++) {
+		l = g->lps->st[i];
+		if (sc(l->l, s))
+			return l;
+	}
+	return 0;
+}
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i = 0, j, buf_len;
+	long i, buf_len;
 	long *blp = &buf_len; // buf len ptr
-	uint64_t off;
 	struct Inst *in;
 	struct Token *tok;
-	struct ELFPH *ph;
-	struct ELFSH *sh;
+	struct Plov *l;
+	// struct ELFPH *ph;
+	long phs_counter = 0;
+	// struct ELFSH *sh;
 	uc *ibuff;
-	for (; i < g->is->size; i++) {
+	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 		buf_len = 0;
 
 		switch (in->code) {
+		case ILABEL:
+			tok = plist_get(in->os, 0);
+			l = find_label(g, tok->view);
+			l->a += g->text->size;
+			break;
 		case ISYSCALL:
 			ibuff = alloc_len(2, blp);
 			memcpy(ibuff, MLESYSCALL, 2);
 			break;
 		case ISEGMENT:
-			ph = new_ph(1, *((int *)in->os->st[0]), 10, 11, 12);
-			plist_add(g->phs, ph);
+			// phs_counter++;
+			// ph = g->phs->st[phs_counter];
+			// plist_add(g->phs, ph);
+			//  do segment adress and offset and size for prev segment
 			break;
-		case IENTRY:
-			tok = in->os->st[0];
-			g->entry = get_label_offset(tok->view);
-			break;
-			//		default:
-			//			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
+			//	default:
+			//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
 		if (buf_len) {
 			blat(g->text, ibuff, buf_len);
 			free(ibuff);
+		}
+	}
+
+	for (i = 0; i < g->is->size; i++) {
+		in = plist_get(g->is, i);
+		if (in->code == IENTRY) {
+			tok = in->os->st[0];
+			l = find_label(g, tok->view);
+			g->elfh->entry = l->a;
 		}
 	}
 }
