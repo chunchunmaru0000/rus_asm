@@ -7,8 +7,10 @@ struct Gner {
 	long pos;
 	struct BList *prol;
 	struct BList *text;
-	//	struct BList *data;
-	//	struct BList *bss;
+
+	uint64_t entry;
+	struct PList *phs; // program headers
+	struct PList *shs; // section headers
 };
 
 struct ELFH { // ELF Header

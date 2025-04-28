@@ -22,26 +22,32 @@ struct Gner *new_gner(struct PList *is, enum Target t) {
 	g->pos = 0;
 	g->prol = new_blist(100);
 	g->text = new_blist(100);
+
+	g->entry = 0;
+	g->phs = new_plist(3);
+	g->shs = new_plist(1);
 	return g;
 }
 
 void gen_Linux_ELF_86_64_prolog(struct Gner *, struct ELFH *);
+void gen_Linux_ELF_86_64_text(struct Gner *);
 struct ELFPH *new_ph(int, uc r, uc w, uc x, uint64_t, uint64_t, uint64_t);
-void gen_Linux_ELF_86_64_text(struct Gner *, long *);
 struct ELFH *new_elfh(struct Gner *, long, long, short, long, short);
 
 void gen(struct Gner *g) {
-	struct ELFH *h;
-	long entry;
-
 	switch (g->t) {
 	case Linux_ELF_86_64:
-		entry = 0xb0;
-		// gen_Linux_ELF_86_64_text(g, &entry);
-		h = new_elfh(g, entry, 0x40, 0x01, 0x00, 0x00);
+		gen_Linux_ELF_86_64_text(g);
+
+		plist_add(g->phs, new_ph(1, 1, 0, 1, 0, 10, 10));
+		struct ELFH *h;
+		h = new_elfh(g, g->entry, 0x40, g->phs->size, 0x00, g->shs->size);
+
 		gen_Linux_ELF_86_64_prolog(g, h);
-		blat(g->prol, (uc *)new_ph(1, 1, 0, 1, 0, 10, 10),
-			 sizeof(struct ELFPH));
+		for (int i = 0; i < g->phs->size; i++)
+			blat(g->prol, plist_get(g->phs, i), sizeof(struct ELFPH));
+		for (int i = 0; i < g->shs->size; i++)
+			blat(g->prol, plist_get(g->shs, i), sizeof(struct ELFSH));
 
 		free(h);
 		break;
@@ -131,7 +137,7 @@ void *alloc_len(long len, long *buf_len) {
 
 long get_label_offset(char *label) { return 0xb0; }
 
-void gen_Linux_ELF_86_64_text(struct Gner *g, long *entry_off) {
+void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i = 0, buf_len;
 	long *blp = &buf_len; // buf len ptr
 	struct Inst *in;
@@ -147,10 +153,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g, long *entry_off) {
 			break;
 		case IENTRY:
 			tok = in->os->st[0];
-			*entry_off = get_label_offset(tok->view);
+			g->entry = get_label_offset(tok->view);
 			break;
-		default:
-			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
+			//		default:
+			//			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
 		blat(g->text, ibuff, buf_len);
 	}
