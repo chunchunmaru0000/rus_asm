@@ -11,6 +11,7 @@ enum ICode {
 	IEOI, // end of instructions
 	IENTRY,
 	ISEGMENT,
+	ISECTION,
 	ILABEL,
 	IMOV,
 	IADD,

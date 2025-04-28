@@ -42,7 +42,10 @@ struct Token *next_get(struct Pser *p, long off) {
 
 // directives
 const char *STR_ENTRY = "вход";
-const char *STR_SEG = "сегмент";
+const char *STR_SEG = "участок";
+const char *STR_SEG_R = "чит";
+const char *STR_SEG_W = "изм";
+const char *STR_SEG_X = "исп";
 const char *STR_SEG_TEXT = "\".текст\"";
 const char *STR_SEG_DATA = "\".данные\"";
 const char *STR_EOF = "__КФ__";
@@ -82,8 +85,22 @@ enum ICode entry_i(struct Pser *p, struct PList *os) {
 	return IENTRY;
 }
 enum ICode seg_i(struct Pser *p, struct PList *os) {
-	plist_add(os, next_get(p, 0));
-	next_get(p, 0);
+	struct Token *t = next_get(p, 0);
+	int *flags = malloc(sizeof(int));
+	if (t->code == INT)
+		*flags = t->number;
+	else
+		while (t->code != SLASHN) {
+			if (sc(t->view, STR_SEG_X))
+				*flags |= 0b1;
+			else if (sc(t->view, STR_SEG_W))
+				*flags |= 0b10;
+			else if (sc(t->view, STR_SEG_R))
+				*flags |= 0b100;
+			t = next_get(p, 0);
+		}
+	next_get(p, 0); // skip \n
+	plist_add(os, flags);
 	return ISEGMENT;
 }
 enum ICode two_ops_i(struct Pser *p, struct PList *os) {

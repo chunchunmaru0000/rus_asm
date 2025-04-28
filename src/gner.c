@@ -31,7 +31,7 @@ struct Gner *new_gner(struct PList *is, enum Target t) {
 
 void gen_Linux_ELF_86_64_prolog(struct Gner *, struct ELFH *);
 void gen_Linux_ELF_86_64_text(struct Gner *);
-struct ELFPH *new_ph(int, uc r, uc w, uc x, uint64_t, uint64_t, uint64_t);
+struct ELFPH *new_ph(int, int, uint64_t, uint64_t, uint64_t);
 struct ELFH *new_elfh(struct Gner *, long, long, short, long, short);
 
 void gen(struct Gner *g) {
@@ -39,7 +39,6 @@ void gen(struct Gner *g) {
 	case Linux_ELF_86_64:
 		gen_Linux_ELF_86_64_text(g);
 
-		plist_add(g->phs, new_ph(1, 1, 0, 1, 0, 10, 10));
 		struct ELFH *h;
 		h = new_elfh(g, g->entry, 0x40, g->phs->size, 0x00, g->shs->size);
 
@@ -107,11 +106,11 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 	return h;
 }
 
-struct ELFPH *new_ph(int t, uc r, uc w, uc x, uint64_t off, uint64_t addr,
+struct ELFPH *new_ph(int t, int flags, uint64_t off, uint64_t addr,
 					 uint64_t sz) {
 	struct ELFPH *ph = malloc(sizeof(struct ELFPH));
 	ph->type = t;
-	ph->flags = (r << 2) | (w << 1) | x;
+	ph->flags = flags;
 	ph->offset = off;
 	ph->vaddr = addr;
 	ph->paddr = addr;
@@ -138,15 +137,21 @@ void *alloc_len(long len, long *buf_len) {
 long get_label_offset(char *label) { return 0xb0; }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i = 0, buf_len;
+	long i = 0, j, buf_len;
 	long *blp = &buf_len; // buf len ptr
+	uint64_t off;
 	struct Inst *in;
 	struct Token *tok;
+	struct ELFPH *ph;
+	struct ELFSH *sh;
 	uc *ibuff;
 	for (; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 
 		switch (in->code) {
+		case ISEGMENT:
+			ph = new_ph(1, *((int *)in->os->st[0]), 10, 11, 12);
+			plist_add(g->phs, ph);
 		case ISYSCALL:
 			ibuff = alloc_len(2, blp);
 			memcpy(ibuff, MLESYSCALL, 2);
