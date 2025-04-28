@@ -147,14 +147,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	uc *ibuff;
 	for (; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
+		buf_len = 0;
 
 		switch (in->code) {
-		case ISEGMENT:
-			ph = new_ph(1, *((int *)in->os->st[0]), 10, 11, 12);
-			plist_add(g->phs, ph);
 		case ISYSCALL:
 			ibuff = alloc_len(2, blp);
 			memcpy(ibuff, MLESYSCALL, 2);
+			break;
+		case ISEGMENT:
+			ph = new_ph(1, *((int *)in->os->st[0]), 10, 11, 12);
+			plist_add(g->phs, ph);
 			break;
 		case IENTRY:
 			tok = in->os->st[0];
@@ -163,6 +165,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			//		default:
 			//			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
-		blat(g->text, ibuff, buf_len);
+		if (buf_len) {
+			blat(g->text, ibuff, buf_len);
+			free(ibuff);
+		}
 	}
 }
