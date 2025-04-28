@@ -160,6 +160,11 @@ void *alloc_len(long len, long *buf_len) {
 	return malloc(len);
 }
 
+void cpy_len(uc *buf, long *tbuf, long value, int len) {
+	*tbuf = value;
+	memcpy(buf, tbuf, len);
+}
+
 struct Plov *find_label(struct Gner *g, char *s) {
 	struct Plov *l;
 	for (long i = 0; i < g->lps->size; i++) {
@@ -171,22 +176,50 @@ struct Plov *find_label(struct Gner *g, char *s) {
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i, buf_len, last_text_sz;
-	long *blp = &buf_len; // buf len ptr
+	long i, last_text_sz;
+	long tmpb, *tmpp = &tmpb;	   // temp buf and ptr to buf
+	long buf_len, *blp = &buf_len; // buf len ptr
+	uc *ibuff;
 	long all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
+	enum ICode code;
 	struct Inst *in;
 	struct Token *tok;
 	struct Plov *l;
 	struct ELFPH *ph, *phl;
 	long phs_counter = 0;
 	// struct ELFSH *sh;
-	uc *ibuff;
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 		buf_len = 0;
+		code = in->code;
 
-		switch (in->code) {
+		if (code >= IMOV_EAX_INT && IMOV_EDI_INT >= code) {
+			switch (code) {
+			case IMOV_EAX_INT:
+				tok = plist_get(in->os, 1);
+				ibuff = alloc_len(5, blp);
+				cpy_len(ibuff, tmpp, 0xb8, 1);
+				cpy_len(ibuff + 1, tmpp, tok->number, 4);
+				break;
+			case IMOV_EDI_INT:
+				tok = plist_get(in->os, 1);
+				ibuff = alloc_len(5, blp);
+				cpy_len(ibuff, tmpp, 0xbf, 1);
+				cpy_len(ibuff + 1, tmpp, tok->number, 4);
+				break;
+			default:
+				eeg("НЕИЗВЕСТНАЯ [быть] КОМАНДА", in);
+			}
+
+			if (buf_len) {
+				blat(g->text, ibuff, buf_len);
+				free(ibuff);
+			}
+			continue;
+		}
+
+		switch (code) {
 		case ILABEL:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
@@ -233,7 +266,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			break;
 		case IEOI:
 			phl = g->phs->st[phs_counter - 1];
-			phl->memsz = g->text->size - last_text_sz;
+			phl->memsz = g->phs->size == 1 ? phl->memsz + g->text->size
+										   : g->text->size - last_text_sz;
 			phl->filesz = phl->memsz;
 			break;
 			//	default:

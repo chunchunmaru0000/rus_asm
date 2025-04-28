@@ -59,10 +59,12 @@ const long LTWO_OPS_STRS = 4;
 const char *STR_CALL = "зов";
 const char *STR_SCAL = "сзов";
 // registers words
+const char *STR_EAX = "еах";
 const char *STR_RAX = "рах";
 const char *STR_RBX = "рбх";
 const char *STR_RCX = "рсх";
 const char *STR_RDX = "рдх";
+const char *STR_EDI = "еди";
 const char *STR_RDI = "рди";
 const char *STR_RSI = "рси";
 const char *STR_RSP = "рсп";
@@ -106,14 +108,33 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 	char *v = ((struct Token *)gettp(p, 0))->view;
 	enum ICode code;
+	struct Token *fst, *snd;
+	fst = next_get(p, 0);
+	snd = next_get(p, 0);
+	plist_add(os, fst);
+	plist_add(os, snd);
+	next_get(p, 0); // skip snd op
 
-	plist_add(os, next_get(p, 0)); // skip inst get fst op
-	plist_add(os, next_get(p, 0)); // fst op    get snd op
-	next_get(p, 0);				   // skip snd op
-
-	if (sc(v, STR_IMOV))
-		code = IMOV;
-	else if (sc(v, STR_PLUS))
+	if (sc(v, STR_IMOV)) {
+		if (sc(fst->view, STR_EAX)) {
+			switch (snd->code) {
+			case INT:
+				code = IMOV_EAX_INT;
+				break;
+			default:
+				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД");
+			}
+		} else if (sc(fst->view, STR_EDI)) {
+			switch (snd->code) {
+			case INT:
+				code = IMOV_EDI_INT;
+				break;
+			default:
+				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД");
+			}
+		} else
+			eep(fst, "НЕИЗВЕСТНАЙ ОПЕРАНД");
+	} else if (sc(v, STR_PLUS))
 		code = IADD;
 	else if (sc(v, STR_MINS))
 		code = ISUB;
