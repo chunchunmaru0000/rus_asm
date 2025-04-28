@@ -115,7 +115,7 @@ struct ELFPH *new_ph(int t, int flags, uint64_t off, uint64_t addr,
 	ph->paddr = addr;
 	ph->filesz = sz;
 	ph->memsz = sz;
-	ph->align = 0x0100;
+	ph->align = 0x1000;
 
 	return ph;
 }
@@ -171,15 +171,17 @@ struct Plov *find_label(struct Gner *g, char *s) {
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i, buf_len;
+	long i, buf_len, last_text_sz;
 	long *blp = &buf_len; // buf len ptr
+	long all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	struct Inst *in;
 	struct Token *tok;
 	struct Plov *l;
-	// struct ELFPH *ph;
+	struct ELFPH *ph, *phl;
 	long phs_counter = 0;
 	// struct ELFSH *sh;
 	uc *ibuff;
+
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 		buf_len = 0;
@@ -188,17 +190,51 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ILABEL:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
-			l->a += g->text->size;
+			l->a += g->text->size + all_h_sz;
+			printf("label [%s]\n\t[0x%08lx]\n", l->l, l->a);
 			break;
 		case ISYSCALL:
 			ibuff = alloc_len(2, blp);
 			memcpy(ibuff, MLESYSCALL, 2);
 			break;
 		case ISEGMENT:
-			// phs_counter++;
-			// ph = g->phs->st[phs_counter];
-			// plist_add(g->phs, ph);
+			/*
+			 * 0 offset = 0
+			 * 0 addr = 0 + pie
+			 * 0 size = all p h + elf h + segment size
+			 * i offset = last segment size + last segment offset
+			 * i addr = offset + align * (i - 1) + pie
+			 * i size = segment size
+			 */
 			//  do segment adress and offset and size for prev segment
+			ph = g->phs->st[phs_counter];
+			if (phs_counter == 0) {
+				ph->offset = 0;		  // 0 offset
+				ph->vaddr = g->pie;	  // 0 addr
+				ph->memsz = all_h_sz; // + segment size // 0 size
+			} else {
+				phl = g->phs->st[phs_counter - 1];
+				// because for first its size of all data that is only first
+				// data for the moment
+				if (phs_counter == 1)
+					phl->memsz += g->text->size; // 0 size
+				else
+					phl->memsz = g->text->size - last_text_sz; // i size
+				phl->filesz = phl->memsz;
+
+				ph->offset = phl->memsz + phl->offset; // i offset
+				ph->vaddr =
+					ph->offset + ph->align * (phs_counter) + g->pie; // i addr
+			}
+			ph->filesz = ph->memsz;
+			ph->paddr = ph->vaddr;
+			phs_counter++;
+			last_text_sz = g->text->size;
+			break;
+		case IEOI:
+			phl = g->phs->st[phs_counter - 1];
+			phl->memsz = g->text->size - last_text_sz;
+			phl->filesz = phl->memsz;
 			break;
 			//	default:
 			//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
@@ -215,6 +251,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			tok = in->os->st[0];
 			l = find_label(g, tok->view);
 			g->elfh->entry = l->a;
+			break;
 		}
 	}
 }
