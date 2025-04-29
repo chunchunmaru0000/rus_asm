@@ -18,6 +18,7 @@ enum ICode {
 	//IMOV,
 	IMOV_EAX_INT,
 	IMOV_EDI_INT,
+	IJMP,
 	IADD,
 	ISUB,
 	IIMUL,

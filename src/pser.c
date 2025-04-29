@@ -50,6 +50,7 @@ const char *STR_SEG_TEXT = "\".текст\"";
 const char *STR_SEG_DATA = "\".данные\"";
 const char *STR_EOF = "__КФ__";
 // instruction words
+const char *STR_IJMP = "идти";
 const char *STR_IMOV = "быть";
 const char *STR_PLUS = "плюс";
 const char *STR_MINS = "минс";
@@ -156,6 +157,16 @@ enum ICode label_i(struct Pser *p, struct PList *os) {
 	return ILABEL;
 }
 
+enum ICode jmp_i(struct Pser *p, struct PList *os) {
+	struct Token *label = next_get(p, 0);
+	next_get(p, 0); // skip label
+
+	if (!(label->code == ID))
+		eep(label, "ОЖИДАЛАСЬ МЕТКА");
+	plist_add(os, label);
+	return IJMP;
+}
+
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
 	struct Token *cur = gettp(p, 0), *n;
@@ -177,6 +188,8 @@ struct Inst *get_inst(struct Pser *p) {
 			code = label_i(p, os);
 		else if (sc(cv, STR_SEG))
 			code = seg_i(p, os);
+		else if (sc(cv, STR_IJMP))
+			code = jmp_i(p, os);
 		else if (sc(cv, STR_ENTRY))
 			code = entry_i(p, os);
 		else

@@ -5,6 +5,8 @@
 struct Plov { // Pointer Label Of Value
 	char *l; // label
 	uint64_t a; // adress
+	int si; //  segment place
+	struct PList *us; // usages
 	// uint64_t size; // like for db dd dw dq
 };
 

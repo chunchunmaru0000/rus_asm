@@ -253,12 +253,12 @@ enum TCode com_token(struct Tzer *t, struct Token *token) {
 	return COM;
 }
 
-char *stop_id = " \r\t\n\"\\0123456789;:/+-*=,";
+char *stop_id = " \r\t\n\"\\;:/+-*=,";
 enum TCode id_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, id_len = 1;
 	next(t);
 	char *id_view;
-	while (!char_in_str(cur(t), stop_id)) {
+	while (!char_in_str(cur(t), stop_id) && cur(t) != '\0') {
 		next(t);
 		id_len++;
 	}
@@ -305,8 +305,8 @@ struct Token *new_token(struct Tzer *t) {
 
 struct PList *tze(struct Tzer *t, long list_cap) {
 	struct PList *l = new_plist(list_cap);
-
 	struct Token *token = new_token(t);
+	
 	while (token->code != EF) {
 		if (token->code != COM)
 			plist_add(l, token);
@@ -314,7 +314,7 @@ struct PList *tze(struct Tzer *t, long list_cap) {
 		// printf("%s:%ld:%ld:%s\n", t->filename, token->line, token->col,
 		// token->view);
 	}
-	token->view = EMPTY_STR;
+	token->view = EOF_STR;
 	plist_add(l, token);
 
 	return l;

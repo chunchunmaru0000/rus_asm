@@ -123,7 +123,10 @@ struct ELFPH *new_ph(int t, int flags, uint64_t off, uint64_t addr,
 struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	struct Plov *p = malloc(sizeof(struct Plov));
 
+	int segment_place = g->phs->size - 1;
 	p->l = ((struct Token *)in->os->st[0])->view;
+	p->si = segment_place;
+	p->us = new_plist(4);
 	p->a = g->pie; // + first ph memsz;
 
 	return p;
@@ -175,12 +178,21 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	return 0;
 }
 
+#define REL_SIZE 4
+
+int rel_off(struct Gner *g, char *label, int all_h_sz) {
+	struct Plov *l = find_label(g, label);
+
+	return 0x706d6a;
+}
+
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i, last_text_sz;
+	long i, j, last_text_sz;
 	long tmpb, *tmpp = &tmpb;	   // temp buf and ptr to buf
 	long buf_len, *blp = &buf_len; // buf len ptr
 	uc *ibuff;
-	long all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
+	int rel,
+		all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	struct Inst *in;
 	struct Token *tok;
@@ -220,6 +232,15 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		}
 
 		switch (code) {
+		case IJMP:
+			tok = plist_get(in->os, 0);
+			l = find_label(g, tok->view);
+			// TODO: near jmp
+			ibuff = alloc_len(1 + REL_SIZE, blp);
+			cpy_len(ibuff, tmpp, 0xe9, 1);
+			plist_add(l->us, (uc *)(g->text->size) + 1);
+			cpy_len(ibuff + 1, tmpp, 0x706d6a, REL_SIZE);
+			break;
 		case ILABEL:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
@@ -281,11 +302,23 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
-		if (in->code == IENTRY) {
+
+		if (in->code == ILABEL) {
+			tok = plist_get(in->os, 0);
+			l = find_label(g, tok->view);
+			for (j = 0; j < l->us->size; j++) {
+				long text_pos = (long)plist_get(l->us, j);
+				void *textptr = ((uc *)g->text->st) + text_pos;
+				// only far jump to the same segment
+				text_pos = l->a - g->pie - (text_pos + all_h_sz) - 4;
+				memcpy(textptr, &text_pos, REL_SIZE);
+
+				//printf("far jmp \n\tto %d \n\ton %d", l->a, text_pos);
+			}
+		} else if (in->code == IENTRY) {
 			tok = in->os->st[0];
 			l = find_label(g, tok->view);
 			g->elfh->entry = l->a;
-			break;
 		}
 	}
 }
