@@ -238,6 +238,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			// TODO: near jmp
 			ibuff = alloc_len(1 + REL_SIZE, blp);
 			cpy_len(ibuff, tmpp, 0xe9, 1);
+			// text size + 1 is palce in text to where need to put rel addr
 			plist_add(l->us, (uc *)(g->text->size) + 1);
 			cpy_len(ibuff + 1, tmpp, 0x706d6a, REL_SIZE);
 			break;
@@ -310,10 +311,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				long text_pos = (long)plist_get(l->us, j);
 				void *textptr = ((uc *)g->text->st) + text_pos;
 				// only far jump to the same segment
-				text_pos = l->a - g->pie - (text_pos + all_h_sz) - 4;
+				// but it works for other segemnts too?
+				// isnt fasm add also ph offset to rel addr
+				// ARE OFFSETS IRRELEVANT WITH JMP ON x64?
+				// im not sure but chat gpt says so and my tests also
+				text_pos = l->a - g->pie - (text_pos + all_h_sz) - REL_SIZE;
 				memcpy(textptr, &text_pos, REL_SIZE);
-
-				//printf("far jmp \n\tto %d \n\ton %d", l->a, text_pos);
 			}
 		} else if (in->code == IENTRY) {
 			tok = in->os->st[0];
