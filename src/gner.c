@@ -9,12 +9,6 @@ void eeg(const char *msg, struct Inst *i) {
 	exit(1);
 }
 
-// Byte List Add Times
-void blat(struct BList *l, uc *s, long t) {
-	for (long i = 0; i < t; i++)
-		blist_add(l, s[i]);
-}
-
 struct Gner *new_gner(struct PList *is, enum Target t) {
 	struct Gner *g = malloc(sizeof(struct Gner));
 	g->t = t;
@@ -208,25 +202,32 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		buf_len = 0;
 		code = in->code;
 
-		if (code <= IMOV_ESI_INT && code >= IMOV_EAX_INT) {
+		if (code <= IMOV_ESI_LABEL && code >= IMOV_EAX_INT) {
+			tok = plist_get(in->os, 1);
 			switch (code) {
 			case IMOV_EAX_INT:
-				tok = plist_get(in->os, 1);
 				ibuff = alloc_len(5, blp);
 				cpy_len(ibuff, tmpp, 0xb8, 1);
 				cpy_len(ibuff + 1, tmpp, tok->number, 4);
 				break;
 			case IMOV_EDI_INT:
-				tok = plist_get(in->os, 1);
 				ibuff = alloc_len(5, blp);
 				cpy_len(ibuff, tmpp, 0xbf, 1);
 				cpy_len(ibuff + 1, tmpp, tok->number, 4);
 				break;
 			case IMOV_ESI_INT:
-				tok = plist_get(in->os, 1);
 				ibuff = alloc_len(5, blp);
 				cpy_len(ibuff, tmpp, 0xbe, 1);
 				cpy_len(ibuff + 1, tmpp, tok->number, 4);
+				break;
+			case IMOV_ESI_LABEL:
+				ibuff = alloc_len(1 + REL_SIZE, blp);
+				cpy_len(ibuff, tmpp, 0xbe, 1);
+
+				l = find_label(g, tok->view);
+				usage = new_usage((uint64_t)(g->text->size) + 1, ADDR);
+				plist_add(l->us, usage);
+				cpy_len(ibuff + 1, tmpp, 0x766f6d6c, REL_SIZE);
 				break;
 			default:
 				eeg("НЕИЗВЕСТНАЯ [быть] КОМАНДА", in);
@@ -319,17 +320,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);
 
+				long text_pos;
+				void *textptr = ((uc *)g->text->st) + usage->place;
 				if (usage->type == ADDR) {
-					printf("asdasdfasdfa\n");
+					memcpy(textptr, &l->a, REL_SIZE);
 				} else if (usage->type == REL_ADDR) {
-					long text_pos = usage->place;
-					void *textptr = ((uc *)g->text->st) + text_pos;
 					//  only far jump to the same segment
 					//  but it works for other segemnts too?
 					//  isnt fasm add also ph offset to rel addr
 					//  ARE OFFSETS IRRELEVANT WITH JMP ON x64?
 					//  im not sure but chat gpt says so and my tests also
-					text_pos = l->a - g->pie - (text_pos + all_h_sz) - REL_SIZE;
+					text_pos = l->a - g->pie - (usage->place + all_h_sz) - REL_SIZE;
 					memcpy(textptr, &text_pos, REL_SIZE);
 				}
 			}

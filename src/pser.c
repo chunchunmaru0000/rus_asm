@@ -49,6 +49,11 @@ const char *STR_SEG_X = "исп";
 const char *STR_SEG_TEXT = "\".текст\"";
 const char *STR_SEG_DATA = "\".данные\"";
 const char *STR_EOF = "__КФ__";
+const char *STR_LET = "пусть";
+const char *STR_BYTE = "байт";
+const char *STR_WORD = "дбайт";
+const char *STR_DWORD = "чбайт";
+const char *STR_QWORD = "вбайт";
 // instruction words
 const char *STR_IJMP = "идти";
 const char *STR_IMOV = "быть";
@@ -139,6 +144,9 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 			case INT:
 				code = IMOV_ESI_INT;
 				break;
+			case ID:
+				code = IMOV_ESI_LABEL;
+				break;
 			default:
 				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еси ...");
 			}
@@ -176,6 +184,43 @@ enum ICode jmp_i(struct Pser *p, struct PList *os) {
 	return IJMP;
 }
 
+enum ICode let_i(struct Pser *p, struct PList *os) {
+	struct BList *data = new_blist(8);
+	struct Token *var = next_get(p, 0), *cur = next_get(p, 0);
+
+	int size;
+	if (sc(cur->view, STR_BYTE))
+		size = 1;
+	else if (sc(cur->view, STR_WORD))
+		size = 2;
+	else if (sc(cur->view, STR_DWORD))
+		size = 4;
+	else if (sc(cur->view, STR_QWORD))
+		size = 8;
+	else
+		eep(cur, "ОЖИДАЛСЯ РАЗМЕР ОПЕРАНДА: <байт> <дбайт> <чбайт> <вбайт>");
+
+	while (1) {
+		cur = next_get(p, 0);
+		if (cur->code == SLASH) {
+			cur = next_get(p, 0); // skip slash get \n
+			continue;
+		}
+		if (cur->code == INT)
+			blat(data, (uc *)&cur->number, size);
+		else if (cur->code == STR)
+			blat(data, (uc *)cur->string, cur->string_len);
+		else {
+			printf("let %s be %ld bytes\n", var->view, data->size);
+			break;
+		}
+	}
+
+	plist_add(os, var);
+	plist_add(os, data);
+	return ILET;
+}
+
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
 	struct Token *cur = gettp(p, 0), *n;
@@ -195,10 +240,12 @@ struct Inst *get_inst(struct Pser *p) {
 			code = syscall_i(p);
 		else if (n->code == COLO)
 			code = label_i(p, os);
-		else if (sc(cv, STR_SEG))
-			code = seg_i(p, os);
+		else if (sc(cv, STR_LET))
+			code = let_i(p, os);
 		else if (sc(cv, STR_IJMP))
 			code = jmp_i(p, os);
+		else if (sc(cv, STR_SEG))
+			code = seg_i(p, os);
 		else if (sc(cv, STR_ENTRY))
 			code = entry_i(p, os);
 		else

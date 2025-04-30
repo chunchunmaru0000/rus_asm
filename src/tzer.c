@@ -151,6 +151,8 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 	strncpy(str_view, &t->code[start_pos], str_len);
 
 	token->view = str_view;
+	token->string = str_view + 1;
+	token->string_len = str_len - 2;
 	return STR;
 }
 
@@ -306,7 +308,7 @@ struct Token *new_token(struct Tzer *t) {
 struct PList *tze(struct Tzer *t, long list_cap) {
 	struct PList *l = new_plist(list_cap);
 	struct Token *token = new_token(t);
-	
+
 	while (token->code != EF) {
 		if (token->code != COM)
 			plist_add(l, token);

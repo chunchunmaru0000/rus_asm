@@ -1,5 +1,6 @@
 #include "lists.h"
 #include <stdlib.h>
+#include <string.h>
 
 struct PList *new_plist(long cap_pace) {
 	struct PList *l = malloc(sizeof(struct PList));
@@ -53,4 +54,17 @@ uc blist_set(struct BList *l, long i, uc p) {
 	uc old = l->st[i];
 	l->st[i] = p;
 	return old;
+}
+
+// Byte List Add Times
+void blat(struct BList *l, uc *s, long t) {
+//	for (long i = 0; i < t; i++)
+//		blist_add(l, s[i]);
+	if (l->cap < l->size + t) {
+		l->cap += t;
+		l->st = realloc(l->st, l->cap * sizeof(uc));
+	}
+
+	memcpy(l->st + l->size, s, t);
+	l->size += t;
 }

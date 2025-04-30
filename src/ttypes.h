@@ -45,5 +45,5 @@ struct Token {
 	long number;
 	double fpn; // Floatimg Point Number
 	char *string;
-	long stringLen;
+	long string_len;
 };
