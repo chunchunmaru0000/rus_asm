@@ -180,10 +180,11 @@ struct Plov *find_label(struct Gner *g, char *s) {
 
 #define REL_SIZE 4
 
-int rel_off(struct Gner *g, char *label, int all_h_sz) {
-	struct Plov *l = find_label(g, label);
-
-	return 0x706d6a;
+struct Usage *new_usage(uint64_t place, enum UT type) {
+	struct Usage *u = malloc(sizeof(struct Usage));
+	u->place = place;
+	u->type = type;
+	return u;
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
@@ -198,6 +199,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct Token *tok;
 	struct Plov *l;
 	struct ELFPH *ph, *phl;
+	struct Usage *usage;
 	long phs_counter = 0;
 	// struct ELFSH *sh;
 
@@ -239,7 +241,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			ibuff = alloc_len(1 + REL_SIZE, blp);
 			cpy_len(ibuff, tmpp, 0xe9, 1);
 			// text size + 1 is palce in text to where need to put rel addr
-			plist_add(l->us, (uc *)(g->text->size) + 1);
+			usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
+			plist_add(l->us, usage);
 			cpy_len(ibuff + 1, tmpp, 0x706d6a, REL_SIZE);
 			break;
 		case ILABEL:
@@ -308,15 +311,21 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
 			for (j = 0; j < l->us->size; j++) {
-				long text_pos = (long)plist_get(l->us, j);
-				void *textptr = ((uc *)g->text->st) + text_pos;
-				// only far jump to the same segment
-				// but it works for other segemnts too?
-				// isnt fasm add also ph offset to rel addr
-				// ARE OFFSETS IRRELEVANT WITH JMP ON x64?
-				// im not sure but chat gpt says so and my tests also
-				text_pos = l->a - g->pie - (text_pos + all_h_sz) - REL_SIZE;
-				memcpy(textptr, &text_pos, REL_SIZE);
+				usage = plist_get(l->us, j);
+
+				if (usage->type == ADDR) {
+					printf("asdasdfasdfa\n");
+				} else if (usage->type == REL_ADDR) {
+					long text_pos = usage->place;
+					void *textptr = ((uc *)g->text->st) + text_pos;
+					//  only far jump to the same segment
+					//  but it works for other segemnts too?
+					//  isnt fasm add also ph offset to rel addr
+					//  ARE OFFSETS IRRELEVANT WITH JMP ON x64?
+					//  im not sure but chat gpt says so and my tests also
+					text_pos = l->a - g->pie - (text_pos + all_h_sz) - REL_SIZE;
+					memcpy(textptr, &text_pos, REL_SIZE);
+				}
 			}
 		} else if (in->code == IENTRY) {
 			tok = in->os->st[0];

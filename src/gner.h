@@ -10,6 +10,16 @@ struct Plov { // Pointer Label Of Value
 	// uint64_t size; // like for db dd dw dq
 };
 
+enum UT { // Usage Type
+	ADDR,
+	REL_ADDR,
+};
+
+struct Usage {
+	uint64_t place;
+	enum UT type;
+};
+
 struct ELFH { // ELF Header
 	uc mag[4];
 	uc elf_class;
