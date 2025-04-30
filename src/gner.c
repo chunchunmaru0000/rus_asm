@@ -146,6 +146,8 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 			plist_add(g->phs, ph);
 		} else if (in->code == ILABEL) {
 			plist_add(g->lps, new_label(g, in));
+		} else if (in->code == ILET) {
+			plist_add(g->lps, new_label(g, in));
 		}
 	}
 	// entry = 0 but will be editet
@@ -258,6 +260,15 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l->a += g->text->size + all_h_sz;
 			printf("label [%s]\n\t[0x%08lx]\n", l->l, l->a);
 			break;
+		case ILET:
+			tok = plist_get(in->os, 0);
+			l = find_label(g, tok->view);
+			l->a += g->text->size + all_h_sz;
+			printf("var   [%s]\n\t[0x%08lx]\n", l->l, l->a);
+
+			struct BList *data = plist_get(in->os, 1);
+			blat(g->text, data->st, data->size);
+			break;
 		case ISYSCALL:
 			ibuff = alloc_len(2, blp);
 			memcpy(ibuff, MLESYSCALL, 2);
@@ -314,8 +325,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 
-		if (in->code == ILABEL) {
-			tok = plist_get(in->os, 0);
+		if (in->code == ILABEL || in->code == ILET) {
+			tok = plist_get(in->os, 0); // in both cases name is first opperand
 			l = find_label(g, tok->view);
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);
@@ -330,7 +341,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					//  isnt fasm add also ph offset to rel addr
 					//  ARE OFFSETS IRRELEVANT WITH JMP ON x64?
 					//  im not sure but chat gpt says so and my tests also
-					text_pos = l->a - g->pie - (usage->place + all_h_sz) - REL_SIZE;
+					text_pos =
+						l->a - g->pie - (usage->place + all_h_sz) - REL_SIZE;
 					memcpy(textptr, &text_pos, REL_SIZE);
 				}
 			}
