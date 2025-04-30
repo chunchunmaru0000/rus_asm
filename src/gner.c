@@ -168,6 +168,9 @@ struct Plov *find_label(struct Gner *g, char *s) {
 		if (sc(l->l, s))
 			return l;
 	}
+	char *err;
+	asprintf(&err, "НЕИЗВЕСТНАЯ МЕТКА [%s]", s);
+	eeg(err, plist_get(g->is, g->pos));
 	return 0;
 }
 
@@ -197,6 +200,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
+		g->pos = i;
 		buf_len = 0;
 		code = in->code;
 

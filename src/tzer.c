@@ -4,7 +4,7 @@
 #include <string.h>
 
 char *EMPTY_STR = "_";
-char *EOF_STR = "__КФ__"; // конец файла
+char *EOF_STR = "_КОНЕЦ_ФАЙЛА_"; // конец файла
 
 void ee(struct Tzer *t, char *msg) { // error exit
 	fprintf(stderr, "%s:%ld:%ld %s\n", t->filename, t->line, t->col, msg);

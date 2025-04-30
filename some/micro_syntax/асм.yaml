@@ -1,0 +1,35 @@
+filetype: асм
+extension: .асм
+
+detect:
+    filename: "\\.(асм)$"
+
+rules:
+    - preproc: "(байт|дбайт|чбайт|вбайт|исп|изм|чит)"
+    - indent-char: "[\\\\]"
+
+    - statement: "(участок|вход|пусть)"
+    - statement: "(быть|плюс|минс|зумн|зов|сзов|идти)"
+
+    - special: "(еах|ебх|есх|едх|еди|еси|ебп|есп|р8ч|р9ч|р10ч|р11ч|р12ч|р13ч|р14ч|р15ч|еип|ефлаги)"
+    - special: "(рах|рбх|рсх|рдх|рди|рси|рбп|рсп|р8|р9|р10|р11|р12|р13|р14|р15|рип|рфлаги)"
+
+    - identifier: "[а-яА-ЯёЁa-zA-Z0-9_]+:"
+
+    - constant.number: "\\b(х|Х|0х|0Х|h|A|0x)+[0-9]+(|h|A)+\\b"
+    - constant.number: "\\b0x[0-9 a-f A-F а-ж А-Ж]+\\b"
+    - constant.number: "\\b0х[0-9 a-f A-F а-ж А-Ж]+\\b"
+    - constant.number: "\\b0Х[0-9 a-f A-F а-ж А-Ж]+\\b"
+    - constant.number: "(^|[^А-Яа-яЁё])\\b[0-9]+\\b"
+
+    - constant.string:
+        start: "\""
+        end: "\""
+        skip: "\\\\."
+        rules:
+            - constant.specialChar: "\\\\."
+    - comment:
+        start: ";"
+        end: "$"
+        rules:
+            - todo: "(потом|ПОТОМ):?"
