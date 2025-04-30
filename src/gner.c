@@ -208,7 +208,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		buf_len = 0;
 		code = in->code;
 
-		if (code >= IMOV_EAX_INT && IMOV_EDI_INT >= code) {
+		if (code <= IMOV_ESI_INT && code >= IMOV_EAX_INT) {
 			switch (code) {
 			case IMOV_EAX_INT:
 				tok = plist_get(in->os, 1);
@@ -220,6 +220,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				tok = plist_get(in->os, 1);
 				ibuff = alloc_len(5, blp);
 				cpy_len(ibuff, tmpp, 0xbf, 1);
+				cpy_len(ibuff + 1, tmpp, tok->number, 4);
+				break;
+			case IMOV_ESI_INT:
+				tok = plist_get(in->os, 1);
+				ibuff = alloc_len(5, blp);
+				cpy_len(ibuff, tmpp, 0xbe, 1);
 				cpy_len(ibuff + 1, tmpp, tok->number, 4);
 				break;
 			default:

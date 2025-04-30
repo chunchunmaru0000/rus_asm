@@ -67,6 +67,7 @@ const char *STR_RCX = "рсх";
 const char *STR_RDX = "рдх";
 const char *STR_EDI = "еди";
 const char *STR_RDI = "рди";
+const char *STR_ESI = "еси";
 const char *STR_RSI = "рси";
 const char *STR_RSP = "рсп";
 const char *STR_RBP = "рбп";
@@ -123,7 +124,7 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 				code = IMOV_EAX_INT;
 				break;
 			default:
-				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД");
+				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еах ...");
 			}
 		} else if (sc(fst->view, STR_EDI)) {
 			switch (snd->code) {
@@ -131,10 +132,18 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 				code = IMOV_EDI_INT;
 				break;
 			default:
-				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД");
+				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еди ...");
+			}
+		} else if (sc(fst->view, STR_ESI)) {
+			switch (snd->code) {
+			case INT:
+				code = IMOV_ESI_INT;
+				break;
+			default:
+				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еси ...");
 			}
 		} else
-			eep(fst, "НЕИЗВЕСТНАЙ ОПЕРАНД");
+			eep(fst, "НЕИЗВЕСТНАЙ ОПЕРАНД ДЛЯ быть ... ...");
 	} else if (sc(v, STR_PLUS))
 		code = IADD;
 	else if (sc(v, STR_MINS))
