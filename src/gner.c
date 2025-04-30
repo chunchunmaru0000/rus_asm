@@ -144,11 +144,8 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 			// type =   1,  flags, offset,     adress,     size
 			ph = new_ph(1, *flags, 0x7366666f, 0x72646461, 0x657a6973);
 			plist_add(g->phs, ph);
-		} else if (in->code == ILABEL) {
+		} else if (in->code == ILABEL || in->code == ILET)
 			plist_add(g->lps, new_label(g, in));
-		} else if (in->code == ILET) {
-			plist_add(g->lps, new_label(g, in));
-		}
 	}
 	// entry = 0 but will be editet
 	g->elfh = new_elfh(g, 0, 0x40, g->phs->size, 0x00, g->shs->size);
@@ -184,12 +181,11 @@ struct Usage *new_usage(uint64_t place, enum UT type) {
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i, j, last_text_sz;
+	long i, j, command, last_text_sz;
 	long tmpb, *tmpp = &tmpb;	   // temp buf and ptr to buf
 	long buf_len, *blp = &buf_len; // buf len ptr
 	uc *ibuff;
-	int rel,
-		all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
+	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	struct Inst *in;
 	struct Token *tok;
@@ -204,36 +200,35 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		buf_len = 0;
 		code = in->code;
 
-		if (code <= IMOV_ESI_LABEL && code >= IMOV_EAX_INT) {
+		if (code >= IMOV_EAX_INT && code <= IMOV_ESI_LABEL) {
 			tok = plist_get(in->os, 1);
-			switch (code) {
-			case IMOV_EAX_INT:
-				ibuff = alloc_len(5, blp);
-				cpy_len(ibuff, tmpp, 0xb8, 1);
-				cpy_len(ibuff + 1, tmpp, tok->number, 4);
-				break;
-			case IMOV_EDI_INT:
-				ibuff = alloc_len(5, blp);
-				cpy_len(ibuff, tmpp, 0xbf, 1);
-				cpy_len(ibuff + 1, tmpp, tok->number, 4);
-				break;
-			case IMOV_ESI_INT:
-				ibuff = alloc_len(5, blp);
-				cpy_len(ibuff, tmpp, 0xbe, 1);
-				cpy_len(ibuff + 1, tmpp, tok->number, 4);
-				break;
-			case IMOV_ESI_LABEL:
-				ibuff = alloc_len(1 + REL_SIZE, blp);
-				cpy_len(ibuff, tmpp, 0xbe, 1);
+			if (code >= IMOV_EAX_INT && code <= IMOV_ESI_INT) {
+				if (code == IMOV_EAX_INT)
+					command = 0xb8;
+				else if (code == IMOV_EDX_INT)
+					command = 0xba;
+				else if (code == IMOV_EDI_INT)
+					command = 0xbf;
+				else if (code == IMOV_ESI_INT)
+					command = 0xbe;
 
-				l = find_label(g, tok->view);
-				usage = new_usage((uint64_t)(g->text->size) + 1, ADDR);
-				plist_add(l->us, usage);
-				cpy_len(ibuff + 1, tmpp, 0x766f6d6c, REL_SIZE);
-				break;
-			default:
-				eeg("НЕИЗВЕСТНАЯ [быть] КОМАНДА", in);
-			}
+				ibuff = alloc_len(5, blp);
+				cpy_len(ibuff, tmpp, command, 1);
+				cpy_len(ibuff + 1, tmpp, tok->number, 4);
+			} else
+				switch (code) {
+				case IMOV_ESI_LABEL:
+					ibuff = alloc_len(1 + REL_SIZE, blp);
+					cpy_len(ibuff, tmpp, 0xbe, 1);
+
+					l = find_label(g, tok->view);
+					usage = new_usage((uint64_t)(g->text->size) + 1, ADDR);
+					plist_add(l->us, usage);
+					cpy_len(ibuff + 1, tmpp, 0x766f6d6c, REL_SIZE);
+					break;
+				default:
+					eeg("НЕИЗВЕСТНАЯ [быть] КОМАНДА", in);
+				}
 
 			if (buf_len) {
 				blat(g->text, ibuff, buf_len);

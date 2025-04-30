@@ -69,6 +69,7 @@ const char *STR_EAX = "еах";
 const char *STR_RAX = "рах";
 const char *STR_RBX = "рбх";
 const char *STR_RCX = "рсх";
+const char *STR_EDX = "едх";
 const char *STR_RDX = "рдх";
 const char *STR_EDI = "еди";
 const char *STR_RDI = "рди";
@@ -112,6 +113,12 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 	plist_add(os, flags);
 	return ISEGMENT;
 }
+
+char *ERR_MOV_EAX = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еах ...";
+char *ERR_MOV_EDX = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть едх ...";
+char *ERR_MOV_EDI = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еди ...";
+char *ERR_MOV_ESI = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еси ...";
+char *ERR_MOV = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть ... ...";
 enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 	char *v = ((struct Token *)gettp(p, 0))->view;
 	enum ICode code;
@@ -129,7 +136,15 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 				code = IMOV_EAX_INT;
 				break;
 			default:
-				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еах ...");
+				eep(snd, ERR_MOV_EAX);
+			}
+		} else if (sc(fst->view, STR_EDX)) {
+			switch (snd->code) {
+			case INT:
+				code = IMOV_EDX_INT;
+				break;
+			default:
+				eep(snd, ERR_MOV_EDX);
 			}
 		} else if (sc(fst->view, STR_EDI)) {
 			switch (snd->code) {
@@ -137,7 +152,7 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 				code = IMOV_EDI_INT;
 				break;
 			default:
-				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еди ...");
+				eep(snd, ERR_MOV_EDI);
 			}
 		} else if (sc(fst->view, STR_ESI)) {
 			switch (snd->code) {
@@ -148,10 +163,10 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 				code = IMOV_ESI_LABEL;
 				break;
 			default:
-				eep(snd, "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еси ...");
+				eep(snd, ERR_MOV_ESI);
 			}
 		} else
-			eep(fst, "НЕИЗВЕСТНАЙ ОПЕРАНД ДЛЯ быть ... ...");
+			eep(fst, ERR_MOV);
 	} else if (sc(v, STR_PLUS))
 		code = IADD;
 	else if (sc(v, STR_MINS))
