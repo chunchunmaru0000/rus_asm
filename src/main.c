@@ -30,6 +30,11 @@ int main(int argc, char **args) {
 	fwrite(g->text->st, 1, g->text->size, f);
 	fclose(f);
 
-	printf("В файл [%s] записано %ld байт/а/ов\n", outname, bytes);
+	printf("В файл [%s] записано %ld байт", outname, bytes);
+	int end = bytes % 10;
+	if (end >= 2 && end <= 4)
+		printf("а");
+	printf("\n");
+
 	return 0;
 }
