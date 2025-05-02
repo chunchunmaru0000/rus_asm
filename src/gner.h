@@ -58,6 +58,7 @@ struct ELFSH { // ELF Segment Header
 
 struct Gner {
 	enum Target t;
+	uc debug;
 	struct PList *is;
 	long pos;
 	struct BList *prol;
@@ -70,5 +71,5 @@ struct Gner {
 	struct PList *shs; // section headers
 };
 
-struct Gner *new_gner(struct PList *, enum Target t);
+struct Gner *new_gner(struct PList *, enum Target, uc);
 void gen(struct Gner *);

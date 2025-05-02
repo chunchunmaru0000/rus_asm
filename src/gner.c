@@ -9,9 +9,10 @@ void eeg(const char *msg, struct Inst *i) {
 	exit(1);
 }
 
-struct Gner *new_gner(struct PList *is, enum Target t) {
+struct Gner *new_gner(struct PList *is, enum Target t, uc debug) {
 	struct Gner *g = malloc(sizeof(struct Gner));
 	g->t = t;
+	g->debug = debug;
 	g->is = is;
 	g->pos = 0;
 	g->prol = new_blist(100);
@@ -156,6 +157,11 @@ void *alloc_len(long len, long *buf_len) {
 	return malloc(len);
 }
 
+void alloc_cpy(void **buf, long *buf_len, long alc_len, void *data) {
+	*buf = alloc_len(alc_len, buf_len);
+	memcpy(*buf, data, alc_len);
+}
+
 void cpy_len(uc *buf, long *tbuf, long value, int len) {
 	*tbuf = value;
 	memcpy(buf, tbuf, len);
@@ -188,6 +194,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long tmpb, *tmpp = &tmpb;	   // temp buf and ptr to buf
 	long buf_len, *blp = &buf_len; // buf len ptr
 	uc *ibuff;
+	void **ibufp = (void **)&ibuff;
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	struct Inst *in;
@@ -195,7 +202,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct Plov *l;
 	struct ELFPH *ph, *phl;
 	struct Usage *usage;
-	long phs_counter = 0;
+	long phs_counter = 0, phs_cur_sz;
 	// struct ELFSH *sh;
 
 	for (i = 0; i < g->is->size; i++) {
@@ -236,6 +243,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			if (buf_len) {
 				blat(g->text, ibuff, buf_len);
+				phs_cur_sz += buf_len;
 				free(ibuff);
 			}
 			continue;
@@ -256,23 +264,36 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ILABEL:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
-			l->a += g->text->size + all_h_sz;
-			printf("label [%s]\n\t[0x%08lx]\n", l->l, l->a);
+
+			ph = plist_get(g->phs, phs_counter - 1);
+			l->a = phs_cur_sz + ph->vaddr;
+			if (g->debug)
+				printf("label[%s]\t[0x%08lx]\n", l->l, l->a);
 			break;
 		case ILET:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
-			l->a += g->text->size + all_h_sz;
-			printf("var   [%s]\n\t[0x%08lx]\n", l->l, l->a);
+
+			ph = plist_get(g->phs, phs_counter - 1);
+			l->a = phs_cur_sz + ph->vaddr;
+			if (g->debug)
+				printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
 
 			struct BList *data = plist_get(in->os, 1);
-			blat(g->text, data->st, data->size);
+			alloc_cpy(ibufp, blp, data->size, data->st);
 			break;
 		case ISYSCALL:
-			ibuff = alloc_len(2, blp);
-			memcpy(ibuff, MLESYSCALL, 2);
+			alloc_cpy(ibufp, blp, 2, (void *)MLESYSCALL);
+			break;
+		case INOP:
+			ibuff = alloc_len(1, blp);
+			cpy_len(ibuff, tmpp, 0x90, 1);
 			break;
 		case ISEGMENT:
+			if (phs_counter == 0)
+				phs_cur_sz = all_h_sz;
+			else
+				phs_cur_sz = 0;
 			/*
 			 * 0 offset = 0
 			 * 0 addr = 0 + pie
@@ -316,11 +337,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
 		if (buf_len) {
+			phs_cur_sz += buf_len;
 			blat(g->text, ibuff, buf_len);
 			free(ibuff);
 		}
 	}
 
+	phs_counter = 0;
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 
@@ -349,6 +372,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			tok = in->os->st[0];
 			l = find_label(g, tok->view);
 			g->elfh->entry = l->a;
-		}
+		} else if (in->code == ISEGMENT)
+			phs_counter++;
 	}
 }

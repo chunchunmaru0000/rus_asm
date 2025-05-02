@@ -64,7 +64,6 @@ void blat(struct BList *l, uc *s, long t) {
 		l->cap += t;
 		l->st = realloc(l->st, l->cap * sizeof(uc));
 	}
-
 	memcpy(l->st + l->size, s, t);
 	l->size += t;
 }

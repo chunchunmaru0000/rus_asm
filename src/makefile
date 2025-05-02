@@ -1,8 +1,8 @@
-тест: main
-	./main
+тест: асм
+	./асм тест.асм тест
 	xxd тест
 	chmod +x тест
 	./тест
 
-main:
-	gcc main.c gner.c pser.c lists.c tzer.c -o main
+асм:
+	gcc main.c gner.c pser.c lists.c tzer.c -o асм

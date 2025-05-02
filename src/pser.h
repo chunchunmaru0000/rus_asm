@@ -5,8 +5,9 @@ uc sc(char *, const char *);
 struct Pser {
 	struct PList *ts; // tokens
 	long pos;
+	uc debug;
 };
-struct Pser *new_pser(char *);
+struct Pser *new_pser(char *, uc);
 struct PList *pse(struct Pser *); // instructions
 
 enum ICode {
@@ -29,6 +30,7 @@ enum ICode {
 	ISYSCALL,
 	ICALL,
 	IRET,
+	INOP,
 	ISET_VAR,
 };
 

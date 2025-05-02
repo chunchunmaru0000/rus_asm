@@ -29,6 +29,7 @@ struct Tzer *new_tzer(char *filename) {
 	char *text = (char *)malloc(size + 1);
 	fread(text, 1, size, file);
 	text[size] = '\0';
+	fclose(file);
 
 	t->code = text;
 	t->codeLen = size - 1;

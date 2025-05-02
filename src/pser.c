@@ -10,13 +10,15 @@ void eep(struct Token *t, char *msg) { // error exit
 	exit(1);
 }
 
-struct Pser *new_pser(char *filename) {
+struct Pser *new_pser(char *filename, uc debug) {
 	fn = filename;
 	struct Pser *p = malloc(sizeof(struct Pser));
 	struct Tzer *t = new_tzer(filename);
 	struct PList *ts = tze(t, 10);
+	free(t);
 	p->pos = 0;
 	p->ts = ts;
+	p->debug = debug;
 	return p;
 }
 
@@ -42,6 +44,7 @@ struct Token *next_get(struct Pser *p, long off) {
 
 // directives
 const char *STR_ENTRY = "вход";
+const char *STR_NOP = "ыыы";
 const char *STR_SEG = "участок";
 const char *STR_SEG_R = "чит";
 const char *STR_SEG_W = "изм";
@@ -98,7 +101,7 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 	if (t->code == INT)
 		*flags = t->number;
 	else
-		while (t->code != SLASHN) {
+		while (t->code != SLASHN && t->code != EF) {
 			if (sc(t->view, STR_SEG_X))
 				*flags |= 0b1;
 			else if (sc(t->view, STR_SEG_W))
@@ -175,10 +178,6 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 
 	return code;
 }
-enum ICode syscall_i(struct Pser *p) {
-	next_get(p, 0);
-	return ISYSCALL;
-}
 
 enum ICode label_i(struct Pser *p, struct PList *os) {
 	plist_add(os, gettp(p, 0));
@@ -224,7 +223,8 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		else if (cur->code == STR)
 			blat(data, (uc *)cur->string, cur->string_len);
 		else {
-			printf("let %s be %ld bytes\n", var->view, data->size);
+			if (p->debug)
+				printf("let %s be %ld bytes\n", var->view, data->size);
 			break;
 		}
 	}
@@ -232,6 +232,11 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 	plist_add(os, var);
 	plist_add(os, data);
 	return ILET;
+}
+
+enum ICode no_ops_inst(struct Pser *p, enum ICode code) {
+	next_get(p, 0);
+	return code;
 }
 
 struct Inst *get_inst(struct Pser *p) {
@@ -250,7 +255,7 @@ struct Inst *get_inst(struct Pser *p) {
 		if (cont_str(cv, TWO_OPS_STRS, LTWO_OPS_STRS))
 			code = two_ops_i(p, os);
 		else if (sc(cv, STR_SCAL))
-			code = syscall_i(p);
+			code = no_ops_inst(p, ISYSCALL);
 		else if (n->code == COLO)
 			code = label_i(p, os);
 		else if (sc(cv, STR_LET))
@@ -259,6 +264,8 @@ struct Inst *get_inst(struct Pser *p) {
 			code = jmp_i(p, os);
 		else if (sc(cv, STR_SEG))
 			code = seg_i(p, os);
+		else if (sc(cv, STR_NOP))
+			code = no_ops_inst(p, INOP);
 		else if (sc(cv, STR_ENTRY))
 			code = entry_i(p, os);
 		else
