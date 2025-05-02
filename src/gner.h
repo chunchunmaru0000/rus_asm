@@ -5,6 +5,7 @@
 struct Plov { // Pointer Label Of Value
 	char *l; // label
 	uint64_t a; // adress
+	uint64_t ra; // relative adress in executable file from file start
 	int si; //  segment place
 	struct PList *us; // usages
 	// uint64_t size; // like for db dd dw dq

@@ -122,7 +122,7 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	p->l = ((struct Token *)in->os->st[0])->view;
 	p->si = segment_place;
 	p->us = new_plist(4);
-	p->a = g->pie; // + first ph memsz;
+	//p->a = g->pie; // + first ph memsz;
 
 	return p;
 }
@@ -256,7 +256,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			// TODO: near jmp
 			ibuff = alloc_len(1 + REL_SIZE, blp);
 			cpy_len(ibuff, tmpp, 0xe9, 1);
-			// text size + 1 is palce in text to where need to put rel addr
+			// text size + 1 is place in text to where need to put rel addr
 			usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
 			plist_add(l->us, usage);
 			cpy_len(ibuff + 1, tmpp, 0x706d6a, REL_SIZE);
@@ -267,6 +267,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->a = phs_cur_sz + ph->vaddr;
+			l->ra = g->text->size;
 			if (g->debug)
 				printf("label[%s]\t[0x%08lx]\n", l->l, l->a);
 			break;
@@ -276,6 +277,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->a = phs_cur_sz + ph->vaddr;
+			l->ra = g->text->size;
 			if (g->debug)
 				printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
 
@@ -353,18 +355,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);
 
-				long text_pos;
 				void *textptr = ((uc *)g->text->st) + usage->place;
 				if (usage->type == ADDR) {
 					memcpy(textptr, &l->a, REL_SIZE);
 				} else if (usage->type == REL_ADDR) {
-					//  only far jump to the same segment
-					//  but it works for other segemnts too?
-					//  isnt fasm add also ph offset to rel addr
-					//  ARE OFFSETS IRRELEVANT WITH JMP ON x64?
-					//  im not sure but chat gpt says so and my tests also
-					text_pos =
-						l->a - g->pie - (usage->place + all_h_sz) - REL_SIZE;
+					long text_pos = l->ra - usage->place - REL_SIZE;
 					memcpy(textptr, &text_pos, REL_SIZE);
 				}
 			}
