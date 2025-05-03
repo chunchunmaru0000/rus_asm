@@ -61,38 +61,23 @@ const char *STR_IMOV = "быть";
 const char *STR_IADD = "плюс";
 const char *STR_ISUB = "минс";
 const char *STR_IMUL = "зумн";
-const char *TWO_OPS_STRS[] = {"быть", "плюс", "минс", "зумн"};
 const long LTWO_OPS_STRS = 4;
+const char *TWO_OPS_STRS[] = {"быть", "плюс", "минс", "зумн"};
 const char *STR_CALL = "зов";
 const char *STR_SCAL = "сзов";
+// 8 and 16
+// д8 for r8w and б8 for r8b
 // 32
 const int E_REGS_LEN = 18;
 const struct Reg E_REGS[] = {
-	{R_EIP, "еип"},	 {R_EFLAGS, "ефлаги"}, {R_EAX, "еах"},	{R_EBX, "ебх"},
-	{R_ECX, "есх"},	 {R_EDX, "едх"},	   {R_ESI, "еси"},	{R_EDI, "еди"},
-	{R_EBP, "ебп"},	 {R_ESP, "есп"},	   {R_R8D, "е8"},	{R_R9D, "е9"},
-	{R_R10D, "е10"}, {R_R11D, "е11"},	   {R_R12D, "е12"}, {R_R13D, "е13"},
-	{R_R14D, "е14"}, {R_R15D, "е15"}
+	{R_EAX, "еах"},	  {R_EBX, "ебх"},		{R_ECX, "есх"},	  {R_EDX, "едх"},
+	{R_ESI, "еси"},	  {R_EDI, "еди"},		{R_EBP, "ебп"},	  {R_ESP, "есп"},
+	{R_R8D, "е8"},	  {R_R9D, "е9"},		{R_R10D, "е10"},  {R_R11D, "е11"},
+	{R_R12D, "е12"},  {R_R13D, "е13"},		{R_R14D, "е14"},  {R_R15D, "е15"},
+	{R_R8D, "р8ч"},	  {R_R9D, "р9ч"},		{R_R10D, "р10ч"}, {R_R11D, "р11ч"},
+	{R_R12D, "р12ч"}, {R_R13D, "р13ч"},		{R_R14D, "р14ч"}, {R_R15D, "р15ч"},
+	{R_EIP, "еип"},	  {R_EFLAGS, "ефлаги"},
 };
-// д8 for r8w and б8 for r8b
-const char *STR_EIP = "еип";
-const char *STR_EFLAGS = "ефлаги";
-const char *STR_EAX = "еах";
-const char *STR_EBX = "ебх";
-const char *STR_ECX = "еси";
-const char *STR_EDX = "едх";
-const char *STR_ESI = "еси";
-const char *STR_EDI = "еди";
-const char *STR_EBP = "ебп";
-const char *STR_ESP = "есп";
-const char *STR_R8D = "е8";
-const char *STR_R9D = "е9";
-const char *STR_R10D = "е10";
-const char *STR_R11D = "е11";
-const char *STR_R12D = "е12";
-const char *STR_R13D = "е13";
-const char *STR_R14D = "е14";
-const char *STR_R15D = "е15";
 // 64
 const char *STR_RIP = "рип";
 const char *STR_RFLAGS = "рфлаги";
@@ -171,17 +156,23 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 	return code;
 }
 
-#define set_tc(tp, cp, t, c)                                                   \
+#define set_tc(tp, cp, t, c, sp, s)                                            \
 	do {                                                                       \
 		*(tp) = (t);                                                           \
 		*(cp) = (c);                                                           \
+		*(sp) = (s);                                                           \
 	} while (0)
-// void set_tc(struct Token **tp, enum OCode *cp, struct Token *t, enum OCode c)
-// { *tp = t; *cp = c; }
+// void set_tc(struct Token **tp, enum OCode *cp, struct Token *t, enum
+// OCode c) { *tp = t; *cp = c; }
 
 char *ERR_WRONG_TOKEN = "НЕВЕРНОЕ ВЫРАЖЕНИЕ";
 char *ERR_WRONG_ID = "НЕИЗВЕСТНОЕ СЛОВО НА ДАННЫЙ МОМЕНТ";
 char *ERR_WRONG_MINUS = "МИНУС МОЖНО ИСПОЛЬЗОВАТЬ ТОЛЬКО ПЕРЕД ЧИСЛАМИ";
+
+#define BYTE 1
+#define WORD 2
+#define DWORD 4
+#define QWORD 8
 
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper));
@@ -189,15 +180,18 @@ struct Oper *expression(struct Pser *p) {
 
 	struct Token *ot, *t0 = next_get(p, -1), *t1, *t2;
 	struct Token **t0p = &t0;
+	uc *szp = &o->sz;
 	char *v;
 	int i;
 
 	switch (t0->code) {
 	case INT:
-		set_tc(t0p, cp, t0, OINT);
+		set_tc(t0p, cp, t0, OINT, szp, DWORD);
+		ot = t0;
 		break;
 	case REAL:
-		set_tc(t0p, cp, t0, OFPN);
+		set_tc(t0p, cp, t0, OFPN, szp, DWORD);
+		ot = t0;
 		break;
 	case MINUS:
 		t0 = next_get(p, -1);
@@ -209,6 +203,7 @@ struct Oper *expression(struct Pser *p) {
 			code = OFPN;
 		} else
 			eep(t0, ERR_WRONG_MINUS);
+		o->sz = DWORD;
 		ot = t0;
 		break;
 	case ID:
@@ -217,7 +212,7 @@ struct Oper *expression(struct Pser *p) {
 		for (i = 0; i < E_REGS_LEN; i++)
 			if (sc(v, E_REGS[i].v)) {
 				o->rcode = E_REGS[i].c;
-				o->sz = 4;
+				o->sz = DWORD;
 				break;
 			}
 		if (o->rcode != R_NONE) {
@@ -226,7 +221,7 @@ struct Oper *expression(struct Pser *p) {
 			break;
 		} // else
 		code = OREL;
-		o->sz = 4;
+		o->sz = DWORD;
 		ot = t0;
 		// eep(t0, ERR_WRONG_ID);
 		break;
