@@ -122,7 +122,7 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	p->l = ((struct Token *)in->os->st[0])->view;
 	p->si = segment_place;
 	p->us = new_plist(4);
-	//p->a = g->pie; // + first ph memsz;
+	// p->a = g->pie; // + first ph memsz;
 
 	return p;
 }
@@ -160,6 +160,11 @@ void *alloc_len(long len, long *buf_len) {
 void alloc_cpy(void **buf, long *buf_len, long alc_len, void *data) {
 	*buf = alloc_len(alc_len, buf_len);
 	memcpy(*buf, data, alc_len);
+}
+
+void alloc_cpy_int(void **buf, long *buf_len, long alc_len, uint64_t data) {
+	*buf = alloc_len(alc_len, buf_len);
+	memcpy(*buf, &data, alc_len);
 }
 
 void cpy_len(uc *buf, long *tbuf, long value, int len) {
@@ -288,8 +293,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			alloc_cpy(ibufp, blp, 2, (void *)MLESYSCALL);
 			break;
 		case INOP:
-			ibuff = alloc_len(1, blp);
-			cpy_len(ibuff, tmpp, 0x90, 1);
+			alloc_cpy_int(ibufp, blp, 1, 0x90);
+			//ibuff = alloc_len(1, blp);
+			//cpy_len(ibuff, tmpp, 0x90, 1);
 			break;
 		case ISEGMENT:
 			if (phs_counter == 0)

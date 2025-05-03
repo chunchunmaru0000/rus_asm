@@ -34,7 +34,7 @@ int main(int argc, char **args) {
 	int end = bytes % 10;
 	if (end >= 2 && end <= 4)
 		printf("а");
-	printf("\n");
+	putchar('\n');
 
 	return 0;
 }

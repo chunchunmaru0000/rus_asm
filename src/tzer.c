@@ -50,7 +50,7 @@ enum TCode next_line(struct Tzer *t, struct Token *token) {
 }
 
 enum TCode num_token(struct Tzer *t, struct Token *token) {
-	unsigned char c = cur(t), n = get(t, 1), nn = get(t, 2), fpn = 0;
+	uc c = cur(t), n = get(t, 1), nn = get(t, 2), fpn = 0;
 	long start_pos = t->pos, num_len = 1;
 	enum TCode code = INT;
 	char *num_view;
@@ -179,7 +179,7 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 	char *view;
 	enum TCode code;
 	enum TCode *cp = &code;
-	unsigned char c = cur(t), n = get(t, 1), nn = get(t, 2);
+	uc c = cur(t), n = get(t, 1), nn = get(t, 2);
 	next(t);
 
 	switch (c) {
@@ -280,7 +280,8 @@ struct Token *new_token(struct Tzer *t) {
 	while (char_in_str(cur(t), white_space))
 		next(t);
 
-	unsigned char c = cur(t);
+	uc c = cur(t);
+	uc n = get(t, 1);
 	enum TCode code;
 	struct Token *token = malloc(sizeof(struct Token));
 	token->line = t->line;
@@ -293,7 +294,8 @@ struct Token *new_token(struct Tzer *t) {
 		code = com_token(t, token);
 	else if (c == '\n')
 		code = next_line(t, token);
-	else if (c >= '0' && c <= '9')
+	else if ((c >= '0' && c <= '9') ||
+			 ((c == '-' || c == '+') && (n >= '0' && n <= '9')))
 		code = num_token(t, token);
 	else if (c == '"')
 		code = str_token(t, token);
