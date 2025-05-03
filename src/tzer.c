@@ -280,8 +280,7 @@ struct Token *new_token(struct Tzer *t) {
 	while (char_in_str(cur(t), white_space))
 		next(t);
 
-	uc c = cur(t);
-	uc n = get(t, 1);
+	uc c = cur(t), n = get(t, 1);
 	enum TCode code;
 	struct Token *token = malloc(sizeof(struct Token));
 	token->line = t->line;

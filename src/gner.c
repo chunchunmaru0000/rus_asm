@@ -194,8 +194,20 @@ struct Usage *new_usage(uint64_t place, enum UT type) {
 	return u;
 }
 
+const char *WRONG_FST_OPER = "НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
+const char *WRONG_FST_OPER_INT =
+	"НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА, ЧИСЛО НЕ МОЖЕТ БЫТЬ ПЕРВЫМ ОПЕРАНДОМ "
+	"ДЛЯ ДАННОЙ КОМАНДЫ";
+const char *WRONG_SND_OPER = "НЕДОСТУПНЫЙ ТИП ВТОРОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
+const char *WRONG_FST_OPER_REG =
+	"НЕДОСТУПНЫЙ ВИД РЕГИСТРА ПЕРВОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
+const char *WRONG_FPN_OP_SIZE =
+	"НЕДОПУСТИМЫЙ РАЗМЕР ДЛЯ ЧИСЛА С ПЛАВУЮЩЕЙ ТОЧКОЙ, МИНИМАЛЬНЫЙ - 4 БАЙТА, "
+	"МАКСИМАЛЬНЫЙ - 8 БАЙТ";
+
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i, j, command, last_text_sz;
+	long i, j, last_text_sz;
+	uint64_t command, cmd_len;
 	long tmpb, *tmpp = &tmpb;	   // temp buf and ptr to buf
 	long buf_len, *blp = &buf_len; // buf len ptr
 	uc *ibuff;
@@ -204,6 +216,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	enum ICode code;
 	struct Inst *in;
 	struct Token *tok;
+	struct Oper * or, *ol;
 	struct Plov *l;
 	struct ELFPH *ph, *phl;
 	struct Usage *usage;
@@ -216,36 +229,54 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		buf_len = 0;
 		code = in->code;
 
-		if (code >= IMOV_EAX_INT && code <= IMOV_ESI_LABEL) {
-			tok = plist_get(in->os, 1);
-			if (code >= IMOV_EAX_INT && code <= IMOV_ESI_INT) {
-				if (code == IMOV_EAX_INT)
-					command = 0xb8;
-				else if (code == IMOV_EDX_INT)
-					command = 0xba;
-				else if (code == IMOV_EDI_INT)
-					command = 0xbf;
-				else if (code == IMOV_ESI_INT)
-					command = 0xbe;
+		if (code == IMOV) {
+			or = plist_get(in->os, 0);
+			ol = plist_get(in->os, 1);
+			switch (or->code) {
+			case OREG:
+				switch (ol->code) {
+				case OINT:
+				case OFPN:
+				case OREL:
+					if (or->rcode >= R_EAX && or->rcode <= R_EDI) {
+						cmd_len = 1;
+						command = 0xb8 + or->rcode - R_EAX;
+					} else if (or->rcode >= R_R8D && or->rcode <= R_R15D) {
+						cmd_len = 2;
+						command = ((0xb8 + or->rcode - R_R8D) << 8) + 0x41;
+					} else
+						eeg(WRONG_FST_OPER_REG, in);
 
-				ibuff = alloc_len(5, blp);
-				cpy_len(ibuff, tmpp, command, 1);
-				cpy_len(ibuff + 1, tmpp, tok->number, 4);
-			} else
-				switch (code) {
-				case IMOV_ESI_LABEL:
-					ibuff = alloc_len(1 + REL_SIZE, blp);
-					cpy_len(ibuff, tmpp, 0xbe, 1);
+					tok = ol->t;
+					uint64_t data;
+					ibuff = alloc_len(cmd_len + ol->sz, blp);
+					cpy_len(ibuff, tmpp, command, cmd_len);
 
-					l = find_label(g, tok->view);
-					usage = new_usage((uint64_t)(g->text->size) + 1, ADDR);
-					plist_add(l->us, usage);
-					cpy_len(ibuff + 1, tmpp, 0x766f6d6c, REL_SIZE);
+					if (ol->code == OINT)
+						cpy_len(ibuff + cmd_len, tmpp, tok->number, ol->sz);
+					else if (ol->code == OFPN) {
+						if (ol->sz == 4)
+							data = (float)tok->fpn;
+						else if (ol->sz == 8)
+							data = tok->fpn;
+						else
+							eeg(WRONG_FPN_OP_SIZE, in);
+						cpy_len(ibuff + cmd_len, tmpp, data, ol->sz);
+					} else {
+						data = 0x766f6d6c;
+						l = find_label(g, tok->view);
+						usage = new_usage((uint64_t)(g->text->size) + cmd_len,
+										  ADDR);
+						plist_add(l->us, usage);
+						cpy_len(ibuff + cmd_len, tmpp, data, ol->sz);
+					}
 					break;
 				default:
-					eeg("НЕИЗВЕСТНАЯ [быть] КОМАНДА", in);
+					eeg(WRONG_SND_OPER, in);
 				}
-
+			default:
+				eeg(WRONG_FST_OPER, in);
+			}
 			if (buf_len) {
 				blat(g->text, ibuff, buf_len);
 				phs_cur_sz += buf_len;
@@ -294,8 +325,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			break;
 		case INOP:
 			alloc_cpy_int(ibufp, blp, 1, 0x90);
-			//ibuff = alloc_len(1, blp);
-			//cpy_len(ibuff, tmpp, 0x90, 1);
 			break;
 		case ISEGMENT:
 			if (phs_counter == 0)
@@ -356,7 +385,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		in = plist_get(g->is, i);
 
 		if (in->code == ILABEL || in->code == ILET) {
-			tok = plist_get(in->os, 0); // in both cases name is first opperand
+			tok = plist_get(in->os,
+							0); // in both cases name is first opperand
 			l = find_label(g, tok->view);
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);

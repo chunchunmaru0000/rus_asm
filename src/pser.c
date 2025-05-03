@@ -58,26 +58,60 @@ const char *STR_QWORD = "вбайт";
 // instruction words
 const char *STR_IJMP = "идти";
 const char *STR_IMOV = "быть";
-const char *STR_PLUS = "плюс";
-const char *STR_MINS = "минс";
+const char *STR_IADD = "плюс";
+const char *STR_ISUB = "минс";
 const char *STR_IMUL = "зумн";
 const char *TWO_OPS_STRS[] = {"быть", "плюс", "минс", "зумн"};
 const long LTWO_OPS_STRS = 4;
 const char *STR_CALL = "зов";
 const char *STR_SCAL = "сзов";
-// registers words
+// 32
+const int E_REGS_LEN = 18;
+const struct Reg E_REGS[] = {
+	{R_EIP, "еип"},	 {R_EFLAGS, "ефлаги"}, {R_EAX, "еах"},	{R_EBX, "ебх"},
+	{R_ECX, "есх"},	 {R_EDX, "едх"},	   {R_ESI, "еси"},	{R_EDI, "еди"},
+	{R_EBP, "ебп"},	 {R_ESP, "есп"},	   {R_R8D, "е8"},	{R_R9D, "е9"},
+	{R_R10D, "е10"}, {R_R11D, "е11"},	   {R_R12D, "е12"}, {R_R13D, "е13"},
+	{R_R14D, "е14"}, {R_R15D, "е15"}
+};
+// д8 for r8w and б8 for r8b
+const char *STR_EIP = "еип";
+const char *STR_EFLAGS = "ефлаги";
 const char *STR_EAX = "еах";
+const char *STR_EBX = "ебх";
+const char *STR_ECX = "еси";
+const char *STR_EDX = "едх";
+const char *STR_ESI = "еси";
+const char *STR_EDI = "еди";
+const char *STR_EBP = "ебп";
+const char *STR_ESP = "есп";
+const char *STR_R8D = "е8";
+const char *STR_R9D = "е9";
+const char *STR_R10D = "е10";
+const char *STR_R11D = "е11";
+const char *STR_R12D = "е12";
+const char *STR_R13D = "е13";
+const char *STR_R14D = "е14";
+const char *STR_R15D = "е15";
+// 64
+const char *STR_RIP = "рип";
+const char *STR_RFLAGS = "рфлаги";
 const char *STR_RAX = "рах";
 const char *STR_RBX = "рбх";
 const char *STR_RCX = "рсх";
-const char *STR_EDX = "едх";
 const char *STR_RDX = "рдх";
-const char *STR_EDI = "еди";
-const char *STR_RDI = "рди";
-const char *STR_ESI = "еси";
 const char *STR_RSI = "рси";
-const char *STR_RSP = "рсп";
+const char *STR_RDI = "рди";
 const char *STR_RBP = "рбп";
+const char *STR_RSP = "рсп";
+const char *STR_R8 = "р8";
+const char *STR_R9 = "р9";
+const char *STR_R10 = "р10";
+const char *STR_R11 = "р11";
+const char *STR_R12 = "р12";
+const char *STR_R13 = "р13";
+const char *STR_R14 = "р14";
+const char *STR_R15 = "р15";
 
 uc sc(char *view, const char *str) {
 	// printf("[%s]==[%s]\n", view, str);
@@ -115,68 +149,94 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 	return ISEGMENT;
 }
 
-char *ERR_MOV_EAX = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еах ...";
-char *ERR_MOV_EDX = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть едх ...";
-char *ERR_MOV_EDI = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еди ...";
-char *ERR_MOV_ESI = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть еси ...";
-char *ERR_MOV = "НЕИЗВЕСТНЫЙ ОПЕРАНД ДЛЯ быть ... ...";
+struct Oper *expression(struct Pser *);
+
 enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 	char *v = ((struct Token *)gettp(p, 0))->view;
 	enum ICode code;
-	struct Token *fst, *snd;
-	fst = next_get(p, 0);
-	snd = next_get(p, 0);
-	plist_add(os, fst);
-	plist_add(os, snd);
-	next_get(p, 0); // skip snd op
 
-	if (sc(v, STR_IMOV)) {
-		if (sc(fst->view, STR_EAX)) {
-			switch (snd->code) {
-			case INT:
-				code = IMOV_EAX_INT;
-				break;
-			default:
-				eep(snd, ERR_MOV_EAX);
-			}
-		} else if (sc(fst->view, STR_EDX)) {
-			switch (snd->code) {
-			case INT:
-				code = IMOV_EDX_INT;
-				break;
-			default:
-				eep(snd, ERR_MOV_EDX);
-			}
-		} else if (sc(fst->view, STR_EDI)) {
-			switch (snd->code) {
-			case INT:
-				code = IMOV_EDI_INT;
-				break;
-			default:
-				eep(snd, ERR_MOV_EDI);
-			}
-		} else if (sc(fst->view, STR_ESI)) {
-			switch (snd->code) {
-			case INT:
-				code = IMOV_ESI_INT;
-				break;
-			case ID:
-				code = IMOV_ESI_LABEL;
-				break;
-			default:
-				eep(snd, ERR_MOV_ESI);
-			}
-		} else
-			eep(fst, ERR_MOV);
-	} else if (sc(v, STR_PLUS))
+	if (sc(v, STR_IMOV))
+		code = IMOV;
+	else if (sc(v, STR_IADD))
 		code = IADD;
-	else if (sc(v, STR_MINS))
+	else if (sc(v, STR_ISUB))
 		code = ISUB;
 	else if (sc(v, STR_IMUL))
 		code = IIMUL;
 	// else
+	next_get(p, 0); // skip instruction
+	plist_add(os, expression(p));
+	plist_add(os, expression(p));
 
 	return code;
+}
+
+#define set_tc(tp, cp, t, c)                                                   \
+	do {                                                                       \
+		*(tp) = (t);                                                           \
+		*(cp) = (c);                                                           \
+	} while (0)
+// void set_tc(struct Token **tp, enum OCode *cp, struct Token *t, enum OCode c)
+// { *tp = t; *cp = c; }
+
+char *ERR_WRONG_TOKEN = "НЕВЕРНОЕ ВЫРАЖЕНИЕ";
+char *ERR_WRONG_ID = "НЕИЗВЕСТНОЕ СЛОВО НА ДАННЫЙ МОМЕНТ";
+char *ERR_WRONG_MINUS = "МИНУС МОЖНО ИСПОЛЬЗОВАТЬ ТОЛЬКО ПЕРЕД ЧИСЛАМИ";
+
+struct Oper *expression(struct Pser *p) {
+	struct Oper *o = malloc(sizeof(struct Oper));
+	enum OCode code, *cp = &code;
+
+	struct Token *ot, *t0 = next_get(p, -1), *t1, *t2;
+	struct Token **t0p = &t0;
+	char *v;
+	int i;
+
+	switch (t0->code) {
+	case INT:
+		set_tc(t0p, cp, t0, OINT);
+		break;
+	case REAL:
+		set_tc(t0p, cp, t0, OFPN);
+		break;
+	case MINUS:
+		t0 = next_get(p, -1);
+		if (t0->code == INT) {
+			t0->number *= -1;
+			code = OINT;
+		} else if (t0->code == REAL) {
+			t0->fpn *= -1;
+			code = OFPN;
+		} else
+			eep(t0, ERR_WRONG_MINUS);
+		ot = t0;
+		break;
+	case ID:
+		v = t0->view;
+		o->rcode = R_NONE;
+		for (i = 0; i < E_REGS_LEN; i++)
+			if (sc(v, E_REGS[i].v)) {
+				o->rcode = E_REGS[i].c;
+				o->sz = 4;
+				break;
+			}
+		if (o->rcode != R_NONE) {
+			ot = t0;
+			code = OREG;
+			break;
+		} // else
+		code = OREL;
+		o->sz = 4;
+		ot = t0;
+		// eep(t0, ERR_WRONG_ID);
+		break;
+	default:
+		eep(t0, ERR_WRONG_TOKEN);
+	};
+
+	o->code = code;
+	o->t = ot;
+	return o;
 }
 
 enum ICode label_i(struct Pser *p, struct PList *os) {

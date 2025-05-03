@@ -10,12 +10,12 @@ struct Pser {
 struct Pser *new_pser(char *, uc);
 struct PList *pse(struct Pser *); // instructions
 
-enum OCode { // operand type codes
-	OINT, // integer numbers negative number are handled in tzer
-	OFPN, // floating point numbers that just different for the parser
-	OREL, // labels and vars relative offsets
-	OREG, // general purpose registers
-	OSIMD, // single instruction multiple data registers
+enum OCode {  // operand type codes
+	OINT,	  // integer numbers negative number are handled in tzer
+	OFPN,	  // floating point numbers that just different for the parser
+	OREL,	  // labels and vars relative offsets
+	OREG,	  // general purpose registers
+	OSIMD,	  // single instruction multiple data registers
 	OMEM_REG, // [reg]
 	OMEM_REL, // [label or var]
 	// OMEM_INT, // not for now
@@ -29,6 +29,45 @@ enum OCode { // operand type codes
 	OFPU, // FPU registers and things
 };
 
+enum RegCode {
+	R_NONE,
+	R_EIP,
+	R_EFLAGS,
+
+	R_EAX,
+	R_ECX,
+	R_EDX,
+	R_EBX,
+	R_ESP,
+	R_EBP,
+	R_ESI,
+	R_EDI,
+
+	R_R8D,
+	R_R9D,
+	R_R10D,
+	R_R11D,
+	R_R12D,
+	R_R13D,
+	R_R14D,
+	R_R15D,
+};
+
+struct Reg {
+	enum RegCode c;
+	const char *v;
+};
+
+struct Oper { // operand
+	enum OCode code;
+	struct Token *t;
+	uc sz;
+	// ---possible values---
+	enum RegCode rcode;
+	// enum SimdCode scode;
+	// all other needed enums also
+};
+
 enum ICode {
 	IEOI, // end of instructions
 	IENTRY,
@@ -36,12 +75,12 @@ enum ICode {
 	ISECTION,
 	ILABEL,
 	ILET,
-	//IMOV,
-	IMOV_EAX_INT,
-	IMOV_EDX_INT,
-	IMOV_EDI_INT,
-	IMOV_ESI_INT,
-	IMOV_ESI_LABEL,
+	IMOV,
+	// IMOV_EAX_INT,
+	// IMOV_EDX_INT,
+	// IMOV_EDI_INT,
+	// IMOV_ESI_INT,
+	// IMOV_ESI_LABEL,
 	IJMP,
 	IADD,
 	ISUB,
