@@ -68,35 +68,22 @@ const char *STR_SCAL = "сзов";
 // 8 and 16
 // д8 for r8w and б8 for r8b
 // 32
-const int E_REGS_LEN = 18;
+const int E_REGS_LEN = 26;
 const struct Reg E_REGS[] = {
-	{R_EAX, "еах"},	  {R_EBX, "ебх"},		{R_ECX, "есх"},	  {R_EDX, "едх"},
-	{R_ESI, "еси"},	  {R_EDI, "еди"},		{R_EBP, "ебп"},	  {R_ESP, "есп"},
-	{R_R8D, "е8"},	  {R_R9D, "е9"},		{R_R10D, "е10"},  {R_R11D, "е11"},
-	{R_R12D, "е12"},  {R_R13D, "е13"},		{R_R14D, "е14"},  {R_R15D, "е15"},
-	{R_R8D, "р8ч"},	  {R_R9D, "р9ч"},		{R_R10D, "р10ч"}, {R_R11D, "р11ч"},
-	{R_R12D, "р12ч"}, {R_R13D, "р13ч"},		{R_R14D, "р14ч"}, {R_R15D, "р15ч"},
-	{R_EIP, "еип"},	  {R_EFLAGS, "ефлаги"},
-};
-// 64
-const char *STR_RIP = "рип";
-const char *STR_RFLAGS = "рфлаги";
-const char *STR_RAX = "рах";
-const char *STR_RBX = "рбх";
-const char *STR_RCX = "рсх";
-const char *STR_RDX = "рдх";
-const char *STR_RSI = "рси";
-const char *STR_RDI = "рди";
-const char *STR_RBP = "рбп";
-const char *STR_RSP = "рсп";
-const char *STR_R8 = "р8";
-const char *STR_R9 = "р9";
-const char *STR_R10 = "р10";
-const char *STR_R11 = "р11";
-const char *STR_R12 = "р12";
-const char *STR_R13 = "р13";
-const char *STR_R14 = "р14";
-const char *STR_R15 = "р15";
+	{R_EAX, "еах"},	  {R_EBX, "ебх"},	   {R_ECX, "есх"},	 {R_EDX, "едх"},
+	{R_ESI, "еси"},	  {R_EDI, "еди"},	   {R_EBP, "ебп"},	 {R_ESP, "есп"},
+	{R_R8D, "е8"},	  {R_R9D, "е9"},	   {R_R10D, "е10"},	 {R_R11D, "е11"},
+	{R_R12D, "е12"},  {R_R13D, "е13"},	   {R_R14D, "е14"},	 {R_R15D, "е15"},
+	{R_R8D, "р8ч"},	  {R_R9D, "р9ч"},	   {R_R10D, "р10ч"}, {R_R11D, "р11ч"},
+	{R_R12D, "р12ч"}, {R_R13D, "р13ч"},	   {R_R14D, "р14ч"}, {R_R15D, "р15ч"},
+	{R_EIP, "еип"},	  {R_EFLAGS, "ефлаги"}};
+const int R_REGS_LEN = 18;
+const struct Reg R_REGS[] = {
+	{R_RAX, "рах"}, {R_RBX, "рбх"},		 {R_RCX, "рсх"}, {R_RDX, "рдх"},
+	{R_RSI, "рси"}, {R_RDI, "рди"},		 {R_RBP, "рбп"}, {R_RSP, "рсп"},
+	{R_R8, "р8"},	{R_R9, "р9"},		 {R_R10, "р10"}, {R_R11, "р11"},
+	{R_R12, "р12"}, {R_R13, "р13"},		 {R_R14, "р14"}, {R_R15, "р15"},
+	{R_RIP, "рип"}, {R_RFLAGS, "рфлаги"}};
 
 uc sc(char *view, const char *str) {
 	// printf("[%s]==[%s]\n", view, str);
@@ -166,7 +153,6 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 // OCode c) { *tp = t; *cp = c; }
 
 char *ERR_WRONG_TOKEN = "НЕВЕРНОЕ ВЫРАЖЕНИЕ";
-char *ERR_WRONG_ID = "НЕИЗВЕСТНОЕ СЛОВО НА ДАННЫЙ МОМЕНТ";
 char *ERR_WRONG_MINUS = "МИНУС МОЖНО ИСПОЛЬЗОВАТЬ ТОЛЬКО ПЕРЕД ЧИСЛАМИ";
 
 #define BYTE 1
@@ -174,15 +160,25 @@ char *ERR_WRONG_MINUS = "МИНУС МОЖНО ИСПОЛЬЗОВАТЬ ТОЛЬ
 #define DWORD 4
 #define QWORD 8
 
+int search_reg(char *v, const int regs_len, const struct Reg regs[],
+			   struct Oper *o, uc sz) {
+	for (int i = 0; i < regs_len; i++)
+		if (sc(v, regs[i].v)) {
+			o->rcode = regs[i].c;
+			o->sz = sz;
+			return 1;
+		}
+	return 0;
+}
+
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper));
 	enum OCode code, *cp = &code;
 
 	struct Token *ot, *t0 = next_get(p, -1), *t1, *t2;
 	struct Token **t0p = &t0;
-	uc *szp = &o->sz;
 	char *v;
-	int i;
+	uc *szp = &o->sz;
 
 	switch (t0->code) {
 	case INT:
@@ -209,21 +205,18 @@ struct Oper *expression(struct Pser *p) {
 	case ID:
 		v = t0->view;
 		o->rcode = R_NONE;
-		for (i = 0; i < E_REGS_LEN; i++)
-			if (sc(v, E_REGS[i].v)) {
-				o->rcode = E_REGS[i].c;
-				o->sz = DWORD;
-				break;
-			}
+		if (search_reg(v, E_REGS_LEN, E_REGS, o, DWORD))
+			;
+		else if (search_reg(v, R_REGS_LEN, R_REGS, o, QWORD))
+			;
 		if (o->rcode != R_NONE) {
 			ot = t0;
 			code = OREG;
 			break;
-		} // else
+		}
+		ot = t0;
 		code = OREL;
 		o->sz = DWORD;
-		ot = t0;
-		// eep(t0, ERR_WRONG_ID);
 		break;
 	default:
 		eep(t0, ERR_WRONG_TOKEN);
@@ -242,12 +235,9 @@ enum ICode label_i(struct Pser *p, struct PList *os) {
 }
 
 enum ICode jmp_i(struct Pser *p, struct PList *os) {
-	struct Token *label = next_get(p, 0);
-	next_get(p, 0); // skip label
+	next_get(p, 0); // skip jmp
+	plist_add(os, expression(p));
 
-	if (!(label->code == ID))
-		eep(label, "ОЖИДАЛАСЬ МЕТКА");
-	plist_add(os, label);
 	return IJMP;
 }
 

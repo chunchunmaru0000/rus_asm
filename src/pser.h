@@ -31,9 +31,9 @@ enum OCode {  // operand type codes
 
 enum RegCode {
 	R_NONE,
-	R_EIP,
-	R_EFLAGS,
 
+	R_EIP,
+	R_RIP,
 	R_EAX,
 	R_ECX,
 	R_EDX,
@@ -42,7 +42,6 @@ enum RegCode {
 	R_EBP,
 	R_ESI,
 	R_EDI,
-
 	R_R8D,
 	R_R9D,
 	R_R10D,
@@ -51,6 +50,44 @@ enum RegCode {
 	R_R13D,
 	R_R14D,
 	R_R15D,
+
+	R_EFLAGS,
+	R_RFLAGS,
+	R_RAX,
+	R_RCX,
+	R_RDX,
+	R_RBX,
+	R_RSP,
+	R_RBP,
+	R_RSI,
+	R_RDI,
+	R_R8,
+	R_R9,
+	R_R10,
+	R_R11,
+	R_R12,
+	R_R13,
+	R_R14,
+	R_R15,
+};
+
+enum ICode {
+	IEOI, // end of instructions
+	IENTRY,
+	ISEGMENT,
+	ISECTION,
+	ILABEL,
+	ILET,
+	IMOV,
+	IJMP,
+	IADD,
+	ISUB,
+	IIMUL,
+	ISYSCALL,
+	ICALL,
+	IRET,
+	INOP,
+	ISET_VAR,
 };
 
 struct Reg {
@@ -66,30 +103,6 @@ struct Oper { // operand
 	enum RegCode rcode;
 	// enum SimdCode scode;
 	// all other needed enums also
-};
-
-enum ICode {
-	IEOI, // end of instructions
-	IENTRY,
-	ISEGMENT,
-	ISECTION,
-	ILABEL,
-	ILET,
-	IMOV,
-	// IMOV_EAX_INT,
-	// IMOV_EDX_INT,
-	// IMOV_EDI_INT,
-	// IMOV_ESI_INT,
-	// IMOV_ESI_LABEL,
-	IJMP,
-	IADD,
-	ISUB,
-	IIMUL,
-	ISYSCALL,
-	ICALL,
-	IRET,
-	INOP,
-	ISET_VAR,
 };
 
 struct Inst {

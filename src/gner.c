@@ -207,7 +207,7 @@ const char *WRONG_FPN_OP_SIZE =
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
-	uint64_t cmd, cmd_len;
+	uint64_t cmd, cmd_len, data;
 	long buf_len, *blp = &buf_len; // buf len ptr
 	uc *ibuff;
 	void **ibufp = (void **)&ibuff;
@@ -229,56 +229,54 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		code = in->code;
 
 		if (code == IMOV) {
-			or = plist_get(in->os, 0);
-			ol = plist_get(in->os, 1);
-			switch (or->code) {
+			ol = plist_get(in->os, 0);
+			or = plist_get(in->os, 1);
+			switch (ol->code) {
 			case OREG:
-				switch (ol->code) {
+				switch (or->code) {
 				case OINT:
 				case OFPN:
 				case OREL:
-					if (or->rcode >= R_EAX && or->rcode <= R_EDI) {
+					if (ol->rcode >= R_EAX && ol->rcode <= R_EDI) {
 						cmd_len = 1;
-						cmd = 0xb8 + or->rcode - R_EAX;
-					} else if (or->rcode >= R_R8D && or->rcode <= R_R15D) {
+						cmd = 0xb8 + ol->rcode - R_EAX;
+					} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
 						cmd_len = 2;
-						cmd = ((0xb8 + or->rcode - R_R8D) << 8) + 0x41;
+						cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
 					} else
 						eeg(WRONG_FST_OPER_REG, in);
 
-					tok = ol->t;
-					uint64_t data;
-					ibuff = alloc_len(cmd_len + ol->sz, blp);
-					cpy_len(ibuff, cmd, cmd_len);
-
-					if (ol->code == OINT)
-						cpy_len(ibuff + cmd_len, tok->number, ol->sz);
-					else if (ol->code == OFPN) {
-						if (ol->sz == 4)
+					tok = or->t;
+					if (or->code == OINT)
+						data = tok->number;
+					else if (or->code == OFPN) {
+						if (or->sz == 4)
 							data = (float)tok->fpn;
 						else if (ol->sz == 8)
 							data = tok->fpn;
 						else
 							eeg(WRONG_FPN_OP_SIZE, in);
-						cpy_len(ibuff + cmd_len, data, ol->sz);
 					} else {
 						data = 0x766f6d6c;
 						l = find_label(g, tok->view);
 						usage = new_usage((uint64_t)(g->text->size) + cmd_len,
 										  ADDR);
 						plist_add(l->us, usage);
-						cpy_len(ibuff + cmd_len, data, ol->sz);
 					}
+
+					ibuff = alloc_len(cmd_len + or->sz, blp);
+					cpy_len(ibuff, cmd, cmd_len);
+					cpy_len(ibuff + cmd_len, data, or->sz);
 					break;
 				default:
 					if (g->debug)
-						printf("ol->code = %d\t", ol->code);
+						printf("or->code = %d\t", or->code);
 					eeg(WRONG_SND_OPER, in);
 				}
 				break;
 			default:
 				if (g->debug)
-					printf("or->code = %d\t", or->code);
+					printf("ol->code = %d\t", ol->code);
 				eeg(WRONG_FST_OPER, in);
 			}
 			if (buf_len) {
@@ -290,16 +288,42 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		}
 
 		switch (code) {
+		//  TODO: near jmp
 		case IJMP:
-			tok = plist_get(in->os, 0);
-			l = find_label(g, tok->view);
-			// TODO: near jmp
-			ibuff = alloc_len(1 + REL_SIZE, blp);
-			cpy_len(ibuff, 0xe9, 1);
-			// text size + 1 is place in text to where need to put rel addr
-			usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
-			plist_add(l->us, usage);
-			cpy_len(ibuff + 1, 0x706d6a, REL_SIZE);
+			data = 0;
+			ol = plist_get(in->os, 0);
+			//  TODO: jmp for qword
+			if (ol->sz == 4) {
+				cmd = 0xe9;
+				cmd_len = 1;
+
+				if (ol->code == OREL) {
+					l = find_label(g, ol->t->view);
+					// text size + 1 is place in text to where need to put rel
+					usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
+					plist_add(l->us, usage);
+					data = 0x706d6a;
+				} else if (ol->code == OINT)
+					data = ol->t->number;
+				else if (ol->code == OFPN) {
+					if (or->sz == 4)
+						data = (float)ol->t->fpn;
+					else if (ol->sz == 8)
+						data = ol->t->fpn;
+					else
+						eeg(WRONG_FPN_OP_SIZE, in);
+				}
+				//  TODO: jmp for reg
+				else {
+					if (g->debug)
+						printf("ol->code = %d\t", ol->code);
+					eeg(WRONG_FST_OPER, in);
+				}
+			}
+			// TODO: macro oper cmd cmd_len data &ibuff blp
+			ibuff = alloc_len(cmd_len + ol->sz, blp);
+			cpy_len(ibuff, cmd, cmd_len);
+			cpy_len(ibuff + cmd_len, data, ol->sz);
 			break;
 		case ILABEL:
 			tok = plist_get(in->os, 0);
