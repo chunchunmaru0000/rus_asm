@@ -1,4 +1,5 @@
 #include "tzer.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,10 +37,15 @@ struct Tzer *new_tzer(char *filename) {
 	return t;
 }
 
-#define next(t) (((t)->pos++, (t)->col++))
+// #define next(t) (((t)->pos++, (t)->col++))
 #define cur(t) ((t)->pos < (t)->codeLen ? (t)->code[(t)->pos] : '\0')
 #define get(t, offset)                                                         \
 	((t)->pos + (offset) < (t)->codeLen ? (t)->code[(t)->pos + (offset)] : '\0')
+char next(struct Tzer *t) {
+	t->pos++;
+	t->col++;
+	return cur(t);
+}
 
 enum TCode next_line(struct Tzer *t, struct Token *token) {
 	next(t);
@@ -48,85 +54,212 @@ enum TCode next_line(struct Tzer *t, struct Token *token) {
 	token->view = EMPTY_STR;
 	return SLASHN;
 }
+uint64_t parse_decimal_num(char *);
+uint64_t parse_binary_num(char *);
+uint64_t parse_hex_num(char *);
+
+long s_cyrilic_toi(struct Tzer *t, char *s) {
+	int base = 10, minus_flag = 1;
+	int64_t value = 0;
+	uc c, n;
+
+	if (s[0] == '-') {
+		minus_flag = -1;
+		s++;
+	}
+	while (s[0] == '0')
+		s++;
+
+	c = s[0], n = s[1];
+
+	if (c == 'x' || c == 'X') {
+		base = 16;
+		s++;
+	} else if ((c == 0b11010001 && n == 0b10000101) ||
+			   (c == 0b11010000 && n == 0b10100101)) {
+		base = 16;
+		s += 2;
+	} else if (c == 'b' || c == 'B') {
+		base = 2;
+		s++;
+	} else if (c == 0b11010000 && (n == 0b10110001 || n == 0b10010001)) {
+		base = 2;
+		s += 2;
+	}
+
+	if (base == 10)
+		value = parse_decimal_num(s);
+	else if (base == 2)
+		value = parse_binary_num(s);
+	else if (base == 16)
+		value = parse_hex_num(s);
+	else
+		ee(t, "Неверное основание числа");
+
+	return value * minus_flag;
+}
+
+uint64_t parse_decimal_num(char *s) {
+	uint64_t value = 0;
+	while (*s != 0) {
+		if (*s != '_') {
+			value *= 10;
+			value += *s - '0';
+		}
+		s++;
+	}
+	return value;
+}
+uint64_t parse_binary_num(char *s) {
+	uint64_t value = 0;
+	while (*s != 0) {
+		if (*s != '_') {
+			value <<= 1;
+			value += *s == '1';
+		}
+		s++;
+	}
+	return value;
+}
+uint64_t parse_hex_num(char *s) {
+	uint64_t value = 0;
+	while (*s != 0) {
+		if (*s != '_') {
+			value <<= 4;
+			if (*s >= '0' && *s <= '9')
+				value += *s - '0';
+			else if (*s >= 'A' && *s <= 'F')
+				value += *s - 'A' + 10;
+			else if (*s >= 'a' && *s <= 'f')
+				value += *s - 'a' + 10;
+			else if ((uc)*s == 0b11010000) {
+				s++;
+				if ((uc)*s >= 0b10110000 && (uc)*s <= 0b10110110)
+					value += (uc)*s - (0b10110000 - 10) + 10;
+				else
+					value += (uc)*s - (0b10010000 - 10) + 10;
+			}
+		}
+		s++;
+	}
+	return value;
+}
 
 enum TCode num_token(struct Tzer *t, struct Token *token) {
 	uc c = cur(t), n = get(t, 1), nn = get(t, 2), fpn = 0;
-	long start_pos = t->pos, num_len = 1;
+	long start_pos = t->pos, num_len;
 	enum TCode code = INT;
 	char *num_view;
-	int base = 10;
 
+	int base = 10, minus_flag = 1;
+	uint64_t value = 0;
+
+	if (c == '-') {
+		minus_flag = -1;
+	}
+	while (c == '0')
+		c = next(t);
+	n = next(t);
+
+	if (c == 'x' || c == 'X') {
+		base = 16;
+		c = next(t);
+	} else if ((c == 0b11010001 && n == 0b10000101) ||
+			   (c == 0b11010000 && n == 0b10100101)) {
+		base = 16;
+		next(t);
+		c = next(t);
+	} else if (c == 'b' || c == 'B') {
+		base = 2;
+		c = next(t);
+	} else if (c == 0b11010000 && (n == 0b10110001 || n == 0b10010001)) {
+		base = 2;
+		next(t);
+		c = next(t);
+	}
+
+	if (base == 10) {
+		while (c >= '0' && c <= '9') {
+			c = next(t);
+			if (c == '.') {
+				fpn++;
+				if (fpn > 1)
+					ee(t, "Слишком много точек на одно не целое число");
+				code = REAL;
+				c = next(t);
+			}
+		}
+	} else if (base == 2) {
+
+	} else { // base = 16
+	}
+
+/*
 	if (c == '0' && (n == 'x' || n == 'X' || n == 'b' || n == 'B' ||
 					 (n == 0b11010001 && nn == 0b10000101) ||  // х cyrillic
-					 (n == 0b11010000 && nn == 0b10100101) ||  // Х
+					 (n == 0b11010000 && nn == 0b10100101) ||  // Х cyrillic
 					 (n == 0b11010000 && nn == 0b10110001) ||  // б
 					 (n == 0b11010000 && nn == 0b10010001))) { // Б
-		next(t);
-		c = cur(t);
+		if (cur(t) == '-')
+			minus_flag = -1;
+		c = next(t); // skip 0
 		n = get(t, 1);
 		base = c == 'x' || c == 'X' || (c == 0b11010001 && n == 0b10000101) ||
 					   (c == 0b11010000 && n == 0b10100101)
 				   ? 16
 				   : 2;
-		if (c == 'x' || c == 'X' || c == 'b' || c == 'B')
-			next(t);
-		else {
-			next(t);
-			next(t);
-		}
-		ee(t, "НЕ РАБОТАЕТ ПОКА 0х и 0б, НАДО ПРИДУМАТЬ КАКФОРМАТ МЕНЯТЬ ОТ "
-			  "РУССКИХ БУКВ ИЛИ САМОМУ ОБРАБАТЫВАТЬ");
+		c = next(t);
+		if ((c == 'x' || c == 'X' || c == 'b' || c == 'B') == 0)
+			c = next(t);
+		// абвгдж
+		// abcdef
+		// абстеф
 		if (base == 16) {
-			while (1) {
-				next(t);
-				c = cur(t);
+			loop {
+				while (c == '_')
+					c = next(t);
 				n = get(t, 1);
-				if ((c < '0' || c > '9') && (c < 'A' || c > 'F') &&
-					(c < 'a' || c > 'f') &&
-					(c == 0b11010000 && ((n < 0b10110000 && n > 0b10110110) &&
-										 (n < 0b10010000 && n > 0b10010110))))
+				if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') ||
+					(c >= 'a' && c <= 'f'))
+					c = next(t);
+				else if ((uc)c == 0b11010000 &&
+						 (((uc)n >= 0b10110000 && (uc)n <= 0b10110110) ||
+						  ((uc)n >= 0b10010000 && (uc)n <= 0b10010110))) {
+					next(t);
+					c = next(t);
+				} else
 					break;
-				num_len++;
 			}
 		} else {
-			while (1) {
-				next(t);
-				c = cur(t);
-				if (c < '0' || c > '1')
-					break;
-				num_len++;
-			}
+			c = next(t);
+			while (c == '0' || c == '1' || c == '_')
+				c = next(t);
 		}
 	} else {
-		while (1) {
-			next(t);
-			c = cur(t);
+		loop {
+			c = next(t);
 			if (c == '.') {
 				fpn++;
 				if (fpn > 1)
-					ee(t, "СЛИШКОМ МНОГО ТОЧЕК НА ОДНО ЧИСЛО");
+					ee(t, "Слишком много точек на одно не целое число");
 				code = REAL;
-				next(t);
-				c = cur(t);
-				num_len++;
+				c = next(t);
 			}
 			if (c < '0' || c > '9')
 				break;
-			num_len++;
 		}
 	}
-
+*/
+	num_len = t->pos - start_pos;
 	num_view = malloc(num_len + 1);
 	num_view[num_len] = 0;
 	strncpy(num_view, &t->code[start_pos], num_len);
+	printf("\t\tnum_view: %s\n", num_view);
 
-	if (base == 10)
-		if (code == INT)
-			token->number = atol(num_view);
-		else
-			token->fpn = atof(num_view);
+	if (code == INT)
+		token->number = s_cyrilic_toi(t, num_view);
 	else
-		token->number = strtol(num_view, NULL, base);
+		token->fpn = atof(num_view);
 
 	token->view = num_view;
 	return code;

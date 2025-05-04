@@ -1,6 +1,8 @@
 #include "ttypes.h"
 #include "lists.h"
 
+#define loop while(1)
+
 struct Tzer {
 	char *filename;
 	long line;
