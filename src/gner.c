@@ -199,11 +199,16 @@ const char *WRONG_FST_OPER_INT =
 	"НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА, ЧИСЛО НЕ МОЖЕТ БЫТЬ ПЕРВЫМ ОПЕРАНДОМ "
 	"ДЛЯ ДАННОЙ КОМАНДЫ";
 const char *WRONG_SND_OPER = "НЕДОСТУПНЫЙ ТИП ВТОРОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
-const char *WRONG_FST_OPER_REG =
-	"НЕДОСТУПНЫЙ ВИД РЕГИСТРА ПЕРВОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
+
+// sizes
+const char *WRONG_FST_OPER_REG_DWORD =
+	"Неверный регистр, для значения размера <чбайт> 4 байта";
+const char *WRONG_FST_OPER_REG_QWORD =
+	"Неверный регистр, для значения размера <вбайт> 8 байт";
+const char *WRONG_SND_OPER_SIZE = "Неверный размер второго операнда";
 const char *WRONG_FPN_OP_SIZE =
-	"НЕДОПУСТИМЫЙ РАЗМЕР ДЛЯ ЧИСЛА С ПЛАВУЮЩЕЙ ТОЧКОЙ, МИНИМАЛЬНЫЙ - 4 БАЙТА, "
-	"МАКСИМАЛЬНЫЙ - 8 БАЙТ";
+	"Недопустимы размер для числа с плавающей точкой, минимальный - <чбайт> 4 байта, "
+	"майсимальный - <вбайт> 8 байт";
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
@@ -237,20 +242,34 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				case OINT:
 				case OFPN:
 				case OREL:
-					if (ol->rcode >= R_EAX && ol->rcode <= R_EDI) {
-						cmd_len = 1;
-						cmd = 0xb8 + ol->rcode - R_EAX;
-					} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
-						cmd_len = 2;
-						cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
-					} else if (ol->rcode >= R_RAX && ol->rcode <= R_RDI){
-						cmd_len = 3;
-						cmd = ((0xc0 + ol->rcode - R_RAX) << 16) + 0xc748;
-					} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15){
-						cmd_len = 3;
-						cmd = ((0xc0 + ol->rcode - R_R8) << 16) + 0xc749;
-					} else
-						eeg(WRONG_FST_OPER_REG, in);
+					if (or->sz == DWORD) {
+						if (ol->rcode >= R_EAX && ol->rcode <= R_EDI) {
+							cmd_len = 1;
+							cmd = 0xb8 + ol->rcode - R_EAX;
+						} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
+							cmd_len = 2;
+							cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
+						} else if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
+							cmd_len = 3;
+							cmd = ((0xc0 + ol->rcode - R_RAX) << 16) + 0xc748;
+						} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
+							cmd_len = 3;
+							cmd = ((0xc0 + ol->rcode - R_R8) << 16) + 0xc749;
+						} else
+							eeg(WRONG_FST_OPER_REG_DWORD, in);
+					} else if (or->sz == QWORD) {
+						if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
+							cmd_len = 2;
+							cmd = ((0xb8 + ol->rcode - R_RAX) << 8) + 0x48;
+						} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
+							cmd_len = 2;
+							cmd = ((0xb8 + ol->rcode - R_R8) << 8) + 0x49;
+						} else
+							eeg(WRONG_FST_OPER_REG_QWORD, in);
+					} else {
+						printf("%d\t", or->sz);
+						eeg(WRONG_SND_OPER_SIZE, in);
+					}
 
 					tok = or->t;
 					if (or->code == OINT)
@@ -299,7 +318,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			data = 0;
 			ol = plist_get(in->os, 0);
 			//  TODO: jmp for qword
-			if (ol->sz == 4) {
+			if (ol->sz == DWORD) {
 				cmd = 0xe9;
 				cmd_len = 1;
 

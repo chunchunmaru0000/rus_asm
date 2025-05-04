@@ -155,17 +155,25 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 char *ERR_WRONG_TOKEN = "НЕВЕРНОЕ ВЫРАЖЕНИЕ";
 char *ERR_WRONG_MINUS = "МИНУС МОЖНО ИСПОЛЬЗОВАТЬ ТОЛЬКО ПЕРЕД ЧИСЛАМИ";
 
-#define BYTE 1
-#define WORD 2
-#define DWORD 4
-#define QWORD 8
-
 int search_reg(char *v, const int regs_len, const struct Reg regs[],
 			   struct Oper *o, uc sz) {
 	for (int i = 0; i < regs_len; i++)
 		if (sc(v, regs[i].v)) {
 			o->rcode = regs[i].c;
 			o->sz = sz;
+			return 1;
+		}
+	return 0;
+}
+
+const int STRS_SIZES_LEN = 4;
+const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
+
+int search_size(char *v, struct Oper **o, struct Pser *p) {
+	for (int i = 0; i < STRS_SIZES_LEN; i++)
+		if (sc(v, STRS_SIZES[i])) {
+			*o = expression(p);
+			(*o)->sz = 1 << i;
 			return 1;
 		}
 	return 0;
@@ -209,6 +217,8 @@ struct Oper *expression(struct Pser *p) {
 			;
 		else if (search_reg(v, R_REGS_LEN, R_REGS, o, QWORD))
 			;
+		else if (search_size(v, &o, p))
+			return o; // its special
 		if (o->rcode != R_NONE) {
 			ot = t0;
 			code = OREG;

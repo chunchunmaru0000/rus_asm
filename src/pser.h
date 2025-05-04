@@ -1,5 +1,10 @@
 #include "tzer.h"
 
+#define BYTE 1
+#define WORD 2
+#define DWORD 4
+#define QWORD 8
+
 uc sc(char *, const char *);
 
 struct Pser {
