@@ -207,7 +207,7 @@ const char *WRONG_FST_OPER_REG_QWORD =
 	"Неверный регистр, для значения размера <вбайт> 8 байт";
 const char *WRONG_SND_OPER_SIZE = "Неверный размер второго операнда";
 const char *WRONG_FPN_OP_SIZE =
-	"Недопустимы размер для числа с плавающей точкой, минимальный - <чбайт> 4 байта, "
+	"Недопустимый размер для числа с плавающей точкой, минимальный - <чбайт> 4 байта, "
 	"майсимальный - <вбайт> 8 байт";
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
@@ -266,10 +266,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 							cmd = ((0xb8 + ol->rcode - R_R8) << 8) + 0x49;
 						} else
 							eeg(WRONG_FST_OPER_REG_QWORD, in);
-					} else {
-						printf("%d\t", or->sz);
+					} else
 						eeg(WRONG_SND_OPER_SIZE, in);
-					}
 
 					tok = or->t;
 					if (or->code == OINT)
