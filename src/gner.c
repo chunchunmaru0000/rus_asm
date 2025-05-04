@@ -243,6 +243,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
 						cmd_len = 2;
 						cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
+					} else if (ol->rcode >= R_RAX && ol->rcode <= R_RDI){
+						cmd_len = 3;
+						cmd = ((0xc0 + ol->rcode - R_RAX) << 16) + 0xc748;
+					} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15){
+						cmd_len = 3;
+						cmd = ((0xc0 + ol->rcode - R_R8) << 16) + 0xc749;
 					} else
 						eeg(WRONG_FST_OPER_REG, in);
 
@@ -252,7 +258,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					else if (or->code == OFPN) {
 						if (or->sz == 4)
 							data = (float)tok->fpn;
-						else if (ol->sz == 8)
+						else if (or->sz == 8)
 							data = tok->fpn;
 						else
 							eeg(WRONG_FPN_OP_SIZE, in);

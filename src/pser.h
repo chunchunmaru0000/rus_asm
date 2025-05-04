@@ -33,7 +33,7 @@ enum RegCode {
 	R_NONE,
 
 	R_EIP,
-	R_RIP,
+	R_EFLAGS,
 	R_EAX,
 	R_ECX,
 	R_EDX,
@@ -51,7 +51,7 @@ enum RegCode {
 	R_R14D,
 	R_R15D,
 
-	R_EFLAGS,
+	R_RIP,
 	R_RFLAGS,
 	R_RAX,
 	R_RCX,
