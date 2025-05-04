@@ -54,99 +54,9 @@ enum TCode next_line(struct Tzer *t, struct Token *token) {
 	token->view = EMPTY_STR;
 	return SLASHN;
 }
-uint64_t parse_decimal_num(char *);
-uint64_t parse_binary_num(char *);
-uint64_t parse_hex_num(char *);
-
-long s_cyrilic_toi(struct Tzer *t, char *s) {
-	int base = 10, minus_flag = 1;
-	int64_t value = 0;
-	uc c, n;
-
-	if (s[0] == '-') {
-		minus_flag = -1;
-		s++;
-	}
-	while (s[0] == '0')
-		s++;
-
-	c = s[0], n = s[1];
-
-	if (c == 'x' || c == 'X') {
-		base = 16;
-		s++;
-	} else if ((c == 0b11010001 && n == 0b10000101) ||
-			   (c == 0b11010000 && n == 0b10100101)) {
-		base = 16;
-		s += 2;
-	} else if (c == 'b' || c == 'B') {
-		base = 2;
-		s++;
-	} else if (c == 0b11010000 && (n == 0b10110001 || n == 0b10010001)) {
-		base = 2;
-		s += 2;
-	}
-
-	if (base == 10)
-		value = parse_decimal_num(s);
-	else if (base == 2)
-		value = parse_binary_num(s);
-	else if (base == 16)
-		value = parse_hex_num(s);
-	else
-		ee(t, "Неверное основание числа");
-
-	return value * minus_flag;
-}
-
-uint64_t parse_decimal_num(char *s) {
-	uint64_t value = 0;
-	while (*s != 0) {
-		if (*s != '_') {
-			value *= 10;
-			value += *s - '0';
-		}
-		s++;
-	}
-	return value;
-}
-uint64_t parse_binary_num(char *s) {
-	uint64_t value = 0;
-	while (*s != 0) {
-		if (*s != '_') {
-			value <<= 1;
-			value += *s == '1';
-		}
-		s++;
-	}
-	return value;
-}
-uint64_t parse_hex_num(char *s) {
-	uint64_t value = 0;
-	while (*s != 0) {
-		if (*s != '_') {
-			value <<= 4;
-			if (*s >= '0' && *s <= '9')
-				value += *s - '0';
-			else if (*s >= 'A' && *s <= 'F')
-				value += *s - 'A' + 10;
-			else if (*s >= 'a' && *s <= 'f')
-				value += *s - 'a' + 10;
-			else if ((uc)*s == 0b11010000) {
-				s++;
-				if ((uc)*s >= 0b10110000 && (uc)*s <= 0b10110110)
-					value += (uc)*s - (0b10110000 - 10) + 10;
-				else
-					value += (uc)*s - (0b10010000 - 10) + 10;
-			}
-		}
-		s++;
-	}
-	return value;
-}
 
 enum TCode num_token(struct Tzer *t, struct Token *token) {
-	uc c = cur(t), n = get(t, 1), nn = get(t, 2), fpn = 0;
+	uc c = cur(t), n, fpn = 0;
 	long start_pos = t->pos, num_len;
 	enum TCode code = INT;
 	char *num_view;
@@ -156,10 +66,11 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 
 	if (c == '-') {
 		minus_flag = -1;
+		c = next(t);
 	}
 	while (c == '0')
 		c = next(t);
-	n = next(t);
+	n = get(t, 1);
 
 	if (c == 'x' || c == 'X') {
 		base = 16;
@@ -178,6 +89,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 		c = next(t);
 	}
 
+	// TODO: _ in decimal nums
 	if (base == 10) {
 		while (c >= '0' && c <= '9') {
 			c = next(t);
@@ -190,76 +102,85 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 			}
 		}
 	} else if (base == 2) {
-
+		while (c == '_' || c == '0' || c == '1') {
+			if (c != '_') {
+				value <<= 1;
+				value += c == '1';
+			}
+			c = next(t);
+		}
+		token->number = value * minus_flag;
 	} else { // base = 16
+		// абвгде
+		// abcdef
+		// абстиф
+		loop {
+			if (c == '_') {
+				c = next(t);
+				continue;
+			}
+			if (c >= '0' && c <= '9')
+				value = (value << 4) + c - '0';
+			else if (c >= 'A' && c <= 'F')
+				value = (value << 4) + c - 'A' + 10;
+			else if (c >= 'a' && c <= 'f')
+				value = (value << 4) + c - 'a' + 10;
+			else if (c == 0xd0) {
+				n = get(t, 1);
+				if (n == 0x90 || n == 0xb0) // А а
+					value = (value << 4) + 0xa;
+				else if (n == 0x91 || n == 0xb1) // Б б
+					value = (value << 4) + 0xb;
+				else if (n == 0x92 || n == 0xb2) // В в
+					value = (value << 4) + 0xc;
+				else if (n == 0x93 || n == 0xb3) // Г г
+					value = (value << 4) + 0xd;
+				else if (n == 0x94 || n == 0xb4) // Д д
+					value = (value << 4) + 0xe;
+				else if (n == 0x95 || n == 0xb5) // Е е
+					value = (value << 4) + 0xf;
+
+				else if (n == 0xa1) // С
+					value = (value << 4) + 0xc;
+				else if (n == 0xa2) // Т
+					value = (value << 4) + 0xd;
+				else if (n == 0x98 || n == 0xb8) // И и
+					value = (value << 4) + 0xe;
+				else if (n == 0xa4) // Ф
+					value = (value << 4) + 0xf;
+				else
+					break;
+				next(t); // skip c
+			} else if (c == 0xd1) {
+				n = get(t, 1);
+				if (n == 0x81) // с
+					value = (value << 4) + 0xc;
+				else if (n == 0x82) // т
+					value = (value << 4) + 0xd;
+				else if (n == 0x84) // ф
+					value = (value << 4) + 0xf;
+				else
+					break;
+				next(t); // skip c
+			} else
+				break;
+			c = next(t); // skip n, get next
+		}
+		token->number = value * minus_flag;
 	}
 
-/*
-	if (c == '0' && (n == 'x' || n == 'X' || n == 'b' || n == 'B' ||
-					 (n == 0b11010001 && nn == 0b10000101) ||  // х cyrillic
-					 (n == 0b11010000 && nn == 0b10100101) ||  // Х cyrillic
-					 (n == 0b11010000 && nn == 0b10110001) ||  // б
-					 (n == 0b11010000 && nn == 0b10010001))) { // Б
-		if (cur(t) == '-')
-			minus_flag = -1;
-		c = next(t); // skip 0
-		n = get(t, 1);
-		base = c == 'x' || c == 'X' || (c == 0b11010001 && n == 0b10000101) ||
-					   (c == 0b11010000 && n == 0b10100101)
-				   ? 16
-				   : 2;
-		c = next(t);
-		if ((c == 'x' || c == 'X' || c == 'b' || c == 'B') == 0)
-			c = next(t);
-		// абвгдж
-		// abcdef
-		// абстеф
-		if (base == 16) {
-			loop {
-				while (c == '_')
-					c = next(t);
-				n = get(t, 1);
-				if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') ||
-					(c >= 'a' && c <= 'f'))
-					c = next(t);
-				else if ((uc)c == 0b11010000 &&
-						 (((uc)n >= 0b10110000 && (uc)n <= 0b10110110) ||
-						  ((uc)n >= 0b10010000 && (uc)n <= 0b10010110))) {
-					next(t);
-					c = next(t);
-				} else
-					break;
-			}
-		} else {
-			c = next(t);
-			while (c == '0' || c == '1' || c == '_')
-				c = next(t);
-		}
-	} else {
-		loop {
-			c = next(t);
-			if (c == '.') {
-				fpn++;
-				if (fpn > 1)
-					ee(t, "Слишком много точек на одно не целое число");
-				code = REAL;
-				c = next(t);
-			}
-			if (c < '0' || c > '9')
-				break;
-		}
-	}
-*/
 	num_len = t->pos - start_pos;
 	num_view = malloc(num_len + 1);
 	num_view[num_len] = 0;
 	strncpy(num_view, &t->code[start_pos], num_len);
-	printf("\t\tnum_view: %s\n", num_view);
+	//printf("\t\tnum_view: %s value: %lx\n", num_view, value);
 
-	if (code == INT)
-		token->number = s_cyrilic_toi(t, num_view);
-	else
-		token->fpn = atof(num_view);
+	if (base == 10) {
+		if (code == INT)
+			token->number = atol(num_view);
+		else
+			token->fpn = atof(num_view);
+	}
 
 	token->view = num_view;
 	return code;
