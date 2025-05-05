@@ -153,9 +153,6 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 // void set_tc(struct Token **tp, enum OCode *cp, struct Token *t, enum
 // OCode c) { *tp = t; *cp = c; }
 
-char *ERR_WRONG_TOKEN = "НЕВЕРНОЕ ВЫРАЖЕНИЕ";
-char *ERR_WRONG_MINUS = "МИНУС МОЖНО ИСПОЛЬЗОВАТЬ ТОЛЬКО ПЕРЕД ЧИСЛАМИ";
-
 int search_reg(char *v, const int regs_len, const struct Reg regs[],
 			   struct Oper *o, uc sz) {
 	for (int i = 0; i < regs_len; i++)
@@ -187,6 +184,11 @@ int is_size_word(char *v) {
 	return 0;
 }
 
+char *ERR_WRONG_TOKEN = "Неверное выражение";
+char *ERR_WRONG_MINUS = "Минус можно использовать только перед числами";
+char *INVALID_STR_LEN =
+	"Длина строки в выражении не может быть равна 0 или быть больше 2";
+
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper));
 	enum OCode code, *cp = &code;
@@ -194,6 +196,7 @@ struct Oper *expression(struct Pser *p) {
 	struct Token *ot, *t0 = next_get(p, -1), *t1, *t2;
 	struct Token **t0p = &t0;
 	char *v;
+	uint64_t buf;
 	uc *szp = &o->sz;
 
 	switch (t0->code) {
@@ -203,6 +206,23 @@ struct Oper *expression(struct Pser *p) {
 		break;
 	case REAL:
 		set_tc(t0p, cp, t0, OFPN, szp, DWORD);
+		ot = t0;
+		break;
+	case STR:
+		if (t0->string_len == 1) {
+			t0->number = (uint64_t)t0->string[0];
+			o->sz = BYTE;
+		} else if (t0->string_len == 2) {
+			buf = 0;
+			memcpy((uc *)&buf + 1, t0->string + 1, 1);
+			memcpy(&buf, t0->string, 1);
+			t0->number = buf;
+			// TODO: do it as a human, not as a черт
+			//((uint32_t)t0->string[1] << 8) + (uint32_t)t0->string[0];
+			o->sz = WORD;
+		} else
+			eep(t0, INVALID_STR_LEN);
+		code = OINT;
 		ot = t0;
 		break;
 	case MINUS:
