@@ -20,6 +20,7 @@ struct Pser *new_pser(char *filename, uc debug) {
 	p->pos = 0;
 	p->ts = ts;
 	p->debug = debug;
+	p->ds = new_plist(3);
 	return p;
 }
 
@@ -43,9 +44,10 @@ struct Token *next_get(struct Pser *p, long off) {
 	return gettp(p, off);
 }
 
+// parser directives
+const char *STR_DEFINE = "вот";
 // directives
 const char *STR_ENTRY = "вход";
-const char *STR_NOP = "ыыы";
 const char *STR_SEG = "участок";
 const char *STR_SEG_R = "чит";
 const char *STR_SEG_W = "изм";
@@ -57,6 +59,7 @@ const char *STR_WORD = "дбайт";
 const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 // instruction words
+const char *STR_NOP = "ыыы";
 const char *STR_IJMP = "идти";
 const char *STR_IMOV = "быть";
 const char *STR_IADD = "плюс";
@@ -184,6 +187,28 @@ int is_size_word(char *v) {
 	return 0;
 }
 
+int search_defn(char *v, struct Oper **o, struct Pser *p) {
+	struct Defn *d;
+	for (int i = 0; i < p->ds->size; i++) {
+		d = plist_get(p->ds, i);
+		if (sc(v, d->view)) {
+			*o = d->value;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+struct Defn *is_defn(struct Pser *p, char *v) {
+	struct Defn *d;
+	for (int i = 0; i < p->ds->size; i++) {
+		d = plist_get(p->ds, i);
+		if (sc(v, d->view))
+			return d;
+	}
+	return 0;
+}
+
 char *ERR_WRONG_TOKEN = "Неверное выражение";
 char *ERR_WRONG_MINUS = "Минус можно использовать только перед числами";
 char *INVALID_STR_LEN =
@@ -247,6 +272,8 @@ struct Oper *expression(struct Pser *p) {
 			;
 		else if (search_size(v, &o, p))
 			return o; // its special
+		else if (search_defn(v, &o, p))
+			return o; // its too
 		if (o->rcode != R_NONE) {
 			ot = t0;
 			code = OREG;
@@ -284,16 +311,18 @@ char *INVALID_SIZE_NOT_FOUND =
 char *INVALID_SIZE_OF_FPN = "Неверный размер для числа с плавающей точкой, "
 							"ожидался размер <чбайт> или <вбайт>";
 char *AWAITED_SLASHN = "Ожидался перевод строки";
+char *INVALID_DEFN_USAGE = "Неверное использование определения";
 enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
 	struct Token *c = next_get(p, 0), *name; // skip let word
 	uint64_t buf;
 	enum ICode code = ILET;
+	struct Defn *d;
 
 	while (c->code == SLASH || c->code == SLASHN)
 		c = next_get(p, 0);
 
-	int size = is_size_word(c->view);
+	int size = is_size_word(c->view), old_sz;
 	if (size)
 		code = IDATA;
 	else {
@@ -315,14 +344,30 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			continue;
 		}
 		if (c->code == ID) {
+			old_sz = size;
 			size = is_size_word(c->view);
-			if (!size)
-				break;
+			if (size)
+				continue;
+			size = old_sz;
+			d = is_defn(p, c->view);
+			if (!d)
+				break; // break if ID is not size or defn
+
+			if (d->value->code == OINT) {
+				printf("\t\t\t\tэээээ, size: %d, value: %ld\n", size, d->value->t->number);
+				blat(data, (uc *)&d->value->t->number, size);
+			} else if (d->value->code == OFPN) {
+				c = d->value->t;
+				printf("\t\t\t\tgoto let_i_real, size: %d\n", size);
+				goto let_i_real;
+			} else
+				eep(c, INVALID_DEFN_USAGE);
 		} else if (c->code == INT)
 			blat(data, (uc *)&c->number, size);
 		else if (c->code == STR)
 			blat(data, (uc *)c->string, c->string_len);
 		else if (c->code == REAL) {
+		let_i_real:
 			if (size == 8) {
 				memcpy(&buf, &c->fpn, 8);
 				blat(data, (uc *)&buf, 8);
@@ -354,6 +399,15 @@ enum ICode no_ops_inst(struct Pser *p, enum ICode code) {
 	return code;
 }
 
+enum ICode define_pd(struct Pser *p) {
+	struct Defn *d = malloc(sizeof(struct Defn));
+	d->view = next_get(p, 0)->view;
+	next_get(p, 0); // skip name token
+	d->value = expression(p);
+	plist_add(p->ds, d);
+	return INONE;
+}
+
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
 	struct Token *cur = gettp(p, 0), *n;
@@ -377,6 +431,8 @@ struct Inst *get_inst(struct Pser *p) {
 			code = let_i(p, os);
 		else if (sc(cv, STR_IJMP))
 			code = jmp_i(p, os);
+		else if (sc(cv, STR_DEFINE))
+			code = define_pd(p);
 		else if (sc(cv, STR_SEG))
 			code = seg_i(p, os);
 		else if (sc(cv, STR_NOP))
@@ -396,7 +452,8 @@ struct PList *pse(struct Pser *p) {
 
 	struct Inst *i = get_inst(p);
 	while (i->code != IEOI) {
-		plist_add(is, i);
+		if (i->code != INONE)
+			plist_add(is, i);
 		i = get_inst(p);
 	}
 	plist_add(is, i);

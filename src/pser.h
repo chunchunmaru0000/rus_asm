@@ -11,6 +11,7 @@ struct Pser {
 	struct PList *ts; // tokens
 	long pos;
 	uc debug;
+	struct PList *ds; // #define's
 };
 struct Pser *new_pser(char *, uc);
 struct PList *pse(struct Pser *); // instructions
@@ -110,6 +111,11 @@ struct Oper { // operand
 	enum RegCode rcode;
 	// enum SimdCode scode;
 	// all other needed enums also
+};
+
+struct Defn {
+	char *view;
+	struct Oper *value;
 };
 
 struct Inst {
