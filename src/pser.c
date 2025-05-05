@@ -1,12 +1,12 @@
 #include "pser.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 char *fn;
 void eep(struct Token *t, char *msg) { // error exit
-	fprintf(stderr, "%s:%ld:%ld %s %d:%s\n", fn, t->line, t->col, msg, t->code,
-			t->view);
+	fprintf(stderr, "%s:%ld:%ld %s [%s]:[%d]\n", fn, t->line, t->col, msg, t->view, t->code);
 	exit(1);
 }
 
@@ -179,6 +179,13 @@ int search_size(char *v, struct Oper **o, struct Pser *p) {
 	return 0;
 }
 
+int is_size_word(char *v) {
+	for (int i = 0; i < STRS_SIZES_LEN; i++)
+		if (sc(v, STRS_SIZES[i]))
+			return 1 << i;
+	return 0;
+}
+
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper));
 	enum OCode code, *cp = &code;
@@ -251,42 +258,63 @@ enum ICode jmp_i(struct Pser *p, struct PList *os) {
 	return IJMP;
 }
 
+char *INVALID_SIZE_NOT_FOUND =
+	"Ожидался размер операнда: <байт> <дбайт> <чбайт> <вбайт>";
+char *INVALID_SIZE_OF_FPN = "Неверный размер для числа с плавающей точкой, "
+							"ожидался размер <чбайт> или <вбайт>";
 enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
-	struct Token *var = next_get(p, 0), *cur = next_get(p, 0);
+	struct Token *c = next_get(p, 0), *name; // skip let word
+	uint64_t buf;
+	enum ICode code = ILET;
 
-	int size;
-	if (sc(cur->view, STR_BYTE))
-		size = 1;
-	else if (sc(cur->view, STR_WORD))
-		size = 2;
-	else if (sc(cur->view, STR_DWORD))
-		size = 4;
-	else if (sc(cur->view, STR_QWORD))
-		size = 8;
-	else
-		eep(cur, "ОЖИДАЛСЯ РАЗМЕР ОПЕРАНДА: <байт> <дбайт> <чбайт> <вбайт>");
+	int size = is_size_word(c->view);
+	if (size)
+		code = IDATA;
+	else {
+		name = c;
+		c = next_get(p, 0);
+		size = is_size_word(c->view);
+		if (!size)
+			eep(c, INVALID_SIZE_NOT_FOUND);
+	}
 
-	while (1) {
-		cur = next_get(p, 0);
-		if (cur->code == SLASH) {
-			cur = next_get(p, 0); // skip slash get \n
+	loop {
+		c = next_get(p, 0);
+		if (c->code == SLASH) {
+			c = next_get(p, 0); // skip slash get \n
 			continue;
 		}
-		if (cur->code == INT)
-			blat(data, (uc *)&cur->number, size);
-		else if (cur->code == STR)
-			blat(data, (uc *)cur->string, cur->string_len);
-		else {
-			if (p->debug)
-				printf("let %s be %ld bytes\n", var->view, data->size);
+		if (c->code == INT)
+			blat(data, (uc *)&c->number, size);
+		else if (c->code == STR)
+			blat(data, (uc *)c->string, c->string_len);
+		else if (c->code == REAL) {
+			printf("\tsize: %d, value: %lf\n", size, c->fpn);
+			if (size == 8) {
+				memcpy(&buf, &c->fpn, 8);
+				blat(data, (uc *)&buf, 8);
+			} else if (size == 4) {
+				float value = c->fpn;
+				memcpy(&buf, &value, 4);
+				blat(data, (uc *)&buf, 4);
+			} else
+				eep(c, INVALID_SIZE_OF_FPN);
+		} else {
+			if (p->debug) {
+				if (code == ILET)
+					printf("пусть %s будет %ld байт\n", name->view, data->size);
+				else
+					printf("пусть %ld байт\n", data->size);
+			}
 			break;
 		}
 	}
 
-	plist_add(os, var);
+	if (code == ILET)
+		plist_add(os, name);
 	plist_add(os, data);
-	return ILET;
+	return code;
 }
 
 enum ICode no_ops_inst(struct Pser *p, enum ICode code) {

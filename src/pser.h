@@ -77,12 +77,14 @@ enum RegCode {
 };
 
 enum ICode {
+	INONE,
 	IEOI, // end of instructions
 	IENTRY,
 	ISEGMENT,
 	ISECTION,
 	ILABEL,
 	ILET,
+	IDATA,
 	IMOV,
 	IJMP,
 	IADD,

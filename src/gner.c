@@ -119,7 +119,7 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	struct Plov *p = malloc(sizeof(struct Plov));
 
 	int segment_place = g->phs->size - 1;
-	p->l = ((struct Token *)in->os->st[0])->view;
+	p->l = ((struct Token *)plist_get(in->os, 0))->view;
 	p->si = segment_place;
 	p->us = new_plist(4);
 	// p->a = g->pie; // + first ph memsz;
@@ -131,13 +131,12 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 const uc MLESYSCALL[] = {0x0f, 0x05};
 
 void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
-	long i;
 	int *flags;
 	struct Inst *in;
 	struct ELFPH *ph;
 	// struct ELFSH *sh;
 
-	for (i = 0; i < g->is->size; i++) {
+	for (long i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 
 		if (in->code == ISEGMENT) {
@@ -172,6 +171,7 @@ void cpy_len(uc *buf, long value, int len) {
 	memcpy(buf, &tmp, len);
 }
 
+const char *UNKNOWN_LABEL = "Неизвестная метка [%s]";
 struct Plov *find_label(struct Gner *g, char *s) {
 	struct Plov *l;
 	for (long i = 0; i < g->lps->size; i++) {
@@ -180,7 +180,7 @@ struct Plov *find_label(struct Gner *g, char *s) {
 			return l;
 	}
 	char *err;
-	asprintf(&err, "НЕИЗВЕСТНАЯ МЕТКА [%s]", s);
+	asprintf(&err, UNKNOWN_LABEL, s);
 	eeg(err, plist_get(g->is, g->pos));
 	return 0;
 }
@@ -206,9 +206,9 @@ const char *WRONG_FST_OPER_REG_DWORD =
 const char *WRONG_FST_OPER_REG_QWORD =
 	"Неверный регистр, для значения размера <вбайт> 8 байт";
 const char *WRONG_SND_OPER_SIZE = "Неверный размер второго операнда";
-const char *WRONG_FPN_OP_SIZE =
-	"Недопустимый размер для числа с плавающей точкой, минимальный - <чбайт> 4 байта, "
-	"майсимальный - <вбайт> 8 байт";
+const char *WRONG_FPN_OP_SIZE = "Недопустимый размер для числа с плавающей "
+								"точкой, минимальный - <чбайт> 4 байта, "
+								"майсимальный - <вбайт> 8 байт";
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
@@ -221,6 +221,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct Inst *in;
 	struct Token *tok;
 	struct Oper * or, *ol;
+	struct BList *data_bl;
 	struct Plov *l;
 	struct ELFPH *ph, *phl;
 	struct Usage *usage;
@@ -358,8 +359,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			if (g->debug)
 				printf("label[%s]\t[0x%08lx]\n", l->l, l->a);
 			break;
+		case IDATA:
+			data_bl = plist_get(in->os, 0);
+			alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
+			break;
 		case ILET:
 			tok = plist_get(in->os, 0);
+			//printf("try find [%s], i = %ld, code = %d\n", tok->view, i, code);
 			l = find_label(g, tok->view);
 
 			ph = plist_get(g->phs, phs_counter - 1);
@@ -368,8 +374,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			if (g->debug)
 				printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
 
-			struct BList *data = plist_get(in->os, 1);
-			alloc_cpy(ibufp, blp, data->size, data->st);
+			data_bl = plist_get(in->os, 1);
+			alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
 			break;
 		case ISYSCALL:
 			alloc_cpy(ibufp, blp, 2, (void *)MLESYSCALL);
