@@ -91,15 +91,14 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 
 	// TODO: _ in decimal nums
 	if (base == 10) {
-		while (c >= '0' && c <= '9') {
-			c = next(t);
+		while ((c >= '0' && c <= '9') || (c == '.' && !fpn)) {
 			if (c == '.') {
-				fpn++;
-				if (fpn > 1)
+				if (fpn)
 					ee(t, "Слишком много точек на одно не целое число");
+				fpn++;
 				code = REAL;
-				c = next(t);
 			}
+			c = next(t);
 		}
 	} else if (base == 2) {
 		while (c == '_' || c == '0' || c == '1') {

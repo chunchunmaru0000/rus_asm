@@ -6,7 +6,8 @@
 
 char *fn;
 void eep(struct Token *t, char *msg) { // error exit
-	fprintf(stderr, "%s:%ld:%ld %s [%s]:[%d]\n", fn, t->line, t->col, msg, t->view, t->code);
+	fprintf(stderr, "%s:%ld:%ld %s [%s]:[%d]\n", fn, t->line, t->col, msg,
+			t->view, t->code);
 	exit(1);
 }
 
@@ -262,18 +263,24 @@ char *INVALID_SIZE_NOT_FOUND =
 	"Ожидался размер операнда: <байт> <дбайт> <чбайт> <вбайт>";
 char *INVALID_SIZE_OF_FPN = "Неверный размер для числа с плавающей точкой, "
 							"ожидался размер <чбайт> или <вбайт>";
+char *AWAITED_SLASHN = "Ожидался перевод строки";
 enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
 	struct Token *c = next_get(p, 0), *name; // skip let word
 	uint64_t buf;
 	enum ICode code = ILET;
 
+	while (c->code == SLASH || c->code == SLASHN)
+		c = next_get(p, 0);
+
 	int size = is_size_word(c->view);
 	if (size)
 		code = IDATA;
 	else {
 		name = c;
-		c = next_get(p, 0);
+		do
+			c = next_get(p, 0);
+		while (c->code == SLASH || c->code == SLASHN);
 		size = is_size_word(c->view);
 		if (!size)
 			eep(c, INVALID_SIZE_NOT_FOUND);
@@ -283,14 +290,19 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		c = next_get(p, 0);
 		if (c->code == SLASH) {
 			c = next_get(p, 0); // skip slash get \n
+			if (c->code != SLASHN)
+				eep(c, AWAITED_SLASHN);
 			continue;
 		}
-		if (c->code == INT)
+		if (c->code == ID) {
+			size = is_size_word(c->view);
+			if (!size)
+				break;
+		} else if (c->code == INT)
 			blat(data, (uc *)&c->number, size);
 		else if (c->code == STR)
 			blat(data, (uc *)c->string, c->string_len);
 		else if (c->code == REAL) {
-			printf("\tsize: %d, value: %lf\n", size, c->fpn);
 			if (size == 8) {
 				memcpy(&buf, &c->fpn, 8);
 				blat(data, (uc *)&buf, 8);
