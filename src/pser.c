@@ -353,12 +353,10 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			if (!d)
 				break; // break if ID is not size or defn
 
-			if (d->value->code == OINT) {
-				printf("\t\t\t\tэээээ, size: %d, value: %ld\n", size, d->value->t->number);
+			if (d->value->code == OINT)
 				blat(data, (uc *)&d->value->t->number, size);
-			} else if (d->value->code == OFPN) {
+			else if (d->value->code == OFPN) {
 				c = d->value->t;
-				printf("\t\t\t\tgoto let_i_real, size: %d\n", size);
 				goto let_i_real;
 			} else
 				eep(c, INVALID_DEFN_USAGE);
