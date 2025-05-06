@@ -11,6 +11,19 @@ struct Plov { // Pointer Label Of Value
 	// uint64_t size; // like for db dd dw dq
 };
 
+enum OpsCode {
+	OPC_INVALID,
+	RM_8__R_8,
+	RM_16_32_64__R16_32_64,
+	R_8__RM_8,
+	R_16_32_64__RM_16_32_64,
+	AL__IMM_8,
+	RAX__IMM_16_32,
+	RM_8__IMM_8,
+	RM_16_32_64__IMM_16_32,
+	RM_16_32_64__IMM_8,
+};
+
 enum UT { // Usage Type
 	ADDR,
 	REL_ADDR,

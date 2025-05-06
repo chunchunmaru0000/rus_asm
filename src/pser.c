@@ -108,6 +108,7 @@ enum ICode entry_i(struct Pser *p, struct PList *os) {
 enum ICode seg_i(struct Pser *p, struct PList *os) {
 	struct Token *t = next_get(p, 0);
 	int *flags = malloc(sizeof(int));
+	*flags = 0;
 	if (t->code == INT)
 		*flags = t->number;
 	else
