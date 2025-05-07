@@ -28,7 +28,8 @@ enum OCode {  // operand type codes
 	OMEM_REG_INT, // [reg + int]
 	OMEM_REL_INT, // [label or var + int] // is there such an op codes in cpu?
 	// [rbx + rcx*4 + 0x10] something like this also in the future
-	// OSEG, // segment registers cs, ds, fs, gs
+	OSREG, // segment registers cs, ds, fs, gs
+	OMOFFS,
 	// OCR // control registers?
 	// ODR // debug registers?
 	// IOR // i/o registers? are there even these
@@ -37,6 +38,15 @@ enum OCode {  // operand type codes
 
 enum RegCode {
 	R_NONE,
+
+	R_CS,
+	R_DS,
+	R_ES,
+	R_SS,
+	R_FS,
+	R_GS,
+	R_LDTR,
+	R_TR,
 
 	R_AH,
 	R_AL,

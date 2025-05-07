@@ -243,6 +243,7 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 #define is_reg(o) ((o)->code == OREG)
 #define is_mem(o) ((o)->code == OMEM_REG)
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN)
+#define is_seg(o) ((o)->code == OSREG)
 #define is_r8(o) ((o)->rcode >= R_AH && (o)->rcode <= R15B)
 #define is_r16(o) ((o)->rcode >= R_RAX, &&(o)->rcode <= R_R15W)
 #define is_r32(o) ((o)->rcode >= R_EAX && (o)->rcode <= R_R15D)
@@ -255,22 +256,17 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 #define is_al(o) ((o)->rcode == R_AL)
 #define is_rA(o)                                                               \
 	((o)->rcode == R_AX || (o)->rcode == R_EAX || (o)->rcode == R_RAX)
-
-// enum OpsCode {
-// RM_8__R_8,
-// RM_16_32_64__R16_32_64,
-// R_8__RM_8,
-// R_16_32_64__RM_16_32_64,
-// 	AL__IMM_8,
-// 	RAX__IMM_16_32,
-// 	RM_8__IMM_8,
-// 	RM_16_32_64__IMM_16_32,
-// 	RM_16_32_64__IMM_8,
-// };
-//
+#define is_rm(o) (is_reg((o)) || is_mem((o)))
+#define is_moffs(o) ((o)->code == OMOFFS)
 
 // http://ref.x86asm.net/coder64.html
-// add r8w, 128 does 6641 81c0 8000, so 16-bit prefix > 64-bit prefix
+// add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
+
+// - prefix 67 adress prefix does give you a way of taking value from adress of
+// 		32 bit register like [r8d]
+// - prefix 66 is used with all 16 bit ops like add ax, bx or
+//		add word [rax], 255
+// - prefix REX are prefixes
 enum OpsCode get_ops_code(struct Inst *in) {
 	struct Oper *l, *r, *t, *f;
 	enum OpsCode code = OPC_INVALID;
@@ -287,7 +283,8 @@ enum OpsCode get_ops_code(struct Inst *in) {
 	case ITEST:
 		l = plist_get(in->os, 0);
 		r = plist_get(in->os, 1);
-
+		// RM_8__R_8,
+		// RM_16_32_64__R16_32_64,
 		if (is_reg(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
@@ -296,6 +293,8 @@ enum OpsCode get_ops_code(struct Inst *in) {
 			if (l->sz != r->sz)
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
+			// R_8__RM_8,
+			// R_16_32_64__RM_16_32_64,
 		} else if (is_reg(l) && is_mem(r)) {
 			if (l->sz != r->sz)
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
@@ -303,12 +302,17 @@ enum OpsCode get_ops_code(struct Inst *in) {
 		} else if (is_reg(l) && is_imm(r)) {
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
+			// 	AL__IMM_8,
 			if (!is_mem(l) && is_al(l))
 				code = AL__IMM_8;
+			// 	RAX__IMM_16_32,
 			else if (!is_mem(l) && is_rA(l))
 				code = RAX__IMM_16_32;
+			// 	RM_8__IMM_8,
 			else if (is_8(l))
 				code = RM_8__IMM_8;
+			// 	RM_16_32_64__IMM_8,
+			// 	RM_16_32_64__IMM_16_32,
 			else if (is_8(r))
 				code = RM_16_32_64__IMM_8;
 			else
@@ -318,11 +322,66 @@ enum OpsCode get_ops_code(struct Inst *in) {
 	case IMOV:
 		l = plist_get(in->os, 0);
 		r = plist_get(in->os, 1);
-	default:;
+		// RM_8__R_8,
+		// RM_16_32_64__R16_32_64,
+		if (is_reg(l) && is_reg(r)) {
+			if (l->sz != r->sz)
+				eeg(REGS_SIZES_NOT_MATCH, in);
+			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
+		} else if (is_mem(l) && is_reg(r)) {
+			if (l->sz != r->sz)
+				eeg(MEM_REG_SIZES_NOT_MATCH, in);
+			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
+			// R_8__RM_8,
+			// R_16_32_64__RM_16_32_64,
+		} else if (is_reg(l) && is_mem(r)) {
+			if (l->sz != r->sz)
+				eeg(MEM_REG_SIZES_NOT_MATCH, in);
+			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
+			// M_16__SREG,
+			// R_16_32_64__SREG,
+		} else if (is_seg(r)) {
+			if (is_mem(l) && is_16(l))
+				code = M_16__SREG;
+			else if (is_reg(l) && !is_8(l))
+				code = R_16_32_64__SREG;
+			// SREG__RM_16,
+		} else if (is_seg(l) && is_16(r) && is_rm(r))
+			code = SREG__RM_16;
+
+		// AL__MOFFS_8,
+		else if (is_al(l) && is_moffs(r) && is_8(r))
+			code = AL__MOFFS_8;
+		// RAX__MOFFS_16_32_64,
+		else if (is_rA(l) && is_moffs(r) && !is_8(r))
+			code = RAX__MOFFS_16_32_64;
+		// MOFFS_8__AL,
+		else if (is_moffs(l) && is_8(l) && is_al(r))
+			code = MOFFS_8__AL;
+		// MOFFS_16_32_64__RAX,
+		else if (is_moffs(l) && !is_8(l) && is_rA(r))
+			code = MOFFS_16_32_64__RAX;
+		// M_8__M_8,
+		// M_16_32_64__M_16_32_64,
+		else if (is_mem(l) && is_mem(r)) {
+			if (is_8(l) && is_8(r))
+				code = M_8__M_8;
+			if (!is_8(l) && !is_8(r))
+				code = M_16_32_64__M_16_32_64;
+			// R_8__IMM_8,
+			// R_16_32_64__IMM_16_32_64,
+		} else if (is_reg(l) && is_imm(r)) {
+			if (is_8(l) && is_8(r))
+				code = R_8__IMM_8;
+			if (!is_8(l) && !is_8(r))
+				code = R_16_32_64__IMM_16_32_64;
+		}
+	default:
+		eeg("нет пока а вот", in);
 	}
 
 	if (code == OPC_INVALID)
-		eeg("вот да", in);
+		eeg("а вот вот да", in);
 	return code;
 }
 
@@ -354,7 +413,6 @@ void add_inst(uint64_t *cmd_len, uint64_t *cmd, struct Inst *in) {
 				eeg(REGS_SIZES_NOT_MATCH, in);
 			break;
 		}
-	case 
 	}
 }
 
@@ -399,246 +457,248 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			or = plist_get(in->os, 1);
 			switch (ol->code) {
 			case OREG:
-		switch (or->code) {
-		case OREG:
-			if (ol->sz != or->sz)
-				eeg(REGS_SIZES_NOT_MATCH, in);
-			cmd = reg2reg(ol->rcode, or->rcode, ol->sz);
-			switch (ol->sz) {
-			case QWORD:
-				cmd_len = 3;
-				cmd = (cmd << 16) + 0xc08948;
-				break;
-			case DWORD:
-				break;
-			case WORD:
-				break;
-			case BYTE:
-				break;
-			}
-			ibuff = alloc_len(cmd_len, blp);
-			cpy_len(ibuff, cmd, cmd_len);
-			break;
-		case OINT:
-		case OFPN:
-		case OREL:
-			if (or->sz == DWORD) {
-				if (ol->rcode >= R_EAX && ol->rcode <= R_EDI) {
-					cmd_len = 1;
-					cmd = 0xb8 + ol->rcode - R_EAX;
-				} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
-					cmd_len = 2;
-					cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
-				} else if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
-					cmd_len = 3;
-					cmd = ((0xc0 + ol->rcode - R_RAX) << 16) + 0xc748;
-				} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
-					cmd_len = 3;
-					cmd = ((0xc0 + ol->rcode - R_R8) << 16) + 0xc749;
-				} else
-					eeg(WRONG_FST_OPER_REG_DWORD, in);
-			} else if (or->sz == QWORD) {
-				if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
-					cmd_len = 2;
-					cmd = ((0xb8 + ol->rcode - R_RAX) << 8) + 0x48;
-				} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
-					cmd_len = 2;
-					cmd = ((0xb8 + ol->rcode - R_R8) << 8) + 0x49;
-				} else
-					eeg(WRONG_FST_OPER_REG_QWORD, in);
-			} else
-				eeg(WRONG_SND_OPER_SIZE, in);
+				switch (or->code) {
+				case OREG:
+					if (ol->sz != or->sz)
+						eeg(REGS_SIZES_NOT_MATCH, in);
+					cmd = reg2reg(ol->rcode, or->rcode, ol->sz);
+					switch (ol->sz) {
+					case QWORD:
+						cmd_len = 3;
+						cmd = (cmd << 16) + 0xc08948;
+						break;
+					case DWORD:
+						break;
+					case WORD:
+						break;
+					case BYTE:
+						break;
+					}
+					ibuff = alloc_len(cmd_len, blp);
+					cpy_len(ibuff, cmd, cmd_len);
+					break;
+				case OINT:
+				case OFPN:
+				case OREL:
+					if (or->sz == DWORD) {
+						if (ol->rcode >= R_EAX && ol->rcode <= R_EDI) {
+							cmd_len = 1;
+							cmd = 0xb8 + ol->rcode - R_EAX;
+						} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
+							cmd_len = 2;
+							cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
+						} else if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
+							cmd_len = 3;
+							cmd = ((0xc0 + ol->rcode - R_RAX) << 16) + 0xc748;
+						} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
+							cmd_len = 3;
+							cmd = ((0xc0 + ol->rcode - R_R8) << 16) + 0xc749;
+						} else
+							eeg(WRONG_FST_OPER_REG_DWORD, in);
+					} else if (or->sz == QWORD) {
+						if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
+							cmd_len = 2;
+							cmd = ((0xb8 + ol->rcode - R_RAX) << 8) + 0x48;
+						} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
+							cmd_len = 2;
+							cmd = ((0xb8 + ol->rcode - R_R8) << 8) + 0x49;
+						} else
+							eeg(WRONG_FST_OPER_REG_QWORD, in);
+					} else
+						eeg(WRONG_SND_OPER_SIZE, in);
 
-			tok = or->t;
-			if (or->code == OINT)
-				data = tok->number;
-			else if (or->code == OFPN) {
-				if (or->sz == 4)
-					data = (float)tok->fpn;
-				else if (or->sz == 8)
-					data = tok->fpn;
-				else
-					eeg(WRONG_FPN_OP_SIZE, in);
-			} else {
-				data = 0x766f6d6c;
-				l = find_label(g, tok->view);
-				usage = new_usage((uint64_t)(g->text->size) + cmd_len, ADDR);
-				plist_add(l->us, usage);
-			}
+					tok = or->t;
+					if (or->code == OINT)
+						data = tok->number;
+					else if (or->code == OFPN) {
+						if (or->sz == 4)
+							data = (float)tok->fpn;
+						else if (or->sz == 8)
+							data = tok->fpn;
+						else
+							eeg(WRONG_FPN_OP_SIZE, in);
+					} else {
+						data = 0x766f6d6c;
+						l = find_label(g, tok->view);
+						usage = new_usage((uint64_t)(g->text->size) + cmd_len,
+										  ADDR);
+						plist_add(l->us, usage);
+					}
 
-			ibuff = alloc_len(cmd_len + or->sz, blp);
-			cpy_len(ibuff, cmd, cmd_len);
-			cpy_len(ibuff + cmd_len, data, or->sz);
-			break;
-		default:
-			if (g->debug)
-				printf("or->code = %d\t", or->code);
-			eeg(WRONG_SND_OPER, in);
+					ibuff = alloc_len(cmd_len + or->sz, blp);
+					cpy_len(ibuff, cmd, cmd_len);
+					cpy_len(ibuff + cmd_len, data, or->sz);
+					break;
+				default:
+					if (g->debug)
+						printf("or->code = %d\t", or->code);
+					eeg(WRONG_SND_OPER, in);
+				}
+				break;
+			default:
+				if (g->debug)
+					printf("ol->code = %d\t", ol->code);
+				eeg(WRONG_FST_OPER, in);
+			}
+			if (buf_len) {
+				blat(g->text, ibuff, buf_len);
+				phs_cur_sz += buf_len;
+				free(ibuff);
+			}
+			continue;
 		}
-		break;
-	default:
-		if (g->debug)
-			printf("ol->code = %d\t", ol->code);
-		eeg(WRONG_FST_OPER, in);
-	}
-	if (buf_len) {
-		blat(g->text, ibuff, buf_len);
-		phs_cur_sz += buf_len;
-		free(ibuff);
-	}
-	continue;
-}
 
-switch (code) {
-//  TODO: near jmp
-case IJMP:
-	data = 0;
-	ol = plist_get(in->os, 0);
-	//  TODO: jmp for qword
-	if (ol->sz == DWORD) {
-		cmd = 0xe9;
-		cmd_len = 1;
+		switch (code) {
+		//  TODO: near jmp
+		case IJMP:
+			data = 0;
+			ol = plist_get(in->os, 0);
+			//  TODO: jmp for qword
+			if (ol->sz == DWORD) {
+				cmd = 0xe9;
+				cmd_len = 1;
 
-		if (ol->code == OREL) {
-			l = find_label(g, ol->t->view);
-			// text size + 1 is place in text to where need to put rel
-			usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
-			plist_add(l->us, usage);
-			data = 0x706d6a;
-		} else if (ol->code == OINT)
-			data = ol->t->number;
-		else if (ol->code == OFPN) {
-			if (or->sz == 4)
-				data = (float)ol->t->fpn;
-			else if (ol->sz == 8)
-				data = ol->t->fpn;
+				if (ol->code == OREL) {
+					l = find_label(g, ol->t->view);
+					// text size + 1 is place in text to where need to put rel
+					usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
+					plist_add(l->us, usage);
+					data = 0x706d6a;
+				} else if (ol->code == OINT)
+					data = ol->t->number;
+				else if (ol->code == OFPN) {
+					if (or->sz == 4)
+						data = (float)ol->t->fpn;
+					else if (ol->sz == 8)
+						data = ol->t->fpn;
+					else
+						eeg(WRONG_FPN_OP_SIZE, in);
+				}
+				//  TODO: jmp for reg
+				else {
+					if (g->debug)
+						printf("ol->code = %d\t", ol->code);
+					eeg(WRONG_FST_OPER, in);
+				}
+			}
+			// TODO: macro oper cmd cmd_len data &ibuff blp
+			ibuff = alloc_len(cmd_len + ol->sz, blp);
+			cpy_len(ibuff, cmd, cmd_len);
+			cpy_len(ibuff + cmd_len, data, ol->sz);
+			break;
+		case ILABEL:
+			tok = plist_get(in->os, 0);
+			l = find_label(g, tok->view);
+
+			ph = plist_get(g->phs, phs_counter - 1);
+			l->a = phs_cur_sz + ph->vaddr;
+			l->ra = g->text->size;
+			if (g->debug)
+				printf("label[%s]\t[0x%08lx]\n", l->l, l->a);
+			break;
+		case IDATA:
+			data_bl = plist_get(in->os, 0);
+			alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
+			break;
+		case ILET:
+			tok = plist_get(in->os, 0);
+			// printf("try find [%s], i = %ld, code = %d\n", tok->view, i,
+			// code);
+			l = find_label(g, tok->view);
+
+			ph = plist_get(g->phs, phs_counter - 1);
+			l->a = phs_cur_sz + ph->vaddr;
+			l->ra = g->text->size;
+			if (g->debug)
+				printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
+
+			data_bl = plist_get(in->os, 1);
+			alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
+			break;
+		case ISYSCALL:
+			alloc_cpy(ibufp, blp, 2, (void *)MLESYSCALL);
+			break;
+		case INOP:
+			alloc_cpy_int(ibufp, blp, 1, 0x90);
+			break;
+		case ISEGMENT:
+			if (phs_counter == 0)
+				phs_cur_sz = all_h_sz;
 			else
-				eeg(WRONG_FPN_OP_SIZE, in);
-		}
-		//  TODO: jmp for reg
-		else {
-			if (g->debug)
-				printf("ol->code = %d\t", ol->code);
-			eeg(WRONG_FST_OPER, in);
-		}
-	}
-	// TODO: macro oper cmd cmd_len data &ibuff blp
-	ibuff = alloc_len(cmd_len + ol->sz, blp);
-	cpy_len(ibuff, cmd, cmd_len);
-	cpy_len(ibuff + cmd_len, data, ol->sz);
-	break;
-case ILABEL:
-	tok = plist_get(in->os, 0);
-	l = find_label(g, tok->view);
+				phs_cur_sz = 0;
+			/*
+			 * 0 offset = 0
+			 * 0 addr = 0 + pie
+			 * 0 size = all p h + elf h + segment size
+			 * i offset = last segment size + last segment offset
+			 * i addr = offset + align * (i - 1) + pie
+			 * i size = segment size
+			 */
+			//  do segment adress and offset and size for prev segment
+			ph = g->phs->st[phs_counter];
+			if (phs_counter == 0) {
+				ph->offset = 0;		  // 0 offset
+				ph->vaddr = g->pie;	  // 0 addr
+				ph->memsz = all_h_sz; // + segment size // 0 size
+			} else {
+				phl = g->phs->st[phs_counter - 1];
+				// because for first its size of all data that is only first
+				// data for the moment
+				if (phs_counter == 1)
+					phl->memsz += g->text->size; // 0 size
+				else
+					phl->memsz = g->text->size - last_text_sz; // i size
+				phl->filesz = phl->memsz;
 
-	ph = plist_get(g->phs, phs_counter - 1);
-	l->a = phs_cur_sz + ph->vaddr;
-	l->ra = g->text->size;
-	if (g->debug)
-		printf("label[%s]\t[0x%08lx]\n", l->l, l->a);
-	break;
-case IDATA:
-	data_bl = plist_get(in->os, 0);
-	alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
-	break;
-case ILET:
-	tok = plist_get(in->os, 0);
-	// printf("try find [%s], i = %ld, code = %d\n", tok->view, i,
-	// code);
-	l = find_label(g, tok->view);
-
-	ph = plist_get(g->phs, phs_counter - 1);
-	l->a = phs_cur_sz + ph->vaddr;
-	l->ra = g->text->size;
-	if (g->debug)
-		printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
-
-	data_bl = plist_get(in->os, 1);
-	alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
-	break;
-case ISYSCALL:
-	alloc_cpy(ibufp, blp, 2, (void *)MLESYSCALL);
-	break;
-case INOP:
-	alloc_cpy_int(ibufp, blp, 1, 0x90);
-	break;
-case ISEGMENT:
-	if (phs_counter == 0)
-		phs_cur_sz = all_h_sz;
-	else
-		phs_cur_sz = 0;
-	/*
-	 * 0 offset = 0
-	 * 0 addr = 0 + pie
-	 * 0 size = all p h + elf h + segment size
-	 * i offset = last segment size + last segment offset
-	 * i addr = offset + align * (i - 1) + pie
-	 * i size = segment size
-	 */
-	//  do segment adress and offset and size for prev segment
-	ph = g->phs->st[phs_counter];
-	if (phs_counter == 0) {
-		ph->offset = 0;		  // 0 offset
-		ph->vaddr = g->pie;	  // 0 addr
-		ph->memsz = all_h_sz; // + segment size // 0 size
-	} else {
-		phl = g->phs->st[phs_counter - 1];
-		// because for first its size of all data that is only first
-		// data for the moment
-		if (phs_counter == 1)
-			phl->memsz += g->text->size; // 0 size
-		else
-			phl->memsz = g->text->size - last_text_sz; // i size
-		phl->filesz = phl->memsz;
-
-		ph->offset = phl->memsz + phl->offset;						 // i offset
-		ph->vaddr = ph->offset + ph->align * (phs_counter) + g->pie; // i addr
-	}
-	ph->filesz = ph->memsz;
-	ph->paddr = ph->vaddr;
-	phs_counter++;
-	last_text_sz = g->text->size;
-	break;
-case IEOI:
-	phl = g->phs->st[phs_counter - 1];
-	phl->memsz = g->phs->size == 1 ? phl->memsz + g->text->size
-								   : g->text->size - last_text_sz;
-	phl->filesz = phl->memsz;
-	break;
-	//	default:
-	//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
-}
-if (buf_len) {
-	phs_cur_sz += buf_len;
-	blat(g->text, ibuff, buf_len);
-	free(ibuff);
-}
-}
-
-phs_counter = 0;
-for (i = 0; i < g->is->size; i++) {
-	in = plist_get(g->is, i);
-
-	if (in->code == ILABEL || in->code == ILET) {
-		tok = plist_get(in->os,
-						0); // in both cases name is first opperand
-		l = find_label(g, tok->view);
-		for (j = 0; j < l->us->size; j++) {
-			usage = plist_get(l->us, j);
-
-			void *textptr = ((uc *)g->text->st) + usage->place;
-			if (usage->type == ADDR) {
-				memcpy(textptr, &l->a, REL_SIZE);
-			} else if (usage->type == REL_ADDR) {
-				long text_pos = l->ra - usage->place - REL_SIZE;
-				memcpy(textptr, &text_pos, REL_SIZE);
+				ph->offset = phl->memsz + phl->offset; // i offset
+				ph->vaddr =
+					ph->offset + ph->align * (phs_counter) + g->pie; // i addr
 			}
+			ph->filesz = ph->memsz;
+			ph->paddr = ph->vaddr;
+			phs_counter++;
+			last_text_sz = g->text->size;
+			break;
+		case IEOI:
+			phl = g->phs->st[phs_counter - 1];
+			phl->memsz = g->phs->size == 1 ? phl->memsz + g->text->size
+										   : g->text->size - last_text_sz;
+			phl->filesz = phl->memsz;
+			break;
+			//	default:
+			//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
-	} else if (in->code == IENTRY) {
-		tok = in->os->st[0];
-		l = find_label(g, tok->view);
-		g->elfh->entry = l->a;
-	} else if (in->code == ISEGMENT)
-		phs_counter++;
-}
+		if (buf_len) {
+			phs_cur_sz += buf_len;
+			blat(g->text, ibuff, buf_len);
+			free(ibuff);
+		}
+	}
+
+	phs_counter = 0;
+	for (i = 0; i < g->is->size; i++) {
+		in = plist_get(g->is, i);
+
+		if (in->code == ILABEL || in->code == ILET) {
+			tok = plist_get(in->os,
+							0); // in both cases name is first opperand
+			l = find_label(g, tok->view);
+			for (j = 0; j < l->us->size; j++) {
+				usage = plist_get(l->us, j);
+
+				void *textptr = ((uc *)g->text->st) + usage->place;
+				if (usage->type == ADDR) {
+					memcpy(textptr, &l->a, REL_SIZE);
+				} else if (usage->type == REL_ADDR) {
+					long text_pos = l->ra - usage->place - REL_SIZE;
+					memcpy(textptr, &text_pos, REL_SIZE);
+				}
+			}
+		} else if (in->code == IENTRY) {
+			tok = in->os->st[0];
+			l = find_label(g, tok->view);
+			g->elfh->entry = l->a;
+		} else if (in->code == ISEGMENT)
+			phs_counter++;
+	}
 }

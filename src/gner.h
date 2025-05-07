@@ -22,6 +22,20 @@ enum OpsCode {
 	RM_8__IMM_8,
 	RM_16_32_64__IMM_16_32,
 	RM_16_32_64__IMM_8,
+
+	M_16__SREG,
+	R_16_32_64__SREG,
+	SREG__RM_16,
+
+	AL__MOFFS_8,
+	RAX__MOFFS_16_32_64,
+	MOFFS_8__AL,
+	MOFFS_16_32_64__RAX,
+
+	R_8__IMM_8,
+	R_16_32_64__IMM_16_32_64,
+	M_8__M_8,
+	M_16_32_64__M_16_32_64,
 };
 
 enum UT { // Usage Type
