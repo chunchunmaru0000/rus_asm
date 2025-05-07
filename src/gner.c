@@ -151,17 +151,18 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 	g->elfh = new_elfh(g, 0, 0x40, g->phs->size, 0x00, g->shs->size);
 }
 
-void *alloc_len(long len, long *buf_len) {
+void *alloc_len(uint32_t len, uint32_t *buf_len) {
 	*buf_len = len;
 	return malloc(len);
 }
 
-void alloc_cpy(void **buf, long *buf_len, long alc_len, void *data) {
+void alloc_cpy(void **buf, uint32_t *buf_len, uint32_t alc_len, void *data) {
 	*buf = alloc_len(alc_len, buf_len);
 	memcpy(*buf, data, alc_len);
 }
 
-void alloc_cpy_int(void **buf, long *buf_len, long alc_len, uint64_t data) {
+void alloc_cpy_int(void **buf, uint32_t *buf_len, uint32_t alc_len,
+				   uint64_t data) {
 	*buf = alloc_len(alc_len, buf_len);
 	memcpy(*buf, &data, alc_len);
 }
@@ -269,7 +270,7 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 //		add word [rax], 255
 // - prefix REX are prefixes
 enum OpsCode get_ops_code(struct Inst *in) {
-	struct Oper *l, *r, *t, *f;
+	struct Oper *l, *r; //, *t, *f;
 	enum OpsCode code = OPC_INVALID;
 
 	switch (in->code) {
@@ -386,52 +387,47 @@ enum OpsCode get_ops_code(struct Inst *in) {
 	return code;
 }
 
-void add_inst(uint64_t *cmd_len, uint64_t *cmd, struct Inst *in) {
-	struct Oper *l = plist_get(in->os, 0), *r = plist_get(in->os, 1);
-	enum OCode lc = l->code, rc = r->code;
-
-	if (lc == OREG) {
-		if (rc == OREG) {
-			if (l->sz != r->sz)
-				eeg(REGS_SIZES_NOT_MATCH, in);
-			int sz = l->sz;
-			if (sz == BYTE) {
-				*cmd = 0x00;
-				*cmd_len = 1;
-			} else {
-				if (l->rcode)
-					*cmd = 0x00;
-				*cmd_len = 1;
-			}
-		}
-	} else {
+void get_prefs(enum OpsCode opsCode, uint64_t *prf, uint32_t *prf_len) {
+	switch (opsCode) {
+	default:
+		*prf = 0;
+		*prf_len = 0;
 	}
-	switch (lc) {
-	case OREG:
-		switch (r->code) {
-		case OREG:
-			if (ol->sz != or->sz)
-				eeg(REGS_SIZES_NOT_MATCH, in);
-			break;
-		}
+}
+void get_cmd(enum OpsCode opsCode, struct Inst *in, uint64_t *cmd,
+			 uint32_t *cmd_len) {
+	switch (opsCode) {
+	default:
+		eeg("эээ че за инструкция", in);
+	}
+}
+void get_data(enum OpsCode opsCode, struct Inst *in, uint64_t *data,
+			  uint32_t *data_len) {
+	switch (opsCode) {
+	default:
+		*data = 0;
+		*data_len = 0;
 	}
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
-	uint64_t cmd, cmd_len, data;
-	long buf_len, *blp = &buf_len; // buf len ptr
 	uc *ibuff;
 	void **ibufp = (void **)&ibuff;
+	uint64_t cmd, data, prf;
+	uint32_t cmd_len, data_len, prf_len, buf_len, *blp = &buf_len;
+	// long buf_len, *blp = &buf_len; // buf len ptr
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	enum OpsCode opsCode;
+	// take
 	struct Inst *in;
 	struct Token *tok;
 	struct Oper * or, *ol;
 	struct BList *data_bl;
-	struct Plov *l;
 	struct ELFPH *ph, *phl;
+	// make
+	struct Plov *l;
 	struct Usage *usage;
 	long phs_counter = 0, phs_cur_sz;
 	// struct ELFSH *sh;
@@ -446,7 +442,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			opsCode = get_ops_code(in);
 
 			get_prefs(opsCode, &prf, &prf_len);
-			get_cmd(code, opsCode, &cmd, &cmd_len);
+			get_cmd(opsCode, in, &cmd, &cmd_len);
 			get_data(opsCode, in, &data, &data_len);
 
 			ibuff = alloc_len(prf_len + cmd_len + data_len, blp);
