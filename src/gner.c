@@ -253,9 +253,10 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 #define is_32(o) ((o)->sz == DWORD)
 #define is_64(o) ((o)->sz == QWORD)
 
-#define is_al(o) ((o)->rcode == R_AL)
+#define is_al(o) ((o)->code = OREG && (o)->rcode == R_AL)
 #define is_rA(o)                                                               \
-	((o)->rcode == R_AX || (o)->rcode == R_EAX || (o)->rcode == R_RAX)
+	((o)->code = OREG && ((o)->rcode == R_AX || (o)->rcode == R_EAX ||         \
+						  (o)->rcode == R_RAX))
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_moffs(o) ((o)->code == OMOFFS)
 
@@ -285,28 +286,24 @@ enum OpsCode get_ops_code(struct Inst *in) {
 		r = plist_get(in->os, 1);
 		// RM_8__R_8,
 		// RM_16_32_64__R16_32_64,
-		if (is_reg(l) && is_reg(r)) {
+		if (is_rm(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
-		} else if (is_mem(l) && is_reg(r)) {
-			if (l->sz != r->sz)
-				eeg(MEM_REG_SIZES_NOT_MATCH, in);
-			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
 			// R_8__RM_8,
 			// R_16_32_64__RM_16_32_64,
-		} else if (is_reg(l) && is_mem(r)) {
+		} else if (is_reg(l) && is_rm(r)) {
 			if (l->sz != r->sz)
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
-		} else if (is_reg(l) && is_imm(r)) {
+		} else if (is_rm(l) && is_imm(r)) {
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
 			// 	AL__IMM_8,
-			if (!is_mem(l) && is_al(l))
+			if (is_al(l))
 				code = AL__IMM_8;
 			// 	RAX__IMM_16_32,
-			else if (!is_mem(l) && is_rA(l))
+			else if (is_rA(l))
 				code = RAX__IMM_16_32;
 			// 	RM_8__IMM_8,
 			else if (is_8(l))
@@ -324,17 +321,13 @@ enum OpsCode get_ops_code(struct Inst *in) {
 		r = plist_get(in->os, 1);
 		// RM_8__R_8,
 		// RM_16_32_64__R16_32_64,
-		if (is_reg(l) && is_reg(r)) {
+		if (is_rm(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
-		} else if (is_mem(l) && is_reg(r)) {
-			if (l->sz != r->sz)
-				eeg(MEM_REG_SIZES_NOT_MATCH, in);
-			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
 			// R_8__RM_8,
 			// R_16_32_64__RM_16_32_64,
-		} else if (is_reg(l) && is_mem(r)) {
+		} else if (is_reg(l) && is_rm(r)) {
 			if (l->sz != r->sz)
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
@@ -348,7 +341,6 @@ enum OpsCode get_ops_code(struct Inst *in) {
 			// SREG__RM_16,
 		} else if (is_seg(l) && is_16(r) && is_rm(r))
 			code = SREG__RM_16;
-
 		// AL__MOFFS_8,
 		else if (is_al(l) && is_moffs(r) && is_8(r))
 			code = AL__MOFFS_8;
@@ -368,13 +360,22 @@ enum OpsCode get_ops_code(struct Inst *in) {
 				code = M_8__M_8;
 			if (!is_8(l) && !is_8(r))
 				code = M_16_32_64__M_16_32_64;
+		} else if (is_imm(r)) {
 			// R_8__IMM_8,
 			// R_16_32_64__IMM_16_32_64,
-		} else if (is_reg(l) && is_imm(r)) {
-			if (is_8(l) && is_8(r))
-				code = R_8__IMM_8;
-			if (!is_8(l) && !is_8(r))
-				code = R_16_32_64__IMM_16_32_64;
+			if (is_reg(l)) {
+				if (is_8(l) && is_8(r))
+					code = R_8__IMM_8;
+				else if (!is_8(l) && !is_8(r))
+					code = R_16_32_64__IMM_16_32_64;
+				// RM_8__IMM_8,
+				// RM_16_32_64__IMM_16_32,
+			} else if (is_mem(l)) {
+				if (is_8(l) && is_8(r))
+					code = RM_8__IMM_8;
+				else if (!is_8(l) && is_16(r) && is_32(r))
+					code = RM_16_32_64__IMM_16_32;
+			}
 		}
 	default:
 		eeg("нет пока а вот", in);
@@ -424,6 +425,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	void **ibufp = (void **)&ibuff;
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
+	enum OpsCode opsCode;
 	struct Inst *in;
 	struct Token *tok;
 	struct Oper * or, *ol;
@@ -441,6 +443,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		code = in->code;
 
 		if (code == IADD) {
+			opsCode = get_ops_code(in);
+			get_cmd(code, opsCode, &cmd, &cmd_len);
+			get_data(opsCode, in, &data, &data_len);
+
 			add_inst(&cmd_len, &cmd, in);
 
 			ibuff = alloc_len(cmd_len, blp);
