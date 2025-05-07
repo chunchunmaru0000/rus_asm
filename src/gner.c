@@ -444,13 +444,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 		if (code == IADD) {
 			opsCode = get_ops_code(in);
+
+			get_prefs(opsCode, &prf, &prf_len);
 			get_cmd(code, opsCode, &cmd, &cmd_len);
 			get_data(opsCode, in, &data, &data_len);
 
-			add_inst(&cmd_len, &cmd, in);
+			ibuff = alloc_len(prf_len + cmd_len + data_len, blp);
 
-			ibuff = alloc_len(cmd_len, blp);
-			cpy_len(ibuff, cmd, cmd_len);
+			cpy_len(ibuff, prf, prf_len);
+			cpy_len(ibuff + prf_len, cmd, cmd_len);
+			cpy_len(ibuff + prf_len + cmd_len, data, data_len);
 
 			if (buf_len) {
 				blat(g->text, ibuff, buf_len);
