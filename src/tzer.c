@@ -172,7 +172,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 	num_view = malloc(num_len + 1);
 	num_view[num_len] = 0;
 	strncpy(num_view, &t->code[start_pos], num_len);
-	//printf("\t\tnum_view: %s value: %lx\n", num_view, value);
+	// printf("\t\tnum_view: %s value: %lx\n", num_view, value);
 
 	if (base == 10) {
 		if (code == INT)
@@ -210,17 +210,15 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 	return STR;
 }
 
-char *alloc_str_and_set_code(char str[], long len, enum TCode *codeptr,
-							 enum TCode code) {
+// next_and_alloc
+char *naa(struct Tzer *t, char str[], long len, enum TCode *codeptr,
+		  enum TCode code) {
+	for (uint32_t i = 0; i < len - 1; i++)
+		next(t);
 	char *s = malloc(len + 1);
 	memcpy(s, str, len + 1);
 	*codeptr = code;
 	return s;
-}
-char *next_and_alloc(struct Tzer *t, char str[], long len, enum TCode *codeptr,
-					 enum TCode code) {
-	next(t);
-	return alloc_str_and_set_code(str, len, codeptr, code);
 }
 unsigned char char_in_str(char c, char *str) {
 	for (int i = 0; str[i]; i++)
@@ -237,52 +235,59 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 
 	switch (c) {
 	case ':':
-		view = alloc_str_and_set_code(":", 1, cp, COLO);
+		view = naa(t, ":", 1, cp, COLO);
 		break;
 	case '\\':
-		if (n == '\\')
-			view = next_and_alloc(t, "\\\\", 2, cp, SHR);
-		else
-			view = alloc_str_and_set_code("\\", 1, cp, SLASH);
+		if (n == '\\') {
+			if (nn == '=')
+				view = naa(t, "\\\\=", 3, cp, SHRE);
+			else
+				view = naa(t, "\\", 1, cp, SLASH);
+				// there is no use for \\ yet
+		} else
+			view = naa(t, "\\", 1, cp, SLASH);
 		break;
 	case '+':
 		if (n == '+')
-			view = next_and_alloc(t, "++", 2, cp, INC);
+			view = naa(t, "++", 2, cp, INC);
 		else if (n == '=')
-			view = next_and_alloc(t, "+=", 2, cp, PLUSE);
+			view = naa(t, "+=", 2, cp, PLUSE);
 		else
-			view = alloc_str_and_set_code("+", 1, cp, PLUS);
+			view = naa(t, "+", 1, cp, PLUS);
 		break;
 	case '-':
 		if (n == '-')
-			view = next_and_alloc(t, "--", 2, cp, DEC);
+			view = naa(t, "--", 2, cp, DEC);
 		else if (n == '=')
-			view = next_and_alloc(t, "-=", 2, cp, MINUSE);
+			view = naa(t, "-=", 2, cp, MINUSE);
 		else
-			view = alloc_str_and_set_code("-", 1, cp, MINUS);
+			view = naa(t, "-", 1, cp, MINUS);
 		break;
 	case '*':
 		if (n == '=')
-			view = next_and_alloc(t, "*=", 2, cp, IMULE);
+			view = naa(t, "*=", 2, cp, IMULE);
 		else
-			view = alloc_str_and_set_code("*", 1, cp, IMUL);
+			view = naa(t, "*", 1, cp, IMUL);
 		break;
 	case '/':
 		if (n == '=')
-			view = next_and_alloc(t, "/=", 2, cp, DIVE);
-		else if (n == '/')
-			view = next_and_alloc(t, "//", 2, cp, SHL);
-		else
-			view = alloc_str_and_set_code("/", 1, cp, DIV);
+			view = naa(t, "/=", 2, cp, DIVE);
+		else if (n == '/') {
+			if (nn == '=')
+				view = naa(t, "//=", 3, cp, SHLE);
+			else
+				view = naa(t, "//", 2, cp, SEP);
+		} else
+			view = naa(t, "/", 1, cp, DIV);
 		break;
 	case '=':
 		if (n == '=')
-			view = next_and_alloc(t, "==", 2, cp, EQUE);
+			view = naa(t, "==", 2, cp, EQUE);
 		else
-			view = alloc_str_and_set_code("=", 1, cp, EQU);
+			view = naa(t, "=", 1, cp, EQU);
 		break;
 	case ',':
-		view = alloc_str_and_set_code(",", 1, cp, COMMA);
+		view = naa(t, ",", 1, cp, COMMA);
 		break;
 	default:
 		ee(t, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");

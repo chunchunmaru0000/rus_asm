@@ -14,6 +14,7 @@ enum TCode {
 	COM,	// comment
 	SLASH,	// \_
 	COMMA,	// ,
+	SEP,	// // separator
 	EF,
 	// LITERALS
 	INT,  // int literal
@@ -32,8 +33,8 @@ enum TCode {
 	MINUSE, // -=
 	IMULE,	// *=
 	DIVE,	// /=
-	SHL,	// //
-	SHR,	// \\_
+	SHLE,	// //=
+	SHRE,	// \\=
 };
 
 struct Token {

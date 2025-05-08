@@ -327,7 +327,7 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 		// mov word[r8d], 255 -> 67 6641 c700 ff00
 
 		// REX prefixes
-		if (some) {
+		if (0) {
 			rex = 0b01000000;
 
 			*prf_len++;
