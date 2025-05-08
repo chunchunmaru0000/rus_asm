@@ -246,20 +246,20 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN)
 #define is_seg(o) ((o)->code == OSREG)
 #define is_r8(o) ((o)->rcode >= R_AH && (o)->rcode <= R15B)
-#define is_r16(o) ((o)->rcode >= R_RAX, &&(o)->rcode <= R_R15W)
+#define is_r16(o) ((o)->rcode >= R_AX && (o)->rcode <= R_R15W)
 #define is_r32(o) ((o)->rcode >= R_EAX && (o)->rcode <= R_R15D)
 #define is_r64(o) ((o)->rcode >= R_RAX && (o)->rcode <= R_R15)
 #define is_8(o) ((o)->sz == BYTE)
 #define is_16(o) ((o)->sz == WORD)
 #define is_32(o) ((o)->sz == DWORD)
 #define is_64(o) ((o)->sz == QWORD)
-
 #define is_al(o) ((o)->code = OREG && (o)->rcode == R_AL)
 #define is_rA(o)                                                               \
 	((o)->code = OREG && ((o)->rcode == R_AX || (o)->rcode == R_EAX ||         \
 						  (o)->rcode == R_RAX))
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_moffs(o) ((o)->code == OMOFFS)
+#define is_rex()
 
 // http://ref.x86asm.net/coder64.html
 // add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
@@ -269,9 +269,12 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 // - prefix 66 is used with all 16 bit ops like add ax, bx or
 //		add word [rax], 255
 // - prefix REX are prefixes
-enum OpsCode get_ops_code(struct Inst *in) {
+enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
+	*prf = 0;
+	*prf_len = 0;
 	struct Oper *l, *r; //, *t, *f;
 	enum OpsCode code = OPC_INVALID;
+	uc rex;
 
 	switch (in->code) {
 	case IADD:
@@ -316,6 +319,34 @@ enum OpsCode get_ops_code(struct Inst *in) {
 			else
 				code = RM_16_32_64__IMM_16_32;
 		}
+		// PREFIXES ASSIGN goes in the reverse order
+		// because of little endian
+
+		// {lock} fs repne scas word [edi] ->
+		// 		{f0} [64 fs][f2 scas] [67 is_r32(r)][66 is_16(r)] af
+		// mov word[r8d], 255 -> 67 6641 c700 ff00
+
+		// REX prefixes
+		if (some) {
+			rex = 0b01000000;
+
+			*prf_len++;
+			*prf = (*prf << 8) + rex;
+		}
+		// 66 16-bit Operand-size OVERRIRE prefix
+		if (!is_seg(l) && is_16(l)) {
+			*prf_len++;
+			*prf = (*prf << 8) + 0x66;
+		}
+		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
+		if (is_mem(l) && is_r32(l)) {
+			*prf_len++;
+			*prf = (*prf << 8) + 0x67;
+		}
+		// here for example in mov word[r8d], 255
+		// rex for r8d
+		// 16-bit mem override
+		// 32-bit adress-size
 		break;
 	case IMOV:
 		l = plist_get(in->os, 0);
@@ -378,6 +409,7 @@ enum OpsCode get_ops_code(struct Inst *in) {
 					code = RM_16_32_64__IMM_16_32;
 			}
 		}
+		break;
 	default:
 		eeg("нет пока а вот", in);
 	}
@@ -387,20 +419,44 @@ enum OpsCode get_ops_code(struct Inst *in) {
 	return code;
 }
 
-void get_prefs(enum OpsCode opsCode, uint64_t *prf, uint32_t *prf_len) {
-	switch (opsCode) {
-	default:
-		*prf = 0;
-		*prf_len = 0;
-	}
+// PREFIXES ASSIGN goes in the reverse order
+// because of little endian
+void get_prefs(uint64_t *prf, uint32_t *prf_len) {
+	// TODO: VEX/EVEX prefixes
+	prf_len++;
+	// REX prefixes
+	prf_len++;
+	// 66 16-bit Operand-size override prefix | Precision-size override prefix
+	prf_len++;
+	// 67 Address-size override prefix, when adress 32-bit like [eax] not [rax]
+	prf_len++;
+	// 			2E 36 3E 26 Null Prefix in 64-bit Mode
+	// F3 Repeat String Operation Prefix | Scalar Single-precision Prefix
+	if (0)
+		prf_len++;
+	// F2 Repeat String Operation Prefix | Scalar Double-precision Prefix
+	if (0)
+		prf_len++;
+	// 64 65 FS GS Segment Override
+	// TODO: when do scas or other do something like FS_M_16__AX
+	if (0)
+		prf_len++;
+	// F0 lock
+
+	// lock fs repne scas word [edi] -> f0 64f2 6766 af
+	// mov word[r8d], 255 -> 67 6641 c700 ff00
 }
+
 void get_cmd(enum OpsCode opsCode, struct Inst *in, uint64_t *cmd,
 			 uint32_t *cmd_len) {
+	// first do registers encoding
+	// then do cmd op code
 	switch (opsCode) {
 	default:
 		eeg("эээ че за инструкция", in);
 	}
 }
+
 void get_data(enum OpsCode opsCode, struct Inst *in, uint64_t *data,
 			  uint32_t *data_len) {
 	switch (opsCode) {
@@ -439,9 +495,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		code = in->code;
 
 		if (code == IADD) {
-			opsCode = get_ops_code(in);
+			opsCode = get_ops_code(in, &prf, &prf_len);
 
-			get_prefs(opsCode, &prf, &prf_len);
+			// get_prefs(opsCode, &prf, &prf_len);
 			get_cmd(opsCode, in, &cmd, &cmd_len);
 			get_data(opsCode, in, &data, &data_len);
 

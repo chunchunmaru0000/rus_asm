@@ -344,6 +344,9 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				eep(c, AWAITED_SLASHN);
 			continue;
 		}
+		// TODO: check it out
+		if (c->code == SEMI)
+			break;
 		if (c->code == ID) {
 			old_sz = size;
 			size = is_size_word(c->view);

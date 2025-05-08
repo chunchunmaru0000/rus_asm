@@ -22,7 +22,8 @@ enum OCode {  // operand type codes
 	OREL,	  // labels and vars relative offsets
 	OREG,	  // general purpose registers
 	OSIMD,	  // single instruction multiple data registers
-	OMEM_REG, // [reg]
+	OMEM_REG, // [reg] size of op and of not reg,
+			  // like word[rax] is size of word, not qword
 	OMEM_REL, // [label or var]
 	// OMEM_INT, // not for now
 	OMEM_REG_INT, // [reg + int]
@@ -154,6 +155,7 @@ enum ICode {
 
 	ICALL,
 	ISYSCALL,
+	// TODO: LOCK will be an instruction as its always first pref
 };
 
 struct Reg {
