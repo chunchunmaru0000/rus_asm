@@ -384,14 +384,16 @@ struct Oper *expression(struct Pser *p) {
 			if (otmp->code == OREL || otmp->code == OREG) {
 				// disp
 				set_disp_to_op(o, otmp);
-				o->rm = R_RBP;
-				o->mod = MOD_MEM;
 				// REMEMBER:
-				// mod = 00, rm = 101 == [RIP+disp32]
+				// mod = 00, rm = 101 ==
+				o->mod = MOD_MEM;
+				o->rm = R_RBP;
+				// [RIP+disp32]
+				o->disp_sz = 32;
 			} else if (otmp->code == OREG) {
 				// reg
 				o->rm = otmp->rm;
-				o->mod = MOD_REG;
+				o->mod = MOD_MEM; // mov rax, [rax] e.t.
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
@@ -401,11 +403,14 @@ struct Oper *expression(struct Pser *p) {
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
 				set_index_to_op(o, otmp);
-				o->base = R_RBP;
-				o->rm = R_RSP; // sib
-				o->mod = MOD_MEM;
 				// REMEMBER:
-				// mod = 00, rm = 100, base = 101 == no base
+				// mod = 00, rm = 100, base = 101 ==
+				o->mod = MOD_MEM;
+				o->rm = R_RSP; // sib
+				// no base register and
+				o->base = R_RBP;
+				// a 32-bit displacement
+				o->disp_sz = 32;
 			} else if (otmp->code == OREG) {
 				// reg reg
 				// reg disp
