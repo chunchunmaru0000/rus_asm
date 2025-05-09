@@ -17,7 +17,7 @@ enum TCode {
 	SEP,	// // separator
 	PAR_L,	// (
 	PAR_R,	// )
-	EF,		// end file
+	EF, // end file
 	// LITERALS
 	INT,  // int literal
 	REAL, // float literal

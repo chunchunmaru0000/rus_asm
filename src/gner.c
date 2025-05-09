@@ -242,29 +242,26 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 }
 
 #define is_reg(o) ((o)->code == OREG)
-#define is_mem(o) ((o)->code == OMEM_REG)
+#define is_mem(o) ((o)->code == OMEM)
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN)
 #define is_seg(o) ((o)->code == OSREG)
-#define is_r8(o) ((o)->rcode >= R_AH && (o)->rcode <= R15B)
-#define is_r16(o) ((o)->rcode >= R_AX && (o)->rcode <= R_R15W)
-#define is_r32(o) ((o)->rcode >= R_EAX && (o)->rcode <= R_R15D)
-#define is_r64(o) ((o)->rcode >= R_RAX && (o)->rcode <= R_R15)
 #define is_8(o) ((o)->sz == BYTE)
 #define is_16(o) ((o)->sz == WORD)
 #define is_32(o) ((o)->sz == DWORD)
 #define is_64(o) ((o)->sz == QWORD)
-#define is_al(o) ((o)->code = OREG && (o)->rcode == R_AL)
+#define is_al(o) ((o)->code = OREG && (o)->rm == R_AL)
 #define is_rA(o)                                                               \
-	((o)->code = OREG && ((o)->rcode == R_AX || (o)->rcode == R_EAX ||         \
-						  (o)->rcode == R_RAX))
+	((o)->code =                                                               \
+		 OREG && ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
 #define is_r_new(o)                                                            \
-	((o)->code == OREG && (((o)->rcode >= R_R8 && (o)->rcode <= R_R15) ||      \
-						   ((o)->rcode >= R_R8D && (o)->rcode <= R_R15D) ||    \
-						   ((o)->rcode >= R_R8W && (o)->rcode <= R_R15W) ||    \
-						   ((o)->rcode >= R_R8B && (o)->rcode <= R_R15B)))
+	((o)->code == OREG && (((o)->rm >= R_R8 && (o)->rm <= R_R15) ||            \
+						   ((o)->rm >= R_R8D && (o)->rm <= R_R15D) ||          \
+						   ((o)->rm >= R_R8W && (o)->rm <= R_R15W) ||          \
+						   ((o)->rm >= R_R8B && (o)->rm <= R_R15B)))
+#define is_sib(o) ((o)->rm == R_RSI)
 // 	OPC_INVALID,
 
 // 	AL__IMM_8,
@@ -286,13 +283,13 @@ const enum OpsCode RM_L[] = {RM_8__R_8, RM_16_32_64__R_16_32_64, RM_8__IMM_8,
 							 RM_16_32_64__IMM_16_32, RM_16_32_64__IMM_8};
 const enum OpsCode RM_R[] = {R_8__RM_8, R_16_32_64__RM_16_32_64, SREG__RM_16};
 int is_rm_l(enum OpsCode c) {
-	for (uint32_t i = 0; i < sizeofarr(RM_L); i++)
+	for (uint32_t i = 0; i < lenofarr(RM_L); i++)
 		if (c == RM_L[i])
 			return 1;
 	return 0;
 }
 int is_rm_r(enum OpsCode c) {
-	for (uint32_t i = 0; i < sizeofarr(RM_R); i++)
+	for (uint32_t i = 0; i < lenofarr(RM_R); i++)
 		if (c == RM_R[i])
 			return 1;
 	return 0;
@@ -380,8 +377,9 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 			// i dont still get it
 			if (0) // TODO: this
 				rex |= REX_X;
-		// An INDEX of ESP is forbidden
-			if ((is_rm_l(code) && is_r_new(l)) || (is_rm_r(code) && is_r_new(r)))
+			// An INDEX of ESP is forbidden
+			if ((is_rm_l(code) && is_r_new(l)) ||
+				(is_rm_r(code) && is_r_new(r)))
 				rex |= REX_R;
 			if (is_64(l) || is_64(r))
 				rex |= REX_W;
@@ -601,7 +599,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				case OREG:
 					if (ol->sz != or->sz)
 						eeg(REGS_SIZES_NOT_MATCH, in);
-					cmd = reg2reg(ol->rcode, or->rcode, ol->sz);
+					cmd = reg2reg(ol->rm, or->rm, ol->sz);
 					switch (ol->sz) {
 					case QWORD:
 						cmd_len = 3;
@@ -621,27 +619,27 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				case OFPN:
 				case OREL:
 					if (or->sz == DWORD) {
-						if (ol->rcode >= R_EAX && ol->rcode <= R_EDI) {
+						if (ol->rm >= R_EAX && ol->rm <= R_EDI) {
 							cmd_len = 1;
-							cmd = 0xb8 + ol->rcode - R_EAX;
-						} else if (ol->rcode >= R_R8D && ol->rcode <= R_R15D) {
+							cmd = 0xb8 + ol->rm - R_EAX;
+						} else if (ol->rm >= R_R8D && ol->rm <= R_R15D) {
 							cmd_len = 2;
-							cmd = ((0xb8 + ol->rcode - R_R8D) << 8) + 0x41;
-						} else if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
+							cmd = ((0xb8 + ol->rm - R_R8D) << 8) + 0x41;
+						} else if (ol->rm >= R_RAX && ol->rm <= R_RDI) {
 							cmd_len = 3;
-							cmd = ((0xc0 + ol->rcode - R_RAX) << 16) + 0xc748;
-						} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
+							cmd = ((0xc0 + ol->rm - R_RAX) << 16) + 0xc748;
+						} else if (ol->rm >= R_R8 && ol->rm <= R_R15) {
 							cmd_len = 3;
-							cmd = ((0xc0 + ol->rcode - R_R8) << 16) + 0xc749;
+							cmd = ((0xc0 + ol->rm - R_R8) << 16) + 0xc749;
 						} else
 							eeg(WRONG_FST_OPER_REG_DWORD, in);
 					} else if (or->sz == QWORD) {
-						if (ol->rcode >= R_RAX && ol->rcode <= R_RDI) {
+						if (ol->rm >= R_RAX && ol->rm <= R_RDI) {
 							cmd_len = 2;
-							cmd = ((0xb8 + ol->rcode - R_RAX) << 8) + 0x48;
-						} else if (ol->rcode >= R_R8 && ol->rcode <= R_R15) {
+							cmd = ((0xb8 + ol->rm - R_RAX) << 8) + 0x48;
+						} else if (ol->rm >= R_R8 && ol->rm <= R_R15) {
 							cmd_len = 2;
-							cmd = ((0xb8 + ol->rcode - R_R8) << 8) + 0x49;
+							cmd = ((0xb8 + ol->rm - R_R8) << 8) + 0x49;
 						} else
 							eeg(WRONG_FST_OPER_REG_QWORD, in);
 					} else

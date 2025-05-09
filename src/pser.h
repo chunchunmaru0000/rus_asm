@@ -170,15 +170,15 @@ struct Oper { // operand
 	enum OCode code;
 	struct Token *t;
 	uc sz;
-	enum RegCode rm; // OMEM and rsp then does SIB
+	enum RegCode rm; // OMEM and rsp then does SIB, mod 00 and rbp does rel
 	// ---SIB---
 	enum RegCode base;
 	enum RegCode index;
 	uc scale; // 1 2 4 8
 	// ---displacement---
 	uc disp_is_rel_flag; // if 0 then use disp else view of *rel
-	uc disp_sz;			 // 0 8 32 - gives disp sz for mod in ModR/M
-	uc mod;
+	//	uc disp_sz;	// 0 8 32 - gives disp sz for mod in ModR/M
+	uc mod; // mod specifies displaacement size or r/m
 	char *rel_view;
 	int disp; // displacement
 
@@ -199,3 +199,8 @@ struct Inst {
 	char *file;
 };
 struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
+
+#define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AH && (o)->rm <= R_R15B))
+#define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))
+#define is_r32(o) ((o)->code == OREG && ((o)->rm >= R_EAX && (o)->rm <= R_R15D))
+#define is_r64(o) ((o)->code == OREG && ((o)->rm >= R_RAX && (o)->rm <= R_R15))

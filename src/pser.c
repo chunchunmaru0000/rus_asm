@@ -58,6 +58,7 @@ const char *STR_BYTE = "байт";
 const char *STR_WORD = "дбайт";
 const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
+const char *STR_ADDR = "адр";
 // instruction words
 const char *STR_NOP = "ыыы";
 const char *STR_IJMP = "идти";
@@ -248,18 +249,22 @@ char *WRONG_SCALE =
 	"Неверный множитель, ожидалось число(0, 2, 4, 8) или его отсутствие";
 char *WRONG_INDEX = "Неверный индекс, ожидался регистр";
 char *WRONG_RM = "Неверное выражение, ожидался регистр";
+char *WRONG_BASE = "Неверная основа, ожидался регистр";
+char *WRONG_ADDR_REG_SZ =
+	"Неверный размер регистра в выражении операнда, адресными регистрами могут "
+	"быть только 32-х или 64-х битные регистры";
 
 void set_disp_to_op(struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
 		int disp = d->t->number;
 		if (disp < 128 || disp > 127)
-			o->disp_sz = 32;
+			o->mod = MOD_MEM_D32;
 		else
-			o->disp_sz = 8;
+			o->mod = MOD_MEM_D8;
 		o->disp = disp;
 	} else if (d->code == OREL) {
 		o->disp_is_rel_flag = 1;
-		o->disp_sz = 32;
+		o->mod = MOD_MEM_D32;
 		o->rel_view = d->t->view;
 	} else
 		eep(d->t, WRONG_DISP);
@@ -291,14 +296,13 @@ void set_index_to_op(struct Oper *o, struct Oper *i) {
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp;
 	o->disp_is_rel_flag = 0;
-	o->disp_sz = 0;
 	o->disp = 0;
 	o->scale = SCALE_1;
 	o->index = R_NONE;
 	o->base = R_NONE;
 	o->rm = R_NONE;
 
-	struct PList *sib = malloc(sizeof(struct PList));
+	struct PList *sib = new_plist(4);
 	enum OCode code, *cp = &code;
 
 	struct Token *ot, *t0 = next_get(p, -1); //, *t1, *t2;
@@ -346,20 +350,31 @@ struct Oper *expression(struct Pser *p) {
 		break;
 	case ID:
 		v = t0->view;
+		ot = t0;
 		if (search_reg(v, lenofarr(E_REGS), E_REGS, o, DWORD))
 			;
 		else if (search_reg(v, lenofarr(R_REGS), R_REGS, o, QWORD))
 			;
-		else if (search_size(v, &o, p))
+		else if (search_reg(v, lenofarr(W_REGS), W_REGS, o, WORD))
+			;
+		else if (search_reg(v, lenofarr(B_REGS), B_REGS, o, BYTE))
+			;
+		else if (search_size(v, &o, p)) {
+			plist_free(sib);
 			return o; // its special
-		else if (search_defn(v, &o, p))
+		} else if (search_defn(v, &o, p)) {
+			plist_free(sib);
 			return o; // its too
+		} else if (sc(v, STR_ADDR)) {
+			code = OMOFFS;
+			// TODO: moffs
+			// return get_moffs(p, o);
+			eep(t0, "НЕ СДЕЛАНО MOFFS");
+		}
 		if (o->rm != R_NONE) {
-			ot = t0;
 			code = OREG;
 			break;
 		}
-		ot = t0;
 		code = OREL;
 		o->sz = DWORD;
 		break;
@@ -367,7 +382,9 @@ struct Oper *expression(struct Pser *p) {
 		do {
 			otmp = expression(p);
 			if (otmp->code != OINT || otmp->code != OREL || otmp->code != OREG)
-				eep(t0, WRONG_ADDRES_OP);
+				eep(otmp->t, WRONG_ADDRES_OP);
+			if (is_r8(otmp) || is_r16(otmp))
+				eep(otmp->t, WRONG_ADDR_REG_SZ);
 			plist_add(sib, otmp);
 			t0 = gettp(p, 0);
 		} while (t0->code != PAR_R);
@@ -378,22 +395,30 @@ struct Oper *expression(struct Pser *p) {
 			eep(t0, TOO_MUCH_OS);
 		ot = t0;
 		code = OMEM;
+		o->mod = MOD_MEM;
 
 		otmp = plist_get(sib, 0);
 		if (sib->size == 1) {
 			if (otmp->code == OREL || otmp->code == OREG) {
 				// disp
-				set_disp_to_op(o, otmp);
-				// REMEMBER:
-				// mod = 00, rm = 101 ==
+				set_disp_to_op(o, otmp); // changes mod
+				// REMEMBER: mod = 00, rm = 101 ==
 				o->mod = MOD_MEM;
 				o->rm = R_RBP;
 				// [RIP+disp32]
-				o->disp_sz = 32;
 			} else if (otmp->code == OREG) {
 				// reg
-				o->rm = otmp->rm;
-				o->mod = MOD_MEM; // mov rax, [rax] e.t.
+				if (otmp->rm == R_RSP || otmp->rm == R_ESP) {
+					// REMEMBER: only R_RSI as SIB flag, esp is not allowed
+					// mod = 00, rm = 100, base = 100, index = 100
+					o->rm = R_RSP;
+					o->base = otmp->rm;
+					o->index = R_RSP;
+				} else if (otmp->rm == R_RBP || otmp->rm == R_EBP) {
+					o->rm = otmp->rm;
+					o->mod = MOD_MEM_D8;
+				} else
+					o->rm = otmp->rm;
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
@@ -403,14 +428,12 @@ struct Oper *expression(struct Pser *p) {
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
 				set_index_to_op(o, otmp);
-				// REMEMBER:
-				// mod = 00, rm = 100, base = 101 ==
-				o->mod = MOD_MEM;
+				// REMEMBER: mod = 00, rm = 100, base = 101 ==
 				o->rm = R_RSP; // sib
 				// no base register and
 				o->base = R_RBP;
+				// REMEMBER: do disp 32 although mod is 00
 				// a 32-bit displacement
-				o->disp_sz = 32;
 			} else if (otmp->code == OREG) {
 				// reg reg
 				// reg disp
@@ -425,7 +448,15 @@ struct Oper *expression(struct Pser *p) {
 				eep(t0, POSSIBLE_WRONG_ORDER);
 			} else if (OINT) {
 				// sc reg disp
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				set_scale_to_op(o, otmp);
+				otmp = plist_get(sib, 1);
+				set_index_to_op(o, otmp);
+				// mod = 00, rm = 100, base = 101 no base register and 32 dis
+				o->rm = R_RSP; // sib
+				o->base = R_RBP;
+				otmp = plist_get(sib, 2);
+				set_disp_to_op(o, otmp); // changes mod
+				o->mod = MOD_MEM;
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
