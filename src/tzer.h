@@ -2,6 +2,7 @@
 #include "lists.h"
 
 #define loop while(1)
+#define sizeofarr(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 struct Tzer {
 	char *filename;

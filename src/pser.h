@@ -16,19 +16,14 @@ struct Pser {
 struct Pser *new_pser(char *, uc);
 struct PList *pse(struct Pser *); // instructions
 
-enum OCode {  // operand type codes
-	OINT,	  // integer numbers negative number are handled in tzer
-	OFPN,	  // floating point numbers that just different for the parser
-	OREL,	  // labels and vars relative offsets
-	OREG,	  // general purpose registers
-	OSIMD,	  // single instruction multiple data registers
-	OMEM_REG, // [reg] size of op and of not reg,
-			  // like word[rax] is size of word, not qword
-	OMEM_REL, // [label or var]
-	// OMEM_INT, // not for now
-	OMEM_REG_INT, // [reg + int]
-	OMEM_REL_INT, // [label or var + int] // is there such an op codes in cpu?
-	// [rbx + rcx*4 + 0x10] something like this also in the future
+enum OCode { // operand type codes
+	OINT,	 // integer numbers negative number are handled in tzer
+	OFPN,	 // floating point numbers that just different for the parser
+	OREL,	 // labels and vars relative offsets
+	OREG,	 // general purpose registers
+	OMEM,	 // [] size is size of entire op
+	OSIMD,	 // single instruction multiple data registers
+	// like word[rax] is size of word, not qword
 	OSREG, // segment registers cs, ds, fs, gs
 	OMOFFS,
 	// OCR // control registers?
@@ -167,8 +162,16 @@ struct Oper { // operand
 	enum OCode code;
 	struct Token *t;
 	uc sz;
-	// ---possible values---
-	enum RegCode rcode;
+	enum RegCode rm; // OMEM and rsp then does SIB
+	// ---SIB---
+	enum RegCode base;
+	enum RegCode index;
+	uc scale; // 1 2 4 8
+	// ---displacement---
+	uc disp_is_rel_flag; // if 0 then use disp else view of *rel
+	struct Token *rel;	 // have it for view
+	int disp;			 // displacement
+
 	// enum SimdCode scode;
 	// all other needed enums also
 };

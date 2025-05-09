@@ -259,7 +259,49 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 						  (o)->rcode == R_RAX))
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_moffs(o) ((o)->code == OMOFFS)
-#define is_rex()
+// opcode reg field, meaningless name
+#define is_r_new(o)                                                            \
+	((o)->code == OREG && (((o)->rcode >= R_R8 && (o)->rcode <= R_R15) ||      \
+						   ((o)->rcode >= R_R8D && (o)->rcode <= R_R15D) ||    \
+						   ((o)->rcode >= R_R8W && (o)->rcode <= R_R15W) ||    \
+						   ((o)->rcode >= R_R8B && (o)->rcode <= R_R15B)))
+// 	OPC_INVALID,
+
+// 	AL__IMM_8,
+// 	RAX__IMM_16_32,
+//
+// 	M_16__SREG,
+// 	R_16_32_64__SREG,
+//
+// 	AL__MOFFS_8,
+// 	RAX__MOFFS_16_32_64,
+// 	MOFFS_8__AL,
+// 	MOFFS_16_32_64__RAX,
+//
+// 	R_8__IMM_8,
+// 	R_16_32_64__IMM_16_32_64,
+// 	M_8__M_8,
+// 	M_16_32_64__M_16_32_64,
+const enum OpsCode RM_L[] = {RM_8__R_8, RM_16_32_64__R_16_32_64, RM_8__IMM_8,
+							 RM_16_32_64__IMM_16_32, RM_16_32_64__IMM_8};
+const enum OpsCode RM_R[] = {R_8__RM_8, R_16_32_64__RM_16_32_64, SREG__RM_16};
+int is_rm_l(enum OpsCode c) {
+	for (uint32_t i = 0; i < sizeofarr(RM_L); i++)
+		if (c == RM_L[i])
+			return 1;
+	return 0;
+}
+int is_rm_r(enum OpsCode c) {
+	for (uint32_t i = 0; i < sizeofarr(RM_R); i++)
+		if (c == RM_R[i])
+			return 1;
+	return 0;
+}
+
+#define REX_B 0b0001
+#define REX_X 0b0010
+#define REX_R 0b0100
+#define REX_W 0b1000
 
 // http://ref.x86asm.net/coder64.html
 // add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
@@ -293,7 +335,7 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 		if (is_rm(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
-			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
+			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
 			// R_8__RM_8,
 			// R_16_32_64__RM_16_32_64,
 		} else if (is_reg(l) && is_rm(r)) {
@@ -326,10 +368,23 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 		// 		{f0} [64 fs][f2 scas] [67 is_r32(r)][66 is_16(r)] af
 		// mov word[r8d], 255 -> 67 6641 c700 ff00
 
+		// !mem cuz flag 67 is needed for Address-size OVERRIRE
+		// cuz its common to use 64 addresation on 64x
 		// REX prefixes
-		if (0) {
+		if (is_64(l) || is_r_new(l) || is_r_new(r)) {
 			rex = 0b01000000;
-
+			if (is_r_new(l))
+				rex |= REX_B;
+			// reserved for smthng with indexer
+			// like mov rax, [rbx + r9]
+			// i dont still get it
+			if (0) // TODO: this
+				rex |= REX_X;
+		// An INDEX of ESP is forbidden
+			if ((is_rm_l(code) && is_r_new(l)) || (is_rm_r(code) && is_r_new(r)))
+				rex |= REX_R;
+			if (is_64(l) || is_64(r))
+				rex |= REX_W;
 			*prf_len++;
 			*prf = (*prf << 8) + rex;
 		}
@@ -356,7 +411,7 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 		if (is_rm(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
-			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R16_32_64;
+			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
 			// R_8__RM_8,
 			// R_16_32_64__RM_16_32_64,
 		} else if (is_reg(l) && is_rm(r)) {
@@ -408,6 +463,30 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 				else if (!is_8(l) && is_16(r) && is_32(r))
 					code = RM_16_32_64__IMM_16_32;
 			}
+		}
+
+		if (is_64(l) || is_r_new(l) || is_r_new(r)) {
+			rex = 0b01000000;
+			if (is_r_new(l))
+				rex |= REX_B;
+			if (0) // TODO: this
+				rex |= REX_X;
+			if (is_r_new(r))
+				rex |= REX_R;
+			if (is_64(l) || is_64(r))
+				rex |= REX_W;
+			*prf_len++;
+			*prf = (*prf << 8) + rex;
+		}
+		// 66 16-bit Operand-size OVERRIRE prefix
+		if (!is_seg(l) && is_16(l)) {
+			*prf_len++;
+			*prf = (*prf << 8) + 0x66;
+		}
+		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
+		if (is_mem(l) && is_r32(l)) {
+			*prf_len++;
+			*prf = (*prf << 8) + 0x67;
 		}
 		break;
 	default:

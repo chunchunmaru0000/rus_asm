@@ -65,14 +65,31 @@ const char *STR_IMOV = "быть";
 const char *STR_IADD = "плюс";
 const char *STR_ISUB = "минс";
 const char *STR_IMUL = "зумн";
-const long LTWO_OPS_STRS = 4;
 const char *TWO_OPS_STRS[] = {"быть", "плюс", "минс", "зумн"};
 const char *STR_CALL = "зов";
 const char *STR_SCAL = "сзов";
-// 8 and 16
-// д8 for r8w and б8 for r8b
+// seg
+const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
+							   {R_SS, "сс"},	 {R_FS, "фс"}, {R_GS, "гс"},
+							   {R_LDTR, "лдтр"}, {R_TR, "тр"}};
+// 8
+const struct Reg B_REGS[] = {
+	{R_AX, "ах"},	  {R_CX, "сх"},		{R_DX, "дх"},	  {R_BX, "бх"},
+	{R_SP, "сп"},	  {R_BP, "бп"},		{R_SI, "си"},	  {R_DI, "ди"},
+	{R_R8B, "б8"},	  {R_R9B, "б9"},	{R_R10B, "б10"},  {R_R11B, "б11"},
+	{R_R12B, "б12"},  {R_R13B, "дб3"},	{R_R14B, "б14"},  {R_R15B, "б15"},
+	{R_R8B, "р8б"},	  {R_R9B, "р9б"},	{R_R10B, "р10б"}, {R_R11B, "р11б"},
+	{R_R12B, "р12б"}, {R_R13B, "р13б"}, {R_R14B, "р14б"}, {R_R15B, "р15б"}};
+// 16
+const struct Reg W_REGS[] = {
+	{R_AX, "ах"},	  {R_CX, "сх"},		 {R_DX, "дх"},	   {R_BX, "бх"},
+	{R_SP, "сп"},	  {R_BP, "бп"},		 {R_SI, "си"},	   {R_DI, "ди"},
+	{R_R8W, "д8"},	  {R_R9W, "д9"},	 {R_R10W, "д10"},  {R_R11W, "д11"},
+	{R_R12W, "д12"},  {R_R13W, "д13"},	 {R_R14W, "д14"},  {R_R15W, "д15"},
+	{R_R8W, "р8д"},	  {R_R9W, "р9д"},	 {R_R10W, "р10д"}, {R_R11W, "р11д"},
+	{R_R12W, "р12д"}, {R_R13W, "р13д"},	 {R_R14W, "р14д"}, {R_R15W, "р15д"},
+	{R_IP, "ип"},	  {R_FLAGS, "флаги"}};
 // 32
-const int E_REGS_LEN = 26;
 const struct Reg E_REGS[] = {
 	{R_EAX, "еах"},	  {R_EBX, "ебх"},	   {R_ECX, "есх"},	 {R_EDX, "едх"},
 	{R_ESI, "еси"},	  {R_EDI, "еди"},	   {R_EBP, "ебп"},	 {R_ESP, "есп"},
@@ -81,7 +98,7 @@ const struct Reg E_REGS[] = {
 	{R_R8D, "р8ч"},	  {R_R9D, "р9ч"},	   {R_R10D, "р10ч"}, {R_R11D, "р11ч"},
 	{R_R12D, "р12ч"}, {R_R13D, "р13ч"},	   {R_R14D, "р14ч"}, {R_R15D, "р15ч"},
 	{R_EIP, "еип"},	  {R_EFLAGS, "ефлаги"}};
-const int R_REGS_LEN = 18;
+// 64
 const struct Reg R_REGS[] = {
 	{R_RAX, "рах"}, {R_RBX, "рбх"},		 {R_RCX, "рсх"}, {R_RDX, "рдх"},
 	{R_RSI, "рси"}, {R_RDI, "рди"},		 {R_RBP, "рбп"}, {R_RSP, "рсп"},
@@ -161,18 +178,17 @@ int search_reg(char *v, const int regs_len, const struct Reg regs[],
 			   struct Oper *o, uc sz) {
 	for (int i = 0; i < regs_len; i++)
 		if (sc(v, regs[i].v)) {
-			o->rcode = regs[i].c;
+			o->rm = regs[i].c;
 			o->sz = sz;
 			return 1;
 		}
 	return 0;
 }
 
-const int STRS_SIZES_LEN = 4;
 const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
 
 int search_size(char *v, struct Oper **o, struct Pser *p) {
-	for (int i = 0; i < STRS_SIZES_LEN; i++)
+	for (uint32_t i = 0; i < sizeofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
 			*o = expression(p);
 			(*o)->sz = 1 << i;
@@ -182,7 +198,7 @@ int search_size(char *v, struct Oper **o, struct Pser *p) {
 }
 
 int is_size_word(char *v) {
-	for (int i = 0; i < STRS_SIZES_LEN; i++)
+	for (uint32_t i = 0; i < sizeofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i]))
 			return 1 << i;
 	return 0;
@@ -267,9 +283,9 @@ struct Oper *expression(struct Pser *p) {
 	case ID:
 		v = t0->view;
 		o->rcode = R_NONE;
-		if (search_reg(v, E_REGS_LEN, E_REGS, o, DWORD))
+		if (search_reg(v, sizeofarr(E_REGS), E_REGS, o, DWORD))
 			;
-		else if (search_reg(v, R_REGS_LEN, R_REGS, o, QWORD))
+		else if (search_reg(v, sizeofarr(R_REGS), R_REGS, o, QWORD))
 			;
 		else if (search_size(v, &o, p))
 			return o; // its special
@@ -414,7 +430,7 @@ enum ICode define_pd(struct Pser *p) {
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
 	struct Token *cur = gettp(p, 0), *n;
-	while (cur->code == SLASHN)
+	while (cur->code == SLASHN || cur->code == SEP)
 		cur = next_get(p, 0);
 	char *cv = cur->view;
 	n = gettp(p, 1);
@@ -424,7 +440,7 @@ struct Inst *get_inst(struct Pser *p) {
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
-		if (cont_str(cv, TWO_OPS_STRS, LTWO_OPS_STRS))
+		if (cont_str(cv, TWO_OPS_STRS, sizeofarr(TWO_OPS_STRS)))
 			code = two_ops_i(p, os);
 		else if (sc(cv, STR_SCAL))
 			code = no_ops_inst(p, ISYSCALL);

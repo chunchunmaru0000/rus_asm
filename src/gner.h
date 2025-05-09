@@ -14,7 +14,7 @@ struct Plov { // Pointer Label Of Value
 enum OpsCode {
 	OPC_INVALID,
 	RM_8__R_8,
-	RM_16_32_64__R16_32_64,
+	RM_16_32_64__R_16_32_64,
 	R_8__RM_8,
 	R_16_32_64__RM_16_32_64,
 	AL__IMM_8,
