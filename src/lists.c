@@ -11,6 +11,11 @@ struct PList *new_plist(long cap_pace) {
 	return l;
 }
 
+void plist_free(struct PList *l) {
+	free(l->st);
+	free(l);
+}
+
 long plist_add(struct PList *l, void *p) {
 	if (l->size >= l->cap) {
 		l->cap += l->cap_pace;

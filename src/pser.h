@@ -4,6 +4,10 @@
 #define WORD 2
 #define DWORD 4
 #define QWORD 8
+#define SCALE_1 0b00
+#define SCALE_2 0b01
+#define SCALE_4 0b10
+#define SCALE_8 0b11
 
 uc sc(char *, const char *);
 
@@ -169,8 +173,9 @@ struct Oper { // operand
 	uc scale; // 1 2 4 8
 	// ---displacement---
 	uc disp_is_rel_flag; // if 0 then use disp else view of *rel
-	struct Token *rel;	 // have it for view
-	int disp;			 // displacement
+	uc disp_sz; // 0 8 32 - gives disp sz for mod in ModR/M
+	char *rel_view;
+	int disp; // displacement
 
 	// enum SimdCode scode;
 	// all other needed enums also

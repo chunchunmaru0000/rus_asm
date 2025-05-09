@@ -11,6 +11,7 @@ struct PList *new_plist(long); // cap pace
 long plist_add(struct PList *, void *);
 void *plist_get(struct PList *, long);
 void *plist_set(struct PList *, long, void *);
+void plist_free(struct PList *);
 
 struct BList {
 	uc *st; // start

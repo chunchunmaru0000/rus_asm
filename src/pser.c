@@ -230,9 +230,72 @@ char *ERR_WRONG_TOKEN = "Неверное выражение";
 char *ERR_WRONG_MINUS = "Минус можно использовать только перед числами";
 char *INVALID_STR_LEN =
 	"Длина строки в выражении не может быть равна 0 или быть больше 2";
+char *TOO_MUCH_OS =
+	"Слишком много или мало выражений в адресанте, максимум может быть "
+	"4, минимум 1, в следующих порядках:\n"
+	"\t[<регистр> <множитель: 1,2,4,8> регистр <смещение>]\n"
+	"\t[смещение]\n";
+char *POSSIBLE_WRONG_ORDER =
+	"Возможно выражения в адресанте были в неверном порядке, "
+	"всевозможные порядки:\n"
+	"\t[<регистр> <множитель: 1,2,4,8> регистр <смещение>]\n"
+	"\t[смещение]\n";
+char *WRONG_ADDRES_OP = "Неверное выражение внутри адресанта, ими могут быть "
+						"только регистры, метки или целые числа";
+char *WRONG_DISP = "Неверное смещение, ожидалось число 32 бит или метка";
+char *WRONG_SCALE =
+	"Неверный множитель, ожидалось число(0, 2, 4, 8) или его отсутствие";
+char *WRONG_INDEX = "Неверный индекс, ожидался регистр";
+
+void set_disp_to_op(struct Oper *o, struct Oper *d) {
+	if (d->code == OINT) {
+		int disp = d->t->number;
+		if (disp < 128 || disp > 127)
+			o->disp_sz = 32;
+		else
+			o->disp_sz = 8;
+		o->disp = disp;
+	} else if (d->code == OREL) {
+		o->disp_is_rel_flag = 1;
+		o->disp_sz = 32;
+		o->rel_view = d->t->view;
+	} else
+		eep(d->t, WRONG_DISP);
+	free(d);
+}
+void set_scale_to_op(struct Oper *o, struct Oper *s) {
+	if (!(s->code == OINT))
+		eep(s->t, WRONG_SCALE);
+	int scale = s->t->number;
+	if (scale == 1)
+		o->scale = SCALE_1;
+	else if (scale == 2)
+		o->scale = SCALE_2;
+	else if (scale == 4)
+		o->scale = SCALE_4;
+	else if (scale == 8)
+		o->scale = SCALE_8;
+	else
+		eep(s->t, WRONG_SCALE);
+	free(s);
+}
+void set_index_to_op(struct Oper *o, struct Oper *i) {
+	if (!(i->code == OREG))
+		eep(i->t, WRONG_INDEX);
+	o->index = i->rm;
+	free(i);
+}
 
 struct Oper *expression(struct Pser *p) {
-	struct Oper *o = malloc(sizeof(struct Oper));
+	struct Oper *o = malloc(sizeof(struct Oper)), *otmp;
+	o->disp_is_rel_flag = 0;
+	o->disp_sz = 0;
+	o->scale = 1;
+	o->index = R_NONE;
+	o->base = R_NONE;
+	o->rm = R_NONE;
+
+	struct PList *sib = malloc(sizeof(struct PList));
 	enum OCode code, *cp = &code;
 
 	struct Token *ot, *t0 = next_get(p, -1); //, *t1, *t2;
@@ -280,7 +343,6 @@ struct Oper *expression(struct Pser *p) {
 		break;
 	case ID:
 		v = t0->view;
-		o->rm = R_NONE;
 		if (search_reg(v, lenofarr(E_REGS), E_REGS, o, DWORD))
 			;
 		else if (search_reg(v, lenofarr(R_REGS), R_REGS, o, QWORD))
@@ -298,13 +360,71 @@ struct Oper *expression(struct Pser *p) {
 		code = OREL;
 		o->sz = DWORD;
 		break;
-	case 
+	case PAR_L:
+		do {
+			otmp = expression(p);
+			if (otmp->code != OINT || otmp->code != OREL || otmp->code != OREG)
+				eep(t0, WRONG_ADDRES_OP);
+			plist_add(sib, otmp);
+			t0 = gettp(p, 0);
+		} while (t0->code != PAR_R);
+		next_get(p, 0); // skip )
+
+		// [r s r d] = 4 os max
+		if (sib->size > 4 || sib->size == 0)
+			eep(t0, TOO_MUCH_OS);
+		ot = t0;
+		code = OMEM;
+
+		otmp = plist_get(sib, 0);
+		if (sib->size == 1) {
+			if (otmp->code == OREL || otmp->code == OREG) {
+				// disp
+				set_disp_to_op(o, otmp);
+			} else if (otmp->code == OREG) {
+				// reg
+			} else
+				eep(t0, POSSIBLE_WRONG_ORDER);
+
+		} else if (sib->size == 2) {
+			if (otmp->code == OINT) {
+				// sc reg
+				set_scale_to_op(o, otmp);
+				otmp = plist_get(sib, 1);
+				set_index_to_op(o, otmp);
+				o->base = R_RBP; // disp = 0, base = 101 == no base
+				eep(t0, POSSIBLE_WRONG_ORDER);
+			} else if (otmp->code == OREG) {
+				// reg reg
+				// reg disp
+				eep(t0, POSSIBLE_WRONG_ORDER);
+			} else
+				eep(t0, POSSIBLE_WRONG_ORDER);
+
+		} else if (sib->size == 3) {
+			if (otmp->code == OREG) {
+				// reg sc reg
+				// reg reg disp
+				eep(t0, POSSIBLE_WRONG_ORDER);
+			} else if (OINT) {
+				// sc reg disp
+				eep(t0, POSSIBLE_WRONG_ORDER);
+			} else
+				eep(t0, POSSIBLE_WRONG_ORDER);
+
+		} else if (otmp->code == OREG) { // size is 4
+			// reg sc reg disp
+			eep(t0, POSSIBLE_WRONG_ORDER);
+		} else
+			eep(t0, POSSIBLE_WRONG_ORDER);
+		break;
 	default:
 		eep(t0, ERR_WRONG_TOKEN);
 	};
 
 	o->code = code;
 	o->t = ot;
+	plist_free(sib);
 	return o;
 }
 
