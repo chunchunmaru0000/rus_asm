@@ -411,13 +411,13 @@ struct Oper *expression(struct Pser *p) {
 				o->mod = MOD_MEM;
 				o->rm = R_RBP;
 			} else if (otmp->code == OREG) {
-				// reg
+				// reg(rm)
 				if (is_rsp_addr(otmp)) {
 					// REMEMBER: only R_RSI as SIB flag, esp is not allowed
 					// mod = 00, rm = 100, base = 100, index = 100
 					o->rm = R_RSP;
-					o->base = otmp->rm;
 					o->index = R_RSP;
+					o->base = otmp->rm;
 				} else if (is_rbp_addr(otmp)) {
 					o->rm = otmp->rm;
 					o->mod = MOD_MEM_D8;
@@ -429,11 +429,11 @@ struct Oper *expression(struct Pser *p) {
 
 		} else if (sib->size == 2) {
 			if (otmp->code == OINT) {
-				// sc reg
+				// sc reg(index)
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
 				set_index_to_op(o, otmp);
-				// REMEMBER: mod = 00, rm = 100, base = 101 ==
+				// mod = 00, rm = 100, base = 101 ==
 				o->rm = R_RSP; // sib
 				// no base register and
 				o->base = R_RBP;
@@ -443,7 +443,11 @@ struct Oper *expression(struct Pser *p) {
 				otmp2 = plist_get(sib, 1);
 				if (otmp2->code == OREG) {
 					// reg(base) reg(index) | sib
-					
+					if (is_rbp_addr(otmp))
+						o->mod = MOD_MEM_D8;
+					o->rm = R_RSP; // sib
+					o->base = otmp->rm;
+					set_index_to_op(o, otmp2);
 				} else if (otmp2->code == OREL || otmp2->code == OINT) {
 					// reg(rm) disp         | not sib
 					if (is_rsp_addr(otmp)) {
@@ -453,33 +457,34 @@ struct Oper *expression(struct Pser *p) {
 					} else
 						o->rm = otmp->rm;
 					set_disp_to_op(o, otmp2); // changes mod to non 00
-					free(otmp);
 				} else
 					eep(t0, POSSIBLE_WRONG_ORDER);
+				free(otmp);
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (sib->size == 3) {
 			if (otmp->code == OREG) {
-				// reg sc reg
-				// reg reg disp
+				// reg(base) sc reg(index)
+				// reg(base) reg(index) disp
 				eep(t0, POSSIBLE_WRONG_ORDER);
 			} else if (OINT) {
-				// sc reg disp
+				// sc reg(index) disp
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
 				set_index_to_op(o, otmp);
-				// mod = 00, rm = 100, base = 101 no base register and 32 dis
+				// mod = 00, rm = 100, base = 101 no base register and disp32
 				o->rm = R_RSP; // sib
 				o->base = R_RBP;
 				otmp = plist_get(sib, 2);
+				// REMEMBER: here too need to write disp32
 				set_disp_to_op(o, otmp); // changes mod
 				o->mod = MOD_MEM;
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (otmp->code == OREG) { // size is 4
-			// reg sc reg disp
+			// reg(base) sc reg(index) disp
 			eep(t0, POSSIBLE_WRONG_ORDER);
 		} else
 			eep(t0, POSSIBLE_WRONG_ORDER);
