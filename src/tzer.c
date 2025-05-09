@@ -243,7 +243,7 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 				view = naa(t, "\\\\=", 3, cp, SHRE);
 			else
 				view = naa(t, "\\", 1, cp, SLASH);
-				// there is no use for \\ yet
+			// there is no use for \\ yet
 		} else
 			view = naa(t, "\\", 1, cp, SLASH);
 		break;
@@ -265,9 +265,9 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 		break;
 	case '*':
 		if (n == '=')
-			view = naa(t, "*=", 2, cp, IMULE);
+			view = naa(t, "*=", 2, cp, MULE);
 		else
-			view = naa(t, "*", 1, cp, IMUL);
+			view = naa(t, "*", 1, cp, MUL);
 		break;
 	case '/':
 		if (n == '=')
@@ -288,6 +288,12 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 		break;
 	case ',':
 		view = naa(t, ",", 1, cp, COMMA);
+		break;
+	case '(':
+		view = naa(t, "(", 1, cp, PAR_L);
+		break;
+	case ')':
+		view = naa(t, ")", 1, cp, PAR_R);
 		break;
 	default:
 		ee(t, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");

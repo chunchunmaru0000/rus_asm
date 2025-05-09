@@ -188,7 +188,7 @@ int search_reg(char *v, const int regs_len, const struct Reg regs[],
 const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
 
 int search_size(char *v, struct Oper **o, struct Pser *p) {
-	for (uint32_t i = 0; i < sizeofarr(STRS_SIZES); i++)
+	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
 			*o = expression(p);
 			(*o)->sz = 1 << i;
@@ -198,7 +198,7 @@ int search_size(char *v, struct Oper **o, struct Pser *p) {
 }
 
 int is_size_word(char *v) {
-	for (uint32_t i = 0; i < sizeofarr(STRS_SIZES); i++)
+	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i]))
 			return 1 << i;
 	return 0;
@@ -235,19 +235,17 @@ struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper));
 	enum OCode code, *cp = &code;
 
-	struct Token *ot, *t0 = next_get(p, -1), *t1, *t2;
-	struct Token **t0p = &t0;
+	struct Token *ot, *t0 = next_get(p, -1); //, *t1, *t2;
 	char *v;
 	uint64_t buf;
-	uc *szp = &o->sz;
 
 	switch (t0->code) {
 	case INT:
-		set_tc(t0p, cp, t0, OINT, szp, DWORD);
+		set_tc(&t0, cp, t0, OINT, &o->sz, DWORD);
 		ot = t0;
 		break;
 	case REAL:
-		set_tc(t0p, cp, t0, OFPN, szp, DWORD);
+		set_tc(&t0, cp, t0, OFPN, &o->sz, DWORD);
 		ot = t0;
 		break;
 	case STR:
@@ -282,16 +280,16 @@ struct Oper *expression(struct Pser *p) {
 		break;
 	case ID:
 		v = t0->view;
-		o->rcode = R_NONE;
-		if (search_reg(v, sizeofarr(E_REGS), E_REGS, o, DWORD))
+		o->rm = R_NONE;
+		if (search_reg(v, lenofarr(E_REGS), E_REGS, o, DWORD))
 			;
-		else if (search_reg(v, sizeofarr(R_REGS), R_REGS, o, QWORD))
+		else if (search_reg(v, lenofarr(R_REGS), R_REGS, o, QWORD))
 			;
 		else if (search_size(v, &o, p))
 			return o; // its special
 		else if (search_defn(v, &o, p))
 			return o; // its too
-		if (o->rcode != R_NONE) {
+		if (o->rm != R_NONE) {
 			ot = t0;
 			code = OREG;
 			break;
@@ -300,6 +298,7 @@ struct Oper *expression(struct Pser *p) {
 		code = OREL;
 		o->sz = DWORD;
 		break;
+	case 
 	default:
 		eep(t0, ERR_WRONG_TOKEN);
 	};
@@ -440,7 +439,7 @@ struct Inst *get_inst(struct Pser *p) {
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
-		if (cont_str(cv, TWO_OPS_STRS, sizeofarr(TWO_OPS_STRS)))
+		if (cont_str(cv, TWO_OPS_STRS, lenofarr(TWO_OPS_STRS)))
 			code = two_ops_i(p, os);
 		else if (sc(cv, STR_SCAL))
 			code = no_ops_inst(p, ISYSCALL);

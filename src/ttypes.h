@@ -12,10 +12,12 @@ enum TCode {
 	SEMI,	// ;
 	COLO,	// :
 	COM,	// comment
-	SLASH,	// \_
+	SLASH,	// \ slash
 	COMMA,	// ,
 	SEP,	// // separator
-	EF,
+	PAR_L,	// (
+	PAR_R,	// )
+	EF,		// end file
 	// LITERALS
 	INT,  // int literal
 	REAL, // float literal
@@ -26,12 +28,12 @@ enum TCode {
 	EQU,	// =
 	PLUS,	// +
 	MINUS,	// -
-	IMUL,	// *
+	MUL,	// *
 	DIV,	// /
 	EQUE,	// ==
 	PLUSE,	// +=
 	MINUSE, // -=
-	IMULE,	// *=
+	MULE,	// *=
 	DIVE,	// /=
 	SHLE,	// //=
 	SHRE,	// \\=
