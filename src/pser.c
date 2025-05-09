@@ -253,6 +253,9 @@ char *WRONG_BASE = "Неверная основа, ожидался регист
 char *WRONG_ADDR_REG_SZ =
 	"Неверный размер регистра в выражении операнда, адресными регистрами могут "
 	"быть только 32-х или 64-х битные регистры";
+// МИО - Множитель Индекс Основа
+char *FORBIDDEN_RSP_INDEX =
+	"Регистр рсп или есп запрещены в качестве индекса в МИО байте";
 
 void set_disp_to_op(struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
@@ -289,12 +292,14 @@ void set_scale_to_op(struct Oper *o, struct Oper *s) {
 void set_index_to_op(struct Oper *o, struct Oper *i) {
 	if (!(i->code == OREG))
 		eep(i->t, WRONG_INDEX);
+	if (is_rsp_addr(i))
+		eep(i->t, FORBIDDEN_RSP_INDEX);
 	o->index = i->rm;
 	free(i);
 }
 
 struct Oper *expression(struct Pser *p) {
-	struct Oper *o = malloc(sizeof(struct Oper)), *otmp;
+	struct Oper *o = malloc(sizeof(struct Oper)), *otmp, *otmp2;
 	o->disp_is_rel_flag = 0;
 	o->disp = 0;
 	o->scale = SCALE_1;
@@ -399,26 +404,26 @@ struct Oper *expression(struct Pser *p) {
 
 		otmp = plist_get(sib, 0);
 		if (sib->size == 1) {
-			if (otmp->code == OREL || otmp->code == OREG) {
+			if (otmp->code == OREL || otmp->code == OINT) {
 				// disp
 				set_disp_to_op(o, otmp); // changes mod
-				// REMEMBER: mod = 00, rm = 101 ==
+				// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
 				o->mod = MOD_MEM;
 				o->rm = R_RBP;
-				// [RIP+disp32]
 			} else if (otmp->code == OREG) {
 				// reg
-				if (otmp->rm == R_RSP || otmp->rm == R_ESP) {
+				if (is_rsp_addr(otmp)) {
 					// REMEMBER: only R_RSI as SIB flag, esp is not allowed
 					// mod = 00, rm = 100, base = 100, index = 100
 					o->rm = R_RSP;
 					o->base = otmp->rm;
 					o->index = R_RSP;
-				} else if (otmp->rm == R_RBP || otmp->rm == R_EBP) {
+				} else if (is_rbp_addr(otmp)) {
 					o->rm = otmp->rm;
 					o->mod = MOD_MEM_D8;
 				} else
 					o->rm = otmp->rm;
+				free(otmp);
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
@@ -435,9 +440,22 @@ struct Oper *expression(struct Pser *p) {
 				// REMEMBER: do disp 32 although mod is 00
 				// a 32-bit displacement
 			} else if (otmp->code == OREG) {
-				// reg reg
-				// reg disp
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				otmp2 = plist_get(sib, 1);
+				if (otmp2->code == OREG) {
+					// reg(base) reg(index) | sib
+					
+				} else if (otmp2->code == OREL || otmp2->code == OINT) {
+					// reg(rm) disp         | not sib
+					if (is_rsp_addr(otmp)) {
+						o->rm = R_RSP; // sib
+						o->index = R_RSP;
+						o->base = otmp->rm;
+					} else
+						o->rm = otmp->rm;
+					set_disp_to_op(o, otmp2); // changes mod to non 00
+					free(otmp);
+				} else
+					eep(t0, POSSIBLE_WRONG_ORDER);
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 

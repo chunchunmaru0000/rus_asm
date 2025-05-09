@@ -204,3 +204,5 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))
 #define is_r32(o) ((o)->code == OREG && ((o)->rm >= R_EAX && (o)->rm <= R_R15D))
 #define is_r64(o) ((o)->code == OREG && ((o)->rm >= R_RAX && (o)->rm <= R_R15))
+#define is_rsp_addr(o) ((o)->code == OREG && ((o)->rm == R_RSP || (o)->rm == R_ESP))
+#define is_rbp_addr(o) ((o)->code == OREG && ((o)->rm == R_RBP || (o)->rm == R_EBP))
