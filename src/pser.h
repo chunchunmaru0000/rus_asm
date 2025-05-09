@@ -8,6 +8,10 @@
 #define SCALE_2 0b01
 #define SCALE_4 0b10
 #define SCALE_8 0b11
+#define MOD_MEM 0b00
+#define MOD_MEM_D8 0b01
+#define MOD_MEM_D32 0b10
+#define MOD_REG 0b11
 
 uc sc(char *, const char *);
 
@@ -173,7 +177,8 @@ struct Oper { // operand
 	uc scale; // 1 2 4 8
 	// ---displacement---
 	uc disp_is_rel_flag; // if 0 then use disp else view of *rel
-	uc disp_sz; // 0 8 32 - gives disp sz for mod in ModR/M
+	uc disp_sz;			 // 0 8 32 - gives disp sz for mod in ModR/M
+	uc mod;
 	char *rel_view;
 	int disp; // displacement
 

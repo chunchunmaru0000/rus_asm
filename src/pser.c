@@ -180,6 +180,7 @@ int search_reg(char *v, const int regs_len, const struct Reg regs[],
 		if (sc(v, regs[i].v)) {
 			o->rm = regs[i].c;
 			o->sz = sz;
+			o->mod = MOD_REG;
 			return 1;
 		}
 	return 0;
@@ -246,6 +247,7 @@ char *WRONG_DISP = "Неверное смещение, ожидалось чис
 char *WRONG_SCALE =
 	"Неверный множитель, ожидалось число(0, 2, 4, 8) или его отсутствие";
 char *WRONG_INDEX = "Неверный индекс, ожидался регистр";
+char *WRONG_RM = "Неверное выражение, ожидался регистр";
 
 void set_disp_to_op(struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
@@ -290,7 +292,8 @@ struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp;
 	o->disp_is_rel_flag = 0;
 	o->disp_sz = 0;
-	o->scale = 1;
+	o->disp = 0;
+	o->scale = SCALE_1;
 	o->index = R_NONE;
 	o->base = R_NONE;
 	o->rm = R_NONE;
@@ -381,8 +384,14 @@ struct Oper *expression(struct Pser *p) {
 			if (otmp->code == OREL || otmp->code == OREG) {
 				// disp
 				set_disp_to_op(o, otmp);
+				o->rm = R_RBP;
+				o->mod = MOD_MEM;
+				// REMEMBER:
+				// mod = 00, rm = 101 == [RIP+disp32]
 			} else if (otmp->code == OREG) {
 				// reg
+				o->rm = otmp->rm;
+				o->mod = MOD_REG;
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
@@ -392,8 +401,11 @@ struct Oper *expression(struct Pser *p) {
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
 				set_index_to_op(o, otmp);
-				o->base = R_RBP; // disp = 0, base = 101 == no base
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				o->base = R_RBP;
+				o->rm = R_RSP; // sib
+				o->mod = MOD_MEM;
+				// REMEMBER:
+				// mod = 00, rm = 100, base = 101 == no base
 			} else if (otmp->code == OREG) {
 				// reg reg
 				// reg disp
