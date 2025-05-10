@@ -151,27 +151,6 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 	g->elfh = new_elfh(g, 0, 0x40, g->phs->size, 0x00, g->shs->size);
 }
 
-void *alloc_len(uint32_t len, uint32_t *buf_len) {
-	*buf_len = len;
-	return malloc(len);
-}
-
-void alloc_cpy(void **buf, uint32_t *buf_len, uint32_t alc_len, void *data) {
-	*buf = alloc_len(alc_len, buf_len);
-	memcpy(*buf, data, alc_len);
-}
-
-void alloc_cpy_int(void **buf, uint32_t *buf_len, uint32_t alc_len,
-				   uint64_t data) {
-	*buf = alloc_len(alc_len, buf_len);
-	memcpy(*buf, &data, alc_len);
-}
-
-void cpy_len(uc *buf, long value, int len) {
-	long tmp = value;
-	memcpy(buf, &tmp, len);
-}
-
 const char *UNKNOWN_LABEL = "Неизвестная метка [%s]";
 struct Plov *find_label(struct Gner *g, char *s) {
 	struct Plov *l;
@@ -236,11 +215,6 @@ uint64_t reg2reg(enum RegCode l, enum RegCode r, int size) {
 	return v;
 }
 
-uc get_REX(struct Oper *l, struct Oper *r) {
-	uc res = 0x00;
-	return res;
-}
-
 #define is_reg(o) ((o)->code == OREG)
 #define is_mem(o) ((o)->code == OMEM)
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN)
@@ -303,9 +277,7 @@ int is_rm_r(enum OpsCode c) {
 // - prefix 66 is used with all 16 bit ops like add ax, bx or
 //		add word [rax], 255
 // - prefix REX are prefixes
-enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
-	*prf = 0;
-	*prf_len = 0;
+enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 	struct Oper *l, *r; //, *t, *f;
 	enum OpsCode code = OPC_INVALID;
 	uc rex;
@@ -378,19 +350,14 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 				rex |= REX_R;
 			if (is_64(l) || is_64(r))
 				rex |= REX_W;
-			*prf_len++;
-			*prf = (*prf << 8) + rex;
+			blist_add(cmd, rex);
 		}
 		// 66 16-bit Operand-size OVERRIRE prefix
-		if (!is_seg(l) && is_16(l)) {
-			*prf_len++;
-			*prf = (*prf << 8) + 0x66;
-		}
+		if (!is_seg(l) && is_16(l))
+			blist_add(cmd, 0x66);
 		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-		if (is_mem(l) && is_r32(l)) {
-			*prf_len++;
-			*prf = (*prf << 8) + 0x67;
-		}
+		if (is_mem(l) && is_r32(l))
+			blist_add(cmd, 0x67);
 		// here for example in mov word[r8d], 255
 		// rex for r8d
 		// 16-bit mem override
@@ -468,19 +435,14 @@ enum OpsCode get_ops_code(struct Inst *in, uint64_t *prf, uint32_t *prf_len) {
 				rex |= REX_R;
 			if (is_64(l) || is_64(r))
 				rex |= REX_W;
-			*prf_len++;
-			*prf = (*prf << 8) + rex;
+			blist_add(cmd, rex);
 		}
 		// 66 16-bit Operand-size OVERRIRE prefix
-		if (!is_seg(l) && is_16(l)) {
-			*prf_len++;
-			*prf = (*prf << 8) + 0x66;
-		}
+		if (!is_seg(l) && is_16(l))
+			blist_add(cmd, 0x66);
 		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-		if (is_mem(l) && is_r32(l)) {
-			*prf_len++;
-			*prf = (*prf << 8) + 0x67;
-		}
+		if (is_mem(l) && is_r32(l))
+			blist_add(cmd, 0x67);
 		break;
 	default:
 		eeg("нет пока а вот", in);
@@ -519,8 +481,7 @@ void get_prefs(uint64_t *prf, uint32_t *prf_len) {
 	// mov word[r8d], 255 -> 67 6641 c700 ff00
 }
 
-void get_cmd(enum OpsCode opsCode, struct Inst *in, uint64_t *cmd,
-			 uint32_t *cmd_len) {
+void get_cmd(enum OpsCode opsCode, struct Inst *in, struct BList *cmd) {
 	// first do registers encoding
 	// then do cmd op code
 	switch (opsCode) {
@@ -529,22 +490,14 @@ void get_cmd(enum OpsCode opsCode, struct Inst *in, uint64_t *cmd,
 	}
 }
 
-void get_data(enum OpsCode opsCode, struct Inst *in, uint64_t *data,
-			  uint32_t *data_len) {
-	switch (opsCode) {
-	default:
-		*data = 0;
-		*data_len = 0;
-	}
+void get_data(enum OpsCode opsCode, struct Inst *in, struct BList *data) {
+	switch (opsCode) { default:; }
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
-	uc *ibuff;
-	void **ibufp = (void **)&ibuff;
-	uint64_t cmd, data, prf;
-	uint32_t cmd_len, data_len, prf_len, buf_len, *blp = &buf_len;
-	// long buf_len, *blp = &buf_len; // buf len ptr
+	struct BList *cmd = new_blist(16), *data = new_blist(8);
+	uint64_t some_value = 0, vlen = 0;
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	enum OpsCode opsCode;
@@ -563,26 +516,23 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
 		g->pos = i;
-		buf_len = 0;
 		code = in->code;
+		blist_clear(cmd);
+		blist_clear(data);
 
 		if (code == IADD) {
-			opsCode = get_ops_code(in, &prf, &prf_len);
+			opsCode = get_ops_code(in, cmd); // sets prefs to cmd
+			get_cmd(opsCode, in, cmd);
+			get_data(opsCode, in, data);
 
-			// get_prefs(opsCode, &prf, &prf_len);
-			get_cmd(opsCode, in, &cmd, &cmd_len);
-			get_data(opsCode, in, &data, &data_len);
+			if (cmd->size + data->size) {
+				blat(g->text, cmd->st, cmd->size);
+				blat(g->text, data->st, data->size);
 
-			ibuff = alloc_len(prf_len + cmd_len + data_len, blp);
+				phs_cur_sz += cmd->size + data->size;
 
-			cpy_len(ibuff, prf, prf_len);
-			cpy_len(ibuff + prf_len, cmd, cmd_len);
-			cpy_len(ibuff + prf_len + cmd_len, data, data_len);
-
-			if (buf_len) {
-				blat(g->text, ibuff, buf_len);
-				phs_cur_sz += buf_len;
-				free(ibuff);
+				blist_clear(cmd);
+				blist_clear(data);
 			}
 			continue;
 		} else if (code == IMOV) {
@@ -594,11 +544,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				case OREG:
 					if (ol->sz != or->sz)
 						eeg(REGS_SIZES_NOT_MATCH, in);
-					cmd = reg2reg(ol->rm, or->rm, ol->sz);
+					some_value = reg2reg(ol->rm, or->rm, ol->sz);
 					switch (ol->sz) {
 					case QWORD:
-						cmd_len = 3;
-						cmd = (cmd << 16) + 0xc08948;
+						vlen = 3;
+						some_value = (some_value << 16) + 0xc08948;
 						break;
 					case DWORD:
 						break;
@@ -607,76 +557,82 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					case BYTE:
 						break;
 					}
-					ibuff = alloc_len(cmd_len, blp);
-					cpy_len(ibuff, cmd, cmd_len);
+					blat(cmd, (uc *)&some_value, vlen);
 					break;
 				case OINT:
 				case OFPN:
 				case OREL:
 					if (or->sz == DWORD) {
 						if (ol->rm >= R_EAX && ol->rm <= R_EDI) {
-							cmd_len = 1;
-							cmd = 0xb8 + ol->rm - R_EAX;
+							vlen = 1;
+							some_value = 0xb8 + ol->rm - R_EAX;
 						} else if (ol->rm >= R_R8D && ol->rm <= R_R15D) {
-							cmd_len = 2;
-							cmd = ((0xb8 + ol->rm - R_R8D) << 8) + 0x41;
+							vlen = 2;
+							some_value = ((0xb8 + ol->rm - R_R8D) << 8) + 0x41;
 						} else if (ol->rm >= R_RAX && ol->rm <= R_RDI) {
-							cmd_len = 3;
-							cmd = ((0xc0 + ol->rm - R_RAX) << 16) + 0xc748;
+							vlen = 3;
+							some_value =
+								((0xc0 + ol->rm - R_RAX) << 16) + 0xc748;
 						} else if (ol->rm >= R_R8 && ol->rm <= R_R15) {
-							cmd_len = 3;
-							cmd = ((0xc0 + ol->rm - R_R8) << 16) + 0xc749;
+							vlen = 3;
+							some_value =
+								((0xc0 + ol->rm - R_R8) << 16) + 0xc749;
 						} else
 							eeg(WRONG_FST_OPER_REG_DWORD, in);
 					} else if (or->sz == QWORD) {
 						if (ol->rm >= R_RAX && ol->rm <= R_RDI) {
-							cmd_len = 2;
-							cmd = ((0xb8 + ol->rm - R_RAX) << 8) + 0x48;
+							vlen = 2;
+							some_value = ((0xb8 + ol->rm - R_RAX) << 8) + 0x48;
 						} else if (ol->rm >= R_R8 && ol->rm <= R_R15) {
-							cmd_len = 2;
-							cmd = ((0xb8 + ol->rm - R_R8) << 8) + 0x49;
+							vlen = 2;
+							some_value = ((0xb8 + ol->rm - R_R8) << 8) + 0x49;
 						} else
 							eeg(WRONG_FST_OPER_REG_QWORD, in);
 					} else
 						eeg(WRONG_SND_OPER_SIZE, in);
 
+					blat(cmd, (uc *)&some_value, vlen);
+
 					tok = or->t;
 					if (or->code == OINT)
-						data = tok->number;
+						blat(data, (uc *)&tok->number, or->sz);
 					else if (or->code == OFPN) {
-						if (or->sz == 4)
-							data = (float)tok->fpn;
-						else if (or->sz == 8)
-							data = tok->fpn;
+						if (or->sz == DWORD) {
+							float tmp_real = (float)tok->fpn;
+							blat(data, (uc *)&tmp_real, DWORD);
+						} else if (or->sz == QWORD)
+							blat(data, (uc *)&tok->fpn, QWORD);
 						else
 							eeg(WRONG_FPN_OP_SIZE, in);
 					} else {
-						data = 0x766f6d6c;
+						some_value = 0x766f6d6c;
+						blat(data, (uc *)&some_value, or->sz);
+
 						l = find_label(g, tok->view);
-						usage = new_usage((uint64_t)(g->text->size) + cmd_len,
+						usage = new_usage((uint64_t)(g->text->size) + cmd->size,
 										  ADDR);
 						plist_add(l->us, usage);
 					}
-
-					ibuff = alloc_len(cmd_len + or->sz, blp);
-					cpy_len(ibuff, cmd, cmd_len);
-					cpy_len(ibuff + cmd_len, data, or->sz);
 					break;
 				default:
 					if (g->debug)
-						printf("or->code = %d\t", or->code);
+						printf("прав код = %d\t", or->code);
 					eeg(WRONG_SND_OPER, in);
 				}
 				break;
 			default:
 				if (g->debug)
-					printf("ol->code = %d\t", ol->code);
+					printf("лев  код = %d\t", ol->code);
 				eeg(WRONG_FST_OPER, in);
 			}
-			if (buf_len) {
-				blat(g->text, ibuff, buf_len);
-				phs_cur_sz += buf_len;
-				free(ibuff);
+			if (cmd->size + data->size) {
+				blat(g->text, cmd->st, cmd->size);
+				blat(g->text, data->st, data->size);
+
+				phs_cur_sz += cmd->size + data->size;
+
+				blist_clear(cmd);
+				blist_clear(data);
 			}
 			continue;
 		}
@@ -684,29 +640,22 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		switch (code) {
 		//  TODO: near jmp
 		case IJMP:
-			data = 0;
 			ol = plist_get(in->os, 0);
 			//  TODO: jmp for qword
 			if (ol->sz == DWORD) {
-				cmd = 0xe9;
-				cmd_len = 1;
+				blist_add(cmd, 0xe9);
 
 				if (ol->code == OREL) {
 					l = find_label(g, ol->t->view);
 					// text size + 1 is place in text to where need to put rel
-					usage = new_usage((uint64_t)(g->text->size) + 1, REL_ADDR);
+					usage = new_usage((uint64_t)(g->text->size) + cmd->size,
+									  REL_ADDR);
 					plist_add(l->us, usage);
-					data = 0x706d6a;
+
+					some_value = 0x706d6a;
+					blat(cmd, (uc *)&some_value, DWORD);
 				} else if (ol->code == OINT)
-					data = ol->t->number;
-				else if (ol->code == OFPN) {
-					if (or->sz == 4)
-						data = (float)ol->t->fpn;
-					else if (ol->sz == 8)
-						data = ol->t->fpn;
-					else
-						eeg(WRONG_FPN_OP_SIZE, in);
-				}
+					blat(data, (uc *)&ol->t->number, DWORD);
 				//  TODO: jmp for reg
 				else {
 					if (g->debug)
@@ -714,10 +663,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					eeg(WRONG_FST_OPER, in);
 				}
 			}
-			// TODO: macro oper cmd cmd_len data &ibuff blp
-			ibuff = alloc_len(cmd_len + ol->sz, blp);
-			cpy_len(ibuff, cmd, cmd_len);
-			cpy_len(ibuff + cmd_len, data, ol->sz);
 			break;
 		case ILABEL:
 			tok = plist_get(in->os, 0);
@@ -731,7 +676,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			break;
 		case IDATA:
 			data_bl = plist_get(in->os, 0);
-			alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
+			blat(data, data_bl->st, data_bl->size);
 			break;
 		case ILET:
 			tok = plist_get(in->os, 0);
@@ -746,13 +691,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
 
 			data_bl = plist_get(in->os, 1);
-			alloc_cpy(ibufp, blp, data_bl->size, data_bl->st);
+			blat(data, data_bl->st, data_bl->size);
 			break;
 		case ISYSCALL:
-			alloc_cpy(ibufp, blp, 2, (void *)MLESYSCALL);
+			blat(cmd, (uc *)MLESYSCALL, 2);
 			break;
 		case INOP:
-			alloc_cpy_int(ibufp, blp, 1, 0x90);
+			blist_add(cmd, 0x90);
 			break;
 		case ISEGMENT:
 			if (phs_counter == 0)
@@ -801,10 +746,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			//	default:
 			//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
-		if (buf_len) {
-			phs_cur_sz += buf_len;
-			blat(g->text, ibuff, buf_len);
-			free(ibuff);
+		if (cmd->size + data->size) {
+			blat(g->text, cmd->st, cmd->size);
+			blat(g->text, data->st, data->size);
+
+			phs_cur_sz += cmd->size + data->size;
+
+			blist_clear(cmd);
+			blist_clear(data);
+			// phs_cur_sz += buf_len;
+			// blat(g->text, ibuff, buf_len);
+			// free(ibuff);
 		}
 	}
 

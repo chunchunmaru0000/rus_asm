@@ -63,12 +63,22 @@ uc blist_set(struct BList *l, long i, uc p) {
 
 // Byte List Add Times
 void blat(struct BList *l, uc *s, long t) {
-//	for (long i = 0; i < t; i++)
-//		blist_add(l, s[i]);
+	//	for (long i = 0; i < t; i++)
+	//		blist_add(l, s[i]);
+	if (t <= 0)
+		return;
 	if (l->cap < l->size + t) {
 		l->cap += t;
 		l->st = realloc(l->st, l->cap * sizeof(uc));
 	}
 	memcpy(l->st + l->size, s, t);
 	l->size += t;
+}
+
+void blist_clear(struct BList *l) {
+	if (l->cap != l->cap_pace) {
+		l->cap = l->cap_pace;
+		l->st = realloc(l->st, l->cap_pace * sizeof(uc));
+	}
+	l->size = 0;
 }
