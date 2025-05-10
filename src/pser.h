@@ -171,6 +171,7 @@ struct Oper { // operand
 	struct Token *t;
 	uc sz;
 	enum RegCode rm; // OMEM and rsp then does SIB, mod 00 and rbp does rel
+	uc mem_sz;		 // size of regs in addr 32 or 64, 32 means 0x67 flag
 	// ---SIB---
 	enum RegCode base;
 	enum RegCode index;
@@ -221,3 +222,21 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)
 #define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
 #define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)
+
+#define is_reg(o) ((o)->code == OREG)
+#define is_mem(o) ((o)->code == OMEM)
+#define is_imm(o) ((o)->code == OINT || (o)->code == OFPN || (o)->code == OREL)
+#define is_seg(o) ((o)->code == OSREG)
+#define is_8(o) ((o)->sz == BYTE)
+#define is_16(o) ((o)->sz == WORD)
+#define is_32(o) ((o)->sz == DWORD)
+#define is_64(o) ((o)->sz == QWORD)
+#define is_al(o) ((o)->code = OREG && (o)->rm == R_AL)
+#define is_rA(o)                                                               \
+	((o)->code =                                                               \
+		 OREG && ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
+#define is_rm(o) (is_reg((o)) || is_mem((o)))
+#define is_moffs(o) ((o)->code == OMOFFS)
+// opcode reg field, meaningless name
+#define is_sib(o) ((o)->rm == R_RSI)
+#define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == 32)

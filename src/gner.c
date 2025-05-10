@@ -215,22 +215,6 @@ uint64_t reg2reg(enum RegCode l, enum RegCode r, int size) {
 	return v;
 }
 
-#define is_reg(o) ((o)->code == OREG)
-#define is_mem(o) ((o)->code == OMEM)
-#define is_imm(o) ((o)->code == OINT || (o)->code == OFPN)
-#define is_seg(o) ((o)->code == OSREG)
-#define is_8(o) ((o)->sz == BYTE)
-#define is_16(o) ((o)->sz == WORD)
-#define is_32(o) ((o)->sz == DWORD)
-#define is_64(o) ((o)->sz == QWORD)
-#define is_al(o) ((o)->code = OREG && (o)->rm == R_AL)
-#define is_rA(o)                                                               \
-	((o)->code =                                                               \
-		 OREG && ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
-#define is_rm(o) (is_reg((o)) || is_mem((o)))
-#define is_moffs(o) ((o)->code == OMOFFS)
-// opcode reg field, meaningless name
-#define is_sib(o) ((o)->rm == R_RSI)
 // 	OPC_INVALID,
 
 // 	AL__IMM_8,
@@ -325,12 +309,15 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 			else
 				code = RM_16_32_64__IMM_16_32;
 		}
-		// PREFIXES ASSIGN goes in the reverse order
-		// because of little endian
-
 		// {lock} fs repne scas word [edi] ->
 		// 		{f0} [64 fs][f2 scas] [67 is_r32(r)][66 is_16(r)] af
 		// mov word[r8d], 255 -> 67 6641 c700 ff00
+		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
+		if (is_mem32(l) || is_mem32(r))
+			blist_add(cmd, 0x67);
+		// 66 16-bit Operand-size OVERRIRE prefix
+		if (!is_seg(l) && is_16(l))
+			blist_add(cmd, 0x66);
 
 		// !mem cuz flag 67 is needed for Address-size OVERRIRE
 		// cuz its common to use 64 addresation on 64x
@@ -352,12 +339,6 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 				rex |= REX_W;
 			blist_add(cmd, rex);
 		}
-		// 66 16-bit Operand-size OVERRIRE prefix
-		if (!is_seg(l) && is_16(l))
-			blist_add(cmd, 0x66);
-		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-		if (is_mem(l) && is_r32(l))
-			blist_add(cmd, 0x67);
 		// here for example in mov word[r8d], 255
 		// rex for r8d
 		// 16-bit mem override
@@ -424,25 +405,6 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 					code = RM_16_32_64__IMM_16_32;
 			}
 		}
-
-		if (is_64(l) || is_r_new(l) || is_r_new(r)) {
-			rex = 0b01000000;
-			if (is_r_new(l))
-				rex |= REX_B;
-			if (0) // TODO: this
-				rex |= REX_X;
-			if (is_r_new(r))
-				rex |= REX_R;
-			if (is_64(l) || is_64(r))
-				rex |= REX_W;
-			blist_add(cmd, rex);
-		}
-		// 66 16-bit Operand-size OVERRIRE prefix
-		if (!is_seg(l) && is_16(l))
-			blist_add(cmd, 0x66);
-		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-		if (is_mem(l) && is_r32(l))
-			blist_add(cmd, 0x67);
 		break;
 	default:
 		eeg("нет пока а вот", in);

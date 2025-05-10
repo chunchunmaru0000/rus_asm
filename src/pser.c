@@ -27,7 +27,9 @@ int get_reg_field(enum RegCode rm) {
 }
 
 void print_oper(struct Oper *o) {
-	printf("[o code:%d][view:%s][rm:%d][base:%d][scale:%d][index:%d][disp:%d][mod:%d]\n",
+	printf("[o "
+		   "code:%d][view:%s][rm:%d][base:%d][scale:%d][index:%d][disp:%d][mod:"
+		   "%d]\n",
 		   o->code, o->t->view, get_reg_field(o->rm), get_reg_field(o->base),
 		   1 << o->scale, get_reg_field(o->index), o->disp, o->mod);
 }
@@ -277,6 +279,8 @@ char *WRONG_ADDR_REG_SZ =
 // МИО - Множитель Индекс Основа
 char *FORBIDDEN_RSP_INDEX =
 	"Регистр рсп или есп запрещены в качестве индекса в МИО байте";
+char *DISSERENT_SIZE_REGS = "Регистры адресанта не могут быть разных размеров, "
+							"только или все 64 бит или 32 бит";
 
 void set_disp_to_op(struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
@@ -332,6 +336,7 @@ struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp, *otmp2;
 	o->disp_is_rel_flag = 0;
 	o->disp = 0;
+	o->mem_sz = 0;
 	o->mod = MOD_REG;
 	o->scale = SCALE_1;
 	o->index = R_NONE;
@@ -421,6 +426,18 @@ struct Oper *expression(struct Pser *p) {
 				eep(otmp->t, WRONG_ADDRES_OP);
 			if (is_r8(otmp) || is_r16(otmp))
 				eep(otmp->t, WRONG_ADDR_REG_SZ);
+			if (otmp->code == OREG) {
+				if (o->mem_sz) {
+					if ((is_f_reg64(otmp->rm) && o->mem_sz == 32) ||
+						(is_f_reg32(otmp->rm) && o->mem_sz == 64))
+						eep(otmp->t, DISSERENT_SIZE_REGS);
+				} else {
+					if (is_f_reg32(otmp->rm))
+						o->mem_sz = 32;
+					else
+						o->mem_sz = 64;
+				}
+			}
 			plist_add(sib, otmp);
 			t0 = gettp(p, 0);
 		} while (t0->code != PAR_R);
@@ -538,7 +555,7 @@ struct Oper *expression(struct Pser *p) {
 	o->code = code;
 	o->t = ot;
 	plist_free(sib);
-	//print_oper(o);
+	// print_oper(o);
 	return o;
 }
 
