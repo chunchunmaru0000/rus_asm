@@ -464,17 +464,33 @@ struct Oper *expression(struct Pser *p) {
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (sib->size == 3) {
+			o->rm = R_RSP; // sib
+
 			if (otmp->code == OREG) {
-				// reg(base) sc reg(index)
-				// reg(base) reg(index) disp
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				// set base
+				if (is_rbp_addr(otmp))
+					o->mod = MOD_MEM_D8;
+				o->base = otmp->rm;
+
+				otmp2 = plist_get(sib, 1);
+				if (otmp2->code == OREG) {
+					// reg(base) reg(index) disp | sib
+					set_index_to_op(o, otmp2);
+					otmp2 = plist_get(sib, 2);
+					set_disp_to_op(o, otmp2); // changes mod to non 00
+				} else if (otmp2->code == OINT) {
+					// reg(base) sc reg(index)   | sib
+					set_scale_to_op(o, otmp2);
+					otmp2 = plist_get(sib, 2);
+					set_index_to_op(o, otmp2);
+				} else
+					eep(t0, POSSIBLE_WRONG_ORDER);
 			} else if (OINT) {
-				// sc reg(index) disp
+				// sc reg(index) disp            | sib
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
 				set_index_to_op(o, otmp);
 				// mod = 00, rm = 100, base = 101 no base register and disp32
-				o->rm = R_RSP; // sib
 				o->base = R_RBP;
 				otmp = plist_get(sib, 2);
 				// REMEMBER: here too need to write disp32
