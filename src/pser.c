@@ -297,6 +297,15 @@ void set_index_to_op(struct Oper *o, struct Oper *i) {
 	o->index = i->rm;
 	free(i);
 }
+void set_base_to_op(struct Oper *o, struct Oper *b) {
+	if (b->code != OREG)
+		eep(b->t, WRONG_BASE);
+	o->rm = R_RSP; // sib
+	if (is_rbp_addr(b))
+		o->mod = MOD_MEM_D8;
+	o->base = b->rm;
+	free(b);
+}
 
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp, *otmp2;
@@ -431,8 +440,7 @@ struct Oper *expression(struct Pser *p) {
 			if (otmp->code == OINT) {
 				// sc reg(index)
 				set_scale_to_op(o, otmp);
-				otmp = plist_get(sib, 1);
-				set_index_to_op(o, otmp);
+				set_index_to_op(o, plist_get(sib, 1));
 				// mod = 00, rm = 100, base = 101 ==
 				o->rm = R_RSP; // sib
 				// no base register and
@@ -443,10 +451,7 @@ struct Oper *expression(struct Pser *p) {
 				otmp2 = plist_get(sib, 1);
 				if (otmp2->code == OREG) {
 					// reg(base) reg(index) | sib
-					if (is_rbp_addr(otmp))
-						o->mod = MOD_MEM_D8;
-					o->rm = R_RSP; // sib
-					o->base = otmp->rm;
+					set_base_to_op(o, otmp);
 					set_index_to_op(o, otmp2);
 				} else if (otmp2->code == OREL || otmp2->code == OINT) {
 					// reg(rm) disp         | not sib
@@ -464,13 +469,8 @@ struct Oper *expression(struct Pser *p) {
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (sib->size == 3) {
-			o->rm = R_RSP; // sib
-
 			if (otmp->code == OREG) {
-				// set base
-				if (is_rbp_addr(otmp))
-					o->mod = MOD_MEM_D8;
-				o->base = otmp->rm;
+				set_base_to_op(o, otmp); // sets sib
 
 				otmp2 = plist_get(sib, 1);
 				if (otmp2->code == OREG) {
@@ -486,6 +486,7 @@ struct Oper *expression(struct Pser *p) {
 				} else
 					eep(t0, POSSIBLE_WRONG_ORDER);
 			} else if (OINT) {
+				o->rm = R_RSP; // sib
 				// sc reg(index) disp            | sib
 				set_scale_to_op(o, otmp);
 				otmp = plist_get(sib, 1);
@@ -500,8 +501,11 @@ struct Oper *expression(struct Pser *p) {
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (otmp->code == OREG) { // size is 4
-			// reg(base) sc reg(index) disp
-			eep(t0, POSSIBLE_WRONG_ORDER);
+			// reg(base) sc reg(index) disp | sib
+			set_base_to_op(o, otmp); // sets sib
+			set_scale_to_op(o, plist_get(sib, 1));
+			set_index_to_op(o, plist_get(sib, 2));
+			set_disp_to_op(o, plist_get(sib, 3)); // changes mod
 		} else
 			eep(t0, POSSIBLE_WRONG_ORDER);
 		break;
