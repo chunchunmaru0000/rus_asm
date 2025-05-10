@@ -256,11 +256,6 @@ uc get_REX(struct Oper *l, struct Oper *r) {
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
-#define is_r_new(o)                                                            \
-	((o)->code == OREG && (((o)->rm >= R_R8 && (o)->rm <= R_R15) ||            \
-						   ((o)->rm >= R_R8D && (o)->rm <= R_R15D) ||          \
-						   ((o)->rm >= R_R8W && (o)->rm <= R_R15W) ||          \
-						   ((o)->rm >= R_R8B && (o)->rm <= R_R15B)))
 #define is_sib(o) ((o)->rm == R_RSI)
 // 	OPC_INVALID,
 

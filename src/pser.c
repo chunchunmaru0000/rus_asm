@@ -11,6 +11,27 @@ void eep(struct Token *t, char *msg) { // error exit
 	exit(1);
 }
 
+int get_reg_field(enum RegCode rm) {
+	int f = -1;
+	if (is_f_reg8(rm))
+		f = rm - R_AH;
+	else if (is_f_reg16(rm))
+		f = rm - R_AX;
+	else if (is_f_reg32(rm))
+		f = rm - R_EAX;
+	else if (is_f_reg64(rm))
+		f = rm - R_RAX;
+	if (f > 0b111)
+		f -= 0b1000;
+	return f;
+}
+
+void print_oper(struct Oper *o) {
+	printf("[o code:%d][view:%s][rm:%d][base:%d][scale:%d][index:%d][disp:%d][mod:%d]\n",
+		   o->code, o->t->view, get_reg_field(o->rm), get_reg_field(o->base),
+		   1 << o->scale, get_reg_field(o->index), o->disp, o->mod);
+}
+
 struct Pser *new_pser(char *filename, uc debug) {
 	fn = filename;
 	struct Pser *p = malloc(sizeof(struct Pser));
@@ -260,7 +281,7 @@ char *FORBIDDEN_RSP_INDEX =
 void set_disp_to_op(struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
 		int disp = d->t->number;
-		if (disp < 128 || disp > 127)
+		if (disp < -128 || disp > 127)
 			o->mod = MOD_MEM_D32;
 		else
 			o->mod = MOD_MEM_D8;
@@ -311,6 +332,7 @@ struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp, *otmp2;
 	o->disp_is_rel_flag = 0;
 	o->disp = 0;
+	o->mod = MOD_REG;
 	o->scale = SCALE_1;
 	o->index = R_NONE;
 	o->base = R_NONE;
@@ -395,7 +417,7 @@ struct Oper *expression(struct Pser *p) {
 	case PAR_L:
 		do {
 			otmp = expression(p);
-			if (otmp->code != OINT || otmp->code != OREL || otmp->code != OREG)
+			if (otmp->code != OINT && otmp->code != OREL && otmp->code != OREG)
 				eep(otmp->t, WRONG_ADDRES_OP);
 			if (is_r8(otmp) || is_r16(otmp))
 				eep(otmp->t, WRONG_ADDR_REG_SZ);
@@ -461,10 +483,10 @@ struct Oper *expression(struct Pser *p) {
 						o->base = otmp->rm;
 					} else
 						o->rm = otmp->rm;
+					free(otmp);
 					set_disp_to_op(o, otmp2); // changes mod to non 00
 				} else
 					eep(t0, POSSIBLE_WRONG_ORDER);
-				free(otmp);
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
@@ -485,7 +507,7 @@ struct Oper *expression(struct Pser *p) {
 					set_index_to_op(o, otmp2);
 				} else
 					eep(t0, POSSIBLE_WRONG_ORDER);
-			} else if (OINT) {
+			} else if (otmp->code == OINT) {
 				o->rm = R_RSP; // sib
 				// sc reg(index) disp            | sib
 				set_scale_to_op(o, otmp);
@@ -516,6 +538,7 @@ struct Oper *expression(struct Pser *p) {
 	o->code = code;
 	o->t = ot;
 	plist_free(sib);
+	//print_oper(o);
 	return o;
 }
 

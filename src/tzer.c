@@ -320,7 +320,7 @@ enum TCode com_token(struct Tzer *t, struct Token *token) {
 	return COM;
 }
 
-char *stop_id = " \r\t\n\"\\;:/+-*=,";
+char *stop_id = " \r\t\n\"\\;:/+-*=,()";
 enum TCode id_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, id_len = 1;
 	next(t);
@@ -338,7 +338,7 @@ enum TCode id_token(struct Tzer *t, struct Token *token) {
 	return ID;
 }
 
-char *usable_chars = ";:\\/+-*=,";
+char *usable_chars = ";:\\/+-*=,()";
 char *white_space = " \r\t";
 struct Token *new_token(struct Tzer *t) {
 	while (char_in_str(cur(t), white_space))

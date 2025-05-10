@@ -53,12 +53,12 @@ enum RegCode {
 	R_TR,
 
 	R_AH,
-	R_AL,
 	R_CH,
-	R_CL,
 	R_DH,
-	R_DL,
 	R_BH,
+	R_AL,
+	R_CL,
+	R_DL,
 	R_BL,
 	R_R8B,
 	R_R9B,
@@ -185,6 +185,8 @@ struct Oper { // operand
 	// enum SimdCode scode;
 	// all other needed enums also
 };
+void print_oper(struct Oper *);
+int get_reg_field(enum RegCode);
 
 struct Defn {
 	char *view;
@@ -204,5 +206,18 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))
 #define is_r32(o) ((o)->code == OREG && ((o)->rm >= R_EAX && (o)->rm <= R_R15D))
 #define is_r64(o) ((o)->code == OREG && ((o)->rm >= R_RAX && (o)->rm <= R_R15))
-#define is_rsp_addr(o) ((o)->code == OREG && ((o)->rm == R_RSP || (o)->rm == R_ESP))
-#define is_rbp_addr(o) ((o)->code == OREG && ((o)->rm == R_RBP || (o)->rm == R_EBP))
+#define is_rsp_addr(o)                                                         \
+	((o)->code == OREG && ((o)->rm == R_RSP || (o)->rm == R_ESP))
+#define is_rbp_addr(o)                                                         \
+	((o)->code == OREG && ((o)->rm == R_RBP || (o)->rm == R_EBP))
+
+#define is_r_new(o)                                                            \
+	((o)->code == OREG && (((o)->rm >= R_R8 && (o)->rm <= R_R15) ||            \
+						   ((o)->rm >= R_R8D && (o)->rm <= R_R15D) ||          \
+						   ((o)->rm >= R_R8W && (o)->rm <= R_R15W) ||          \
+						   ((o)->rm >= R_R8B && (o)->rm <= R_R15B)))
+
+#define is_f_reg8(rm) ((rm) >= R_AH && (rm) <= R_R15B)
+#define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)
+#define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
+#define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)
