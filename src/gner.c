@@ -215,23 +215,6 @@ uint64_t reg2reg(enum RegCode l, enum RegCode r, int size) {
 	return v;
 }
 
-// 	OPC_INVALID,
-
-// 	AL__IMM_8,
-// 	RAX__IMM_16_32,
-//
-// 	M_16__SREG,
-// 	R_16_32_64__SREG,
-//
-// 	AL__MOFFS_8,
-// 	RAX__MOFFS_16_32_64,
-// 	MOFFS_8__AL,
-// 	MOFFS_16_32_64__RAX,
-//
-// 	R_8__IMM_8,
-// 	R_16_32_64__IMM_16_32_64,
-// 	M_8__M_8,
-// 	M_16_32_64__M_16_32_64,
 const enum OpsCode RM_L[] = {RM_8__R_8, RM_16_32_64__R_16_32_64, RM_8__IMM_8,
 							 RM_16_32_64__IMM_16_32, RM_16_32_64__IMM_8};
 const enum OpsCode RM_R[] = {R_8__RM_8, R_16_32_64__RM_16_32_64, SREG__RM_16};
@@ -248,19 +231,27 @@ int is_rm_r(enum OpsCode c) {
 	return 0;
 }
 
-#define REX_B 0b0001
-#define REX_X 0b0010
-#define REX_R 0b0100
-#define REX_W 0b1000
-
 // http://ref.x86asm.net/coder64.html
-// add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
 
+// add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
+// lock fs repne scas word [edi] -> f0 64f2 6766 af
+// mov word[r8d], 255 -> 67 6641 c700 ff00
+
+// F0 lock
+// 64 65 FS GS Segment Override
+// TODO: when do scas or other do something like FS_M_16__AX
+// F2 Repeat String Operation Prefix | Scalar Double-precision Prefix
+// F3 Repeat String Operation Prefix | Scalar Single-precision Prefix
+// 			2E 36 3E 26 Null Prefix in 64-bit Mode
+// 67 Address-size override prefix, when adress 32-bit like [eax] not [rax]
 // - prefix 67 adress prefix does give you a way of taking value from adress of
 // 		32 bit register like [r8d]
+// 66 16-bit Operand-size override prefix | Precision-size override prefix
 // - prefix 66 is used with all 16 bit ops like add ax, bx or
 //		add word [rax], 255
-// - prefix REX are prefixes
+// REX prefixes
+// TODO: VEX/EVEX prefixes
+
 enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 	struct Oper *l, *r; //, *t, *f;
 	enum OpsCode code = OPC_INVALID;
@@ -316,29 +307,22 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 		if (is_mem32(l) || is_mem32(r))
 			blist_add(cmd, 0x67);
 		// 66 16-bit Operand-size OVERRIRE prefix
+		// TODO: check if its possible for r to be 16-bit
 		if (!is_seg(l) && is_16(l))
 			blist_add(cmd, 0x66);
-
 		// !mem cuz flag 67 is needed for Address-size OVERRIRE
 		// cuz its common to use 64 addresation on 64x
 		// REX prefixes
-		if (is_64(l) || is_r_new(l) || is_r_new(r)) {
-			rex = 0b01000000;
-			if (is_r_new(l))
-				rex |= REX_B;
-			// reserved for smthng with indexer
-			// like mov rax, [rbx + r9]
-			// i dont still get it
-			if (0) // TODO: this
-				rex |= REX_X;
-			// An INDEX of ESP is forbidden
-			if ((is_rm_l(code) && is_r_new(l)) ||
-				(is_rm_r(code) && is_r_new(r)))
-				rex |= REX_R;
-			if (is_64(l) || is_64(r))
-				rex |= REX_W;
+		rex = 0b01000000;
+		if (is_64(l) || is_64(r))
+			rex |= REX_W;
+		if (is_mem(l) && l->rex)
+			rex |= l->rex;
+		else if (is_mem(r) && r->rex)
+			rex |= r->rex;
+
+		if (rex != 0b01000000)
 			blist_add(cmd, rex);
-		}
 		// here for example in mov word[r8d], 255
 		// rex for r8d
 		// 16-bit mem override
@@ -381,14 +365,7 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 		// MOFFS_16_32_64__RAX,
 		else if (is_moffs(l) && !is_8(l) && is_rA(r))
 			code = MOFFS_16_32_64__RAX;
-		// M_8__M_8,
-		// M_16_32_64__M_16_32_64,
-		else if (is_mem(l) && is_mem(r)) {
-			if (is_8(l) && is_8(r))
-				code = M_8__M_8;
-			if (!is_8(l) && !is_8(r))
-				code = M_16_32_64__M_16_32_64;
-		} else if (is_imm(r)) {
+		else if (is_imm(r)) {
 			// R_8__IMM_8,
 			// R_16_32_64__IMM_16_32_64,
 			if (is_reg(l)) {
@@ -413,34 +390,6 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 	if (code == OPC_INVALID)
 		eeg("а вот вот да", in);
 	return code;
-}
-
-// PREFIXES ASSIGN goes in the reverse order
-// because of little endian
-void get_prefs(uint64_t *prf, uint32_t *prf_len) {
-	// TODO: VEX/EVEX prefixes
-	prf_len++;
-	// REX prefixes
-	prf_len++;
-	// 66 16-bit Operand-size override prefix | Precision-size override prefix
-	prf_len++;
-	// 67 Address-size override prefix, when adress 32-bit like [eax] not [rax]
-	prf_len++;
-	// 			2E 36 3E 26 Null Prefix in 64-bit Mode
-	// F3 Repeat String Operation Prefix | Scalar Single-precision Prefix
-	if (0)
-		prf_len++;
-	// F2 Repeat String Operation Prefix | Scalar Double-precision Prefix
-	if (0)
-		prf_len++;
-	// 64 65 FS GS Segment Override
-	// TODO: when do scas or other do something like FS_M_16__AX
-	if (0)
-		prf_len++;
-	// F0 lock
-
-	// lock fs repne scas word [edi] -> f0 64f2 6766 af
-	// mov word[r8d], 255 -> 67 6641 c700 ff00
 }
 
 void get_cmd(enum OpsCode opsCode, struct Inst *in, struct BList *cmd) {

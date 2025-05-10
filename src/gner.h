@@ -2,13 +2,13 @@
 #include <stdint.h>
 
 // for label and maybe variables that have a string view and ptr to value
-struct Plov { // Pointer Label Of Value
-	char *l; // label
-	uint64_t a; // adress
-	uint64_t ra; // relative adress in executable file from file start
-	int si; //  segment place
+struct Plov {		  // Pointer Label Of Value
+	char *l;		  // label
+	uint64_t a;		  // adress
+	uint64_t ra;	  // relative adress in executable file from file start
+	int si;			  //  segment place
 	struct PList *us; // usages
-	// uint64_t size; // like for db dd dw dq
+					  // uint64_t size; // like for db dd dw dq
 };
 
 enum OpsCode {
@@ -34,8 +34,8 @@ enum OpsCode {
 
 	R_8__IMM_8,
 	R_16_32_64__IMM_16_32_64,
-	M_8__M_8,
-	M_16_32_64__M_16_32_64,
+	// M_8__M_8, // they are not exists movs odes via rep movsq or just movsq
+	// M_16_32_64__M_16_32_64, // it doesn have operands
 };
 
 enum UT { // Usage Type

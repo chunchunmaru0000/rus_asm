@@ -27,9 +27,8 @@ int get_reg_field(enum RegCode rm) {
 }
 
 void print_oper(struct Oper *o) {
-	printf("[o "
-		   "code:%d][view:%s][rm:%d][base:%d][scale:%d][index:%d][disp:%d][mod:"
-		   "%d]\n",
+	printf("[o code:%d][view:%s][rm:%d][base:%d]"
+		   "[scale:%d][index:%d][disp:%d][mod:%d]\n",
 		   o->code, o->t->view, get_reg_field(o->rm), get_reg_field(o->base),
 		   1 << o->scale, get_reg_field(o->index), o->disp, o->mod);
 }
@@ -319,6 +318,8 @@ void set_index_to_op(struct Oper *o, struct Oper *i) {
 		eep(i->t, WRONG_INDEX);
 	if (is_rsp_addr(i))
 		eep(i->t, FORBIDDEN_RSP_INDEX);
+	if (is_r_new(i))
+		o->rex |= REX_X;
 	o->index = i->rm;
 	free(i);
 }
@@ -342,6 +343,7 @@ struct Oper *expression(struct Pser *p) {
 	o->index = R_NONE;
 	o->base = R_NONE;
 	o->rm = R_NONE;
+	o->rex = 0;
 
 	struct PList *sib = new_plist(4);
 	enum OCode code, *cp = &code;
@@ -428,14 +430,14 @@ struct Oper *expression(struct Pser *p) {
 				eep(otmp->t, WRONG_ADDR_REG_SZ);
 			if (otmp->code == OREG) {
 				if (o->mem_sz) {
-					if ((is_f_reg64(otmp->rm) && o->mem_sz == 32) ||
-						(is_f_reg32(otmp->rm) && o->mem_sz == 64))
+					if ((is_f_reg64(otmp->rm) && o->mem_sz == DWORD) ||
+						(is_f_reg32(otmp->rm) && o->mem_sz == QWORD))
 						eep(otmp->t, DISSERENT_SIZE_REGS);
 				} else {
 					if (is_f_reg32(otmp->rm))
-						o->mem_sz = 32;
+						o->mem_sz = DWORD;
 					else
-						o->mem_sz = 64;
+						o->mem_sz = QWORD;
 				}
 			}
 			plist_add(sib, otmp);
@@ -449,6 +451,9 @@ struct Oper *expression(struct Pser *p) {
 		ot = t0;
 		code = OMEM;
 		o->mod = MOD_MEM;
+
+		// TODO: ALL MEM REGS ARE RAX-RDI, OTHER SHOULD BE CONVERTED VIA FLAGS
+		// TODO: REX
 
 		otmp = plist_get(sib, 0);
 		if (sib->size == 1) {

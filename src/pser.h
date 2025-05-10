@@ -12,6 +12,10 @@
 #define MOD_MEM_D8 0b01
 #define MOD_MEM_D32 0b10
 #define MOD_REG 0b11
+#define REX_B 0b0001
+#define REX_X 0b0010
+#define REX_R 0b0100
+#define REX_W 0b1000
 
 uc sc(char *, const char *);
 
@@ -171,14 +175,14 @@ struct Oper { // operand
 	struct Token *t;
 	uc sz;
 	enum RegCode rm; // OMEM and rsp then does SIB, mod 00 and rbp does rel
-	uc mem_sz;		 // size of regs in addr 32 or 64, 32 means 0x67 flag
+	uc mem_sz; // size of regs in addr DWORD or QWORD, DWORD means 0x67 flag
+	uc rex;
 	// ---SIB---
 	enum RegCode base;
 	enum RegCode index;
 	uc scale; // 1 2 4 8
 	// ---displacement---
 	uc disp_is_rel_flag; // if 0 then use disp else view of *rel
-	//	uc disp_sz;	// 0 8 32 - gives disp sz for mod in ModR/M
 	uc mod; // mod specifies displaacement size or r/m
 	char *rel_view;
 	int disp; // displacement
@@ -225,6 +229,7 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 
 #define is_reg(o) ((o)->code == OREG)
 #define is_mem(o) ((o)->code == OMEM)
+#define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN || (o)->code == OREL)
 #define is_seg(o) ((o)->code == OSREG)
 #define is_8(o) ((o)->sz == BYTE)
@@ -235,8 +240,7 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_rA(o)                                                               \
 	((o)->code =                                                               \
 		 OREG && ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
-#define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
 #define is_sib(o) ((o)->rm == R_RSI)
-#define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == 32)
+#define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == DWORD)
