@@ -101,3 +101,24 @@ struct Gner {
 
 struct Gner *new_gner(struct PList *, enum Target, uc);
 void gen(struct Gner *);
+
+#define NOT_FIELD 0
+#define REG_FIELD 1
+#define NUM_FIELD 2
+struct Cmnd {
+	enum ICode inc;
+	// instruction code
+	uc cmd[4];
+	// command bytes
+	uc len;
+	// cmd len
+	uc o;
+	// o Register/ Opcode Field
+	//   1. NUM_FIELD The value of the opcode extension values from 0 through 7
+	//   2. REG_FIELD r indicates that the ModR/M byte contains a register
+	//   operand and an r/m operand. 00 ADD
+	uc o_num;
+	// instruction number if o == NUM_FIELD
+	enum OpsCode opsc;
+	// instruction opperands
+};

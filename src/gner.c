@@ -285,6 +285,89 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 	return code;
 }
 
+const struct Cmnd cmnds[] = {
+	// add
+	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
+	{IADD, {0x01}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{IADD, {0x02}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IADD, {0x03}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IADD, {0x04}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{IADD, {0x05}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{IADD, {0x80}, 1, NUM_FIELD, 0, RM_8__IMM_8},
+	{IADD, {0x81}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
+	{IADD, {0x82}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_8},
+	// or
+	{IOR, {0x08}, 1, REG_FIELD, 0, RM_8__R_8},
+	{IOR, {0x09}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{IOR, {0x0a}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IOR, {0x0b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IOR, {0x0c}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{IOR, {0x0d}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{IOR, {0x80}, 1, NUM_FIELD, 1, RM_8__IMM_8},
+	{IOR, {0x81}, 1, NUM_FIELD, 1, RM_16_32_64__IMM_16_32},
+	{IOR, {0x83}, 1, NUM_FIELD, 1, RM_16_32_64__IMM_8},
+	// adc
+	{IADC, {0x10}, 1, REG_FIELD, 0, RM_8__R_8},
+	{IADC, {0x11}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{IADC, {0x12}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IADC, {0x13}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IADC, {0x14}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{IADC, {0x15}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{IADC, {0x80}, 1, NUM_FIELD, 2, RM_8__IMM_8},
+	{IADC, {0x81}, 1, NUM_FIELD, 2, RM_16_32_64__IMM_16_32},
+	{IADC, {0x83}, 1, NUM_FIELD, 2, RM_16_32_64__IMM_8},
+	// sbb
+	{ISBB, {0x18}, 1, REG_FIELD, 0, RM_8__R_8},
+	{ISBB, {0x19}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{ISBB, {0x1a}, 1, REG_FIELD, 0, R_8__RM_8},
+	{ISBB, {0x1b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{ISBB, {0x1c}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{ISBB, {0x1d}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{ISBB, {0x80}, 1, NUM_FIELD, 3, RM_8__IMM_8},
+	{ISBB, {0x81}, 1, NUM_FIELD, 3, RM_16_32_64__IMM_16_32},
+	{ISBB, {0x83}, 1, NUM_FIELD, 3, RM_16_32_64__IMM_8},
+	// and
+	{IAND, {0x20}, 1, REG_FIELD, 0, RM_8__R_8},
+	{IAND, {0x21}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{IAND, {0x22}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IAND, {0x23}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IAND, {0x24}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{IAND, {0x25}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{IAND, {0x80}, 1, NUM_FIELD, 4, RM_8__IMM_8},
+	{IAND, {0x81}, 1, NUM_FIELD, 4, RM_16_32_64__IMM_16_32},
+	{IAND, {0x83}, 1, NUM_FIELD, 4, RM_16_32_64__IMM_8},
+	// sbb
+	{ISUB, {0x28}, 1, REG_FIELD, 0, RM_8__R_8},
+	{ISUB, {0x29}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{ISUB, {0x2a}, 1, REG_FIELD, 0, R_8__RM_8},
+	{ISUB, {0x2b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{ISUB, {0x2c}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{ISUB, {0x2d}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{ISUB, {0x80}, 1, NUM_FIELD, 5, RM_8__IMM_8},
+	{ISUB, {0x81}, 1, NUM_FIELD, 5, RM_16_32_64__IMM_16_32},
+	{ISUB, {0x83}, 1, NUM_FIELD, 5, RM_16_32_64__IMM_8},
+	// xor
+	{IXOR, {0x30}, 1, REG_FIELD, 0, RM_8__R_8},
+	{IXOR, {0x31}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{IXOR, {0x32}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IXOR, {0x33}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IXOR, {0x34}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{IXOR, {0x35}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{IXOR, {0x80}, 1, NUM_FIELD, 6, RM_8__IMM_8},
+	{IXOR, {0x81}, 1, NUM_FIELD, 6, RM_16_32_64__IMM_16_32},
+	{IXOR, {0x83}, 1, NUM_FIELD, 6, RM_16_32_64__IMM_8},
+	// cmp
+	{ICMP, {0x38}, 1, REG_FIELD, 0, RM_8__R_8},
+	{ICMP, {0x39}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{ICMP, {0x3a}, 1, REG_FIELD, 0, R_8__RM_8},
+	{ICMP, {0x3b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{ICMP, {0x3c}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{ICMP, {0x3d}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{ICMP, {0x80}, 1, NUM_FIELD, 7, RM_8__IMM_8},
+	{ICMP, {0x81}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_16_32},
+	{ICMP, {0x83}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_8},
+};
+
 enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd) {
 	struct Oper *l, *r;
 	enum OpsCode code = OPC_INVALID;
@@ -406,6 +489,8 @@ enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd) {
 	}
 	if (rex != 0b01000000)
 		blist_add(cmd, rex);
+
+#define ba(v) (blist_add(cmd, (v)))
 
 	return code;
 }
@@ -672,8 +757,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 										   : g->text->size - last_text_sz;
 			phl->filesz = phl->memsz;
 			break;
-			//	default:
-			//		eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
+		default:
+			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
 		if (cmd->size + data->size) {
 			blat(g->text, cmd->st, cmd->size);
@@ -683,9 +768,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			blist_clear(cmd);
 			blist_clear(data);
-			// phs_cur_sz += buf_len;
-			// blat(g->text, ibuff, buf_len);
-			// free(ibuff);
 		}
 	}
 
