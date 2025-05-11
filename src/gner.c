@@ -218,15 +218,29 @@ uint64_t reg2reg(enum RegCode l, enum RegCode r, int size) {
 const enum OpsCode RM_L[] = {RM_8__R_8, RM_16_32_64__R_16_32_64, RM_8__IMM_8,
 							 RM_16_32_64__IMM_16_32, RM_16_32_64__IMM_8};
 const enum OpsCode RM_R[] = {R_8__RM_8, R_16_32_64__RM_16_32_64, SREG__RM_16};
+const enum OpsCode IMM_R[] = {AL__IMM_8,
+							  RAX__IMM_16_32,
+							  RM_8__IMM_8,
+							  RM_16_32_64__IMM_16_32,
+							  RM_16_32_64__IMM_8,
+							  R_8__IMM_8,
+							  R_16_32_64__IMM_16_32_64};
+
 int is_rm_l(enum OpsCode c) {
-	for (uint32_t i = 0; i < lenofarr(RM_L); i++)
+	for (size_t i = 0; i < lenofarr(RM_L); i++)
 		if (c == RM_L[i])
 			return 1;
 	return 0;
 }
 int is_rm_r(enum OpsCode c) {
-	for (uint32_t i = 0; i < lenofarr(RM_R); i++)
+	for (size_t i = 0; i < lenofarr(RM_R); i++)
 		if (c == RM_R[i])
+			return 1;
+	return 0;
+}
+int is_imm_r(enum OpsCode c) {
+	for (size_t i = 0; i < lenofarr(IMM_R); i++)
+		if (c == IMM_R[i])
 			return 1;
 	return 0;
 }
@@ -251,11 +265,32 @@ int is_rm_r(enum OpsCode c) {
 //		add word [rax], 255
 // REX prefixes
 // TODO: VEX/EVEX prefixes
+enum OpsCode two_ops_inst_ops_code(struct Inst *, struct BList *);
 
 enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
-	struct Oper *l, *r; //, *t, *f;
+	enum OpsCode code = OPC_INVALID;
+
+	if (in->os->size == 2)
+		code = two_ops_inst_ops_code(in, cmd);
+	else
+		eeg("йцук\n", in);
+
+	if (code == OPC_INVALID)
+		eeg("эээ че за инструкция\n", in);
+	else {
+		printf("### %ld предлогов: ", cmd->size);
+		blist_print(cmd);
+		eeg("эээ\n", in);
+	}
+	return code;
+}
+
+enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd) {
+	struct Oper *l, *r;
 	enum OpsCode code = OPC_INVALID;
 	uc rex;
+	l = plist_get(in->os, 0);
+	r = plist_get(in->os, 1);
 
 	switch (in->code) {
 	case IADD:
@@ -267,16 +302,10 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 	case IXOR:
 	case ICMP:
 	case ITEST:
-		l = plist_get(in->os, 0);
-		r = plist_get(in->os, 1);
-		// RM_8__R_8,
-		// RM_16_32_64__R16_32_64,
 		if (is_rm(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
-			// R_8__RM_8,
-			// R_16_32_64__RM_16_32_64,
 		} else if (is_reg(l) && is_rm(r)) {
 			if (l->sz != r->sz)
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
@@ -284,107 +313,48 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 		} else if (is_rm(l) && is_imm(r)) {
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
-			// 	AL__IMM_8,
 			if (is_al(l))
 				code = AL__IMM_8;
-			// 	RAX__IMM_16_32,
 			else if (is_rA(l))
 				code = RAX__IMM_16_32;
-			// 	RM_8__IMM_8,
 			else if (is_8(l))
 				code = RM_8__IMM_8;
-			// 	RM_16_32_64__IMM_8,
-			// 	RM_16_32_64__IMM_16_32,
 			else if (is_8(r))
 				code = RM_16_32_64__IMM_8;
 			else
 				code = RM_16_32_64__IMM_16_32;
 		}
-		// {lock} fs repne scas word [edi] ->
-		// 		{f0} [64 fs][f2 scas] [67 is_r32(r)][66 is_16(r)] af
-		// mov word[r8d], 255 -> 67 6641 c700 ff00
-		// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-		if (is_mem32(l) || is_mem32(r))
-			blist_add(cmd, 0x67);
-		// 66 16-bit Operand-size OVERRIRE prefix
-		// TODO: check if its possible for r to be 16-bit
-		if (!is_seg(l) && is_16(l))
-			blist_add(cmd, 0x66);
-		// !mem cuz flag 67 is needed for Address-size OVERRIRE
-		// cuz its common to use 64 addresation on 64x
-		// REX prefixes
-		rex = 0b01000000;
-		if (is_64(l) || is_64(r))
-			rex |= REX_W;
-		if (is_rm_l(code)) {
-			if (is_mem(l))
-				rex |= l->rex; // get mem REX's
-			else if (is_r_new(l))
-				rex |= REX_B; // Extension of ModR/M r/m
-			if (is_r_new(r))
-				rex |= REX_R; // Extension of ModR/M reg
-		} else if (is_rm_r(code)) {
-			if (is_mem(r))
-				rex |= r->rex; // get mem REX's
-			else if (is_r_new(r))
-				rex |= REX_B; // Extension of ModR/M r/m
-			if (is_r_new(l))
-				rex |= REX_R; // Extension of ModR/M reg
-		}
-		if (rex != 0b01000000)
-			blist_add(cmd, rex);
-		// here for example in mov word[r8d], 255
-		// rex for r8d
-		// 16-bit mem override
-		// 32-bit adress-size
 		break;
 	case IMOV:
-		l = plist_get(in->os, 0);
-		r = plist_get(in->os, 1);
-		// RM_8__R_8,
-		// RM_16_32_64__R16_32_64,
 		if (is_rm(l) && is_reg(r)) {
 			if (l->sz != r->sz)
 				eeg(REGS_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
-			// R_8__RM_8,
-			// R_16_32_64__RM_16_32_64,
 		} else if (is_reg(l) && is_rm(r)) {
 			if (l->sz != r->sz)
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
-			// M_16__SREG,
-			// R_16_32_64__SREG,
 		} else if (is_seg(r)) {
 			if (is_mem(l) && is_16(l))
 				code = M_16__SREG;
 			else if (is_reg(l) && !is_8(l))
 				code = R_16_32_64__SREG;
-			// SREG__RM_16,
 		} else if (is_seg(l) && is_16(r) && is_rm(r))
 			code = SREG__RM_16;
-		// AL__MOFFS_8,
 		else if (is_al(l) && is_moffs(r) && is_8(r))
 			code = AL__MOFFS_8;
-		// RAX__MOFFS_16_32_64,
 		else if (is_rA(l) && is_moffs(r) && !is_8(r))
 			code = RAX__MOFFS_16_32_64;
-		// MOFFS_8__AL,
 		else if (is_moffs(l) && is_8(l) && is_al(r))
 			code = MOFFS_8__AL;
-		// MOFFS_16_32_64__RAX,
 		else if (is_moffs(l) && !is_8(l) && is_rA(r))
 			code = MOFFS_16_32_64__RAX;
 		else if (is_imm(r)) {
-			// R_8__IMM_8,
-			// R_16_32_64__IMM_16_32_64,
 			if (is_reg(l)) {
 				if (is_8(l) && is_8(r))
 					code = R_8__IMM_8;
 				else if (!is_8(l) && !is_8(r))
 					code = R_16_32_64__IMM_16_32_64;
-				// RM_8__IMM_8,
-				// RM_16_32_64__IMM_16_32,
 			} else if (is_mem(l)) {
 				if (is_8(l) && is_8(r))
 					code = RM_8__IMM_8;
@@ -394,11 +364,49 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 		}
 		break;
 	default:
-		eeg("нет пока а вот", in);
+		eeg("нет пока для такой инструкции\n", in);
 	}
+	// {lock}     fs repne scas   word [edi] ->
+	// {f0}   [64 fs][f2   scas] [67   is_r32(r)][66 is_16(r)] af
+	// mov word[r8d], 255 -> 67 6641 c700 ff00
 
-	if (code == OPC_INVALID)
-		eeg("а вот вот да", in);
+	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
+	if (is_mem32(l) || is_mem32(r))
+		blist_add(cmd, 0x67);
+	// 66 16-bit Operand-size OVERRIRE prefix
+	// TODO: check if its possible for r to be 16-bit
+	if (!is_seg(l) && is_16(l))
+		blist_add(cmd, 0x66);
+	// REX prefixes
+	rex = 0b01000000;
+	if (is_64(l) || is_64(r))
+		rex |= REX_W;
+	if (is_rm_l(code)) {
+		if (is_mem(l))
+			rex |= l->rex; // get mem REX's
+		else if (is_r_new(l))
+			rex |= REX_B; // Extension of ModR/M r/m
+		if (is_r_new(r))
+			rex |= REX_R; // Extension of ModR/M reg
+	} else if (is_rm_r(code)) {
+		if (is_mem(r))
+			rex |= r->rex; // get mem REX's
+		else if (is_r_new(r))
+			rex |= REX_B; // Extension of ModR/M r/m
+		if (is_r_new(l))
+			rex |= REX_R; // Extension of ModR/M reg
+	} else if (is_imm_r(code)) {
+		if (is_rm_l(code)) {
+			if (is_mem(l))
+				rex |= l->rex; // get mem REX's
+			else if (is_r_new(l))
+				rex |= REX_B;	// Extension of ModR/M r/m
+		} else if (is_r_new(l)) // SUPPOSED TO BE REG
+			rex |= REX_R;		// Extension of ModR/M reg
+	}
+	if (rex != 0b01000000)
+		blist_add(cmd, rex);
+
 	return code;
 }
 

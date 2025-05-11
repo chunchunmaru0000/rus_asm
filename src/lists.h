@@ -26,3 +26,4 @@ uc blist_get(struct BList *, long);
 uc blist_set(struct BList *, long, uc);
 void blat(struct BList *, uc *, long);
 void blist_clear(struct BList *);
+void blist_print(struct BList *);

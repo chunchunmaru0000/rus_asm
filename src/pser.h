@@ -240,9 +240,9 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_16(o) ((o)->sz == WORD)
 #define is_32(o) ((o)->sz == DWORD)
 #define is_64(o) ((o)->sz == QWORD)
-#define is_al(o) ((o)->code = OREG && (o)->rm == R_AL)
+#define is_al(o) ((o)->code == OREG && (o)->rm == R_AL)
 #define is_rA(o)                                                               \
-	((o)->code =                                                               \
+	((o)->code ==                                                               \
 		 OREG && ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name

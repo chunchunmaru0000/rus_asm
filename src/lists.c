@@ -1,4 +1,6 @@
 #include "lists.h"
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -81,4 +83,12 @@ void blist_clear(struct BList *l) {
 		l->st = realloc(l->st, l->cap_pace * sizeof(uc));
 	}
 	l->size = 0;
+}
+
+void blist_print(struct BList *l) {
+	for (uint32_t i = 0; i < l->size; i++) {
+		printf("%02x", l->st[i]);
+		putchar(' ');
+	}
+	putchar('\n');
 }

@@ -291,8 +291,6 @@ int search_reg(char *v, const int regs_len, const struct Reg regs[],
 	for (int i = 0; i < regs_len; i++)
 		if (sc(v, regs[i].v)) {
 			o->rm = regs[i].c;
-			// if (is_r_new(o)) TODO: check if its true
-			//	o->rex |= REX_R;
 			o->sz = sz;
 			o->mod = MOD_REG;
 			return 1;
@@ -381,6 +379,7 @@ struct Oper *expression(struct Pser *p) {
 	o->base = R_NONE;
 	o->rm = R_NONE;
 	o->rex = 0;
+	o->sz = DWORD;
 
 	struct PList *sib = new_plist(4);
 	enum OCode code, *cp = &code;
@@ -489,8 +488,8 @@ struct Oper *expression(struct Pser *p) {
 		code = OMEM;
 		o->mod = MOD_MEM;
 
-		// TODO: ALL MEM REGS ARE RAX-RDI, OTHER SHOULD BE CONVERTED VIA FLAGS
-		// TODO: REX
+		// REMEMBER: ALL MEM REGS ARE RAX-RDI
+		// OTHER SHOULD BE CONVERTED VIA FLAGS
 
 		otmp = plist_get(sib, 0);
 		if (sib->size == 1) {
