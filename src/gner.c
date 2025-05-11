@@ -366,6 +366,25 @@ const struct Cmnd cmnds[] = {
 	{ICMP, {0x80}, 1, NUM_FIELD, 7, RM_8__IMM_8},
 	{ICMP, {0x81}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_16_32},
 	{ICMP, {0x83}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_8},
+	// mov
+	{IMOV, {0x88}, 1, REG_FIELD, 0, RM_8__R_8},
+	{IMOV, {0x89}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{IMOV, {0x8a}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IMOV, {0x8b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	//		sregs
+	{IMOV, {0x8c}, 1, REG_FIELD, 0, M_16__SREG},
+	{IMOV, {0x8c}, 1, REG_FIELD, 0, R_16_32_64__SREG},
+	{IMOV, {0x8e}, 1, REG_FIELD, 0, SREG__RM_16},
+	//		moffs
+	{IMOV, {0xa0}, 1, NOT_FIELD, 0, AL__MOFFS_8},
+	{IMOV, {0xa1}, 1, NOT_FIELD, 0, RAX__MOFFS_16_32_64},
+	{IMOV, {0xa2}, 1, NOT_FIELD, 0, MOFFS_8__AL},
+	{IMOV, {0xa3}, 1, NOT_FIELD, 0, MOFFS_16_32_64__RAX},
+	//		imms
+	{IMOV, {0xb0}, 1, PLUS_REGF, 0, R_8__IMM_8},
+	{IMOV, {0xb8}, 1, PLUS_REGF, 0, R_16_32_64__IMM_16_32_64},
+	{IMOV, {0xc6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
+	{IMOV, {0xc7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
 };
 
 enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd) {
@@ -757,7 +776,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 										   : g->text->size - last_text_sz;
 			phl->filesz = phl->memsz;
 			break;
+		case IENTRY:
+			break;
 		default:
+			printf("%d ", in->code);
 			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
 		if (cmd->size + data->size) {

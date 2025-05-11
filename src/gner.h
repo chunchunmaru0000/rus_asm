@@ -105,6 +105,8 @@ void gen(struct Gner *);
 #define NOT_FIELD 0
 #define REG_FIELD 1
 #define NUM_FIELD 2
+#define PLUS_REGF 3
+
 struct Cmnd {
 	enum ICode inc;
 	// instruction code
@@ -115,8 +117,14 @@ struct Cmnd {
 	uc o;
 	// o Register/ Opcode Field
 	//   1. NUM_FIELD The value of the opcode extension values from 0 through 7
+	//   like ModR/M byte where Reg field is for o_num, primary used with imm
+	//   - this "ModR/M" byte also have mod and if its just reg and imm then
+	//   - - mod = 11 and R/M field means just reg code
+	//   - if mod != 11 then it behaves as
+	//   - - just usual mod and R/M fields with SIB if needed
 	//   2. REG_FIELD r indicates that the ModR/M byte contains a register
 	//   operand and an r/m operand. 00 ADD
+	//   3. PLUS_REGF When just op code + reg code like B0+r
 	uc o_num;
 	// instruction number if o == NUM_FIELD
 	enum OpsCode opsc;
