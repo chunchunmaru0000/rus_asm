@@ -183,7 +183,7 @@ struct Oper { // operand
 	uc scale; // 1 2 4 8
 	// ---displacement---
 	uc disp_is_rel_flag; // if 0 then use disp else view of *rel
-	uc mod; // mod specifies displaacement size or r/m
+	uc mod;				 // mod specifies displaacement size or r/m
 	char *rel_view;
 	int disp; // displacement
 
@@ -213,8 +213,12 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_r64(o) ((o)->code == OREG && ((o)->rm >= R_RAX && (o)->rm <= R_R15))
 #define is_rsp_addr(o)                                                         \
 	((o)->code == OREG && ((o)->rm == R_RSP || (o)->rm == R_ESP))
+#define is_r12_addr(o)                                                         \
+	((o)->code == OREG && ((o)->rm == R_R12 || (o)->rm == R_R12D))
 #define is_rbp_addr(o)                                                         \
 	((o)->code == OREG && ((o)->rm == R_RBP || (o)->rm == R_EBP))
+#define is_r13_addr(o)                                                         \
+	((o)->code == OREG && ((o)->rm == R_R13 || (o)->rm == R_R13D))
 
 #define is_r_new(o)                                                            \
 	((o)->code == OREG && (((o)->rm >= R_R8 && (o)->rm <= R_R15) ||            \
@@ -244,3 +248,5 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 // opcode reg field, meaningless name
 #define is_sib(o) ((o)->rm == R_RSI)
 #define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == DWORD)
+
+enum RegCode get_mem_reg(enum RegCode);

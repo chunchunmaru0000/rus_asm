@@ -27,10 +27,10 @@ int get_reg_field(enum RegCode rm) {
 }
 
 void print_oper(struct Oper *o) {
-	printf("[o code:%d][view:%s][rm:%d][base:%d]"
-		   "[scale:%d][index:%d][disp:%d][mod:%d]\n",
-		   o->code, o->t->view, get_reg_field(o->rm), get_reg_field(o->base),
-		   1 << o->scale, get_reg_field(o->index), o->disp, o->mod);
+	printf("[view:%s][oc:%d][rm:%d]\t[base:%d]"
+		   "[scale:%d][index:%d][disp:%d][mod:%d][rex:%d]\n",
+		   o->t->view, o->code, get_reg_field(o->rm), get_reg_field(o->base),
+		   1 << o->scale, get_reg_field(o->index), o->disp, o->mod, o->rex);
 }
 
 struct Pser *new_pser(char *filename, uc debug) {
@@ -197,18 +197,6 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os) {
 // void set_tc(struct Token **tp, enum OCode *cp, struct Token *t, enum
 // OCode c) { *tp = t; *cp = c; }
 
-int search_reg(char *v, const int regs_len, const struct Reg regs[],
-			   struct Oper *o, uc sz) {
-	for (int i = 0; i < regs_len; i++)
-		if (sc(v, regs[i].v)) {
-			o->rm = regs[i].c;
-			o->sz = sz;
-			o->mod = MOD_REG;
-			return 1;
-		}
-	return 0;
-}
-
 const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
 
 int search_size(char *v, struct Oper **o, struct Pser *p) {
@@ -281,6 +269,37 @@ char *FORBIDDEN_RSP_INDEX =
 char *DISSERENT_SIZE_REGS = "Регистры адресанта не могут быть разных размеров, "
 							"только или все 64 бит или 32 бит";
 
+enum RegCode get_mem_reg(enum RegCode r) {
+	enum RegCode n = R_NONE; // new
+	if (r >= R_RAX && r <= R_RDI)
+		n = r;
+	else if (r >= R_R8 && r <= R_R15)
+		n = r - R_R8 + R_RAX;
+	else if (r >= R_EAX && r <= R_EDI)
+		n = r - R_EAX + R_RAX;
+	else if (r >= R_R8D && r <= R_R15D)
+		n = r - R_R8D + R_RAX;
+	if (n < R_RAX || n > R_RDI) {
+		printf("\t\t\treg cvt err\n"); // 16 bytes str
+		exit(1);
+	}
+	return n;
+}
+
+int search_reg(char *v, const int regs_len, const struct Reg regs[],
+			   struct Oper *o, uc sz) {
+	for (int i = 0; i < regs_len; i++)
+		if (sc(v, regs[i].v)) {
+			o->rm = regs[i].c;
+			// if (is_r_new(o)) TODO: check if its true
+			//	o->rex |= REX_R;
+			o->sz = sz;
+			o->mod = MOD_REG;
+			return 1;
+		}
+	return 0;
+}
+
 void set_disp_to_op(struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
 		int disp = d->t->number;
@@ -320,17 +339,35 @@ void set_index_to_op(struct Oper *o, struct Oper *i) {
 		eep(i->t, FORBIDDEN_RSP_INDEX);
 	if (is_r_new(i))
 		o->rex |= REX_X;
-	o->index = i->rm;
+	o->index = get_mem_reg(i->rm);
 	free(i);
 }
 void set_base_to_op(struct Oper *o, struct Oper *b) {
 	if (b->code != OREG)
 		eep(b->t, WRONG_BASE);
 	o->rm = R_RSP; // sib
-	if (is_rbp_addr(b))
+	if (is_rbp_addr(b) || is_r13_addr(b))
 		o->mod = MOD_MEM_D8;
-	o->base = b->rm;
+	if (is_r_new(b))
+		o->rex |= REX_B;
+	o->base = get_mem_reg(b->rm);
 	free(b);
+}
+void set_rm_to_op(struct Oper *o, struct Oper *rm) {
+	if (is_rsp_addr(rm) || is_r12_addr(rm)) {
+		// REMEMBER: only R_RSI as SIB flag, esp is not allowed
+		// mod = 00, rm = 100, base = 100, index = 100
+		o->rm = R_RSP;	  // sib
+		o->index = R_RSP; // unused
+		o->base = R_RSP;
+	} else
+		o->rm = get_mem_reg(rm->rm);
+
+	if (is_rbp_addr(rm) || is_r13_addr(rm))
+		o->mod = MOD_MEM_D8;
+	if (is_r_new(rm))
+		o->rex |= REX_B;
+	free(rm);
 }
 
 struct Oper *expression(struct Pser *p) {
@@ -465,18 +502,7 @@ struct Oper *expression(struct Pser *p) {
 				o->rm = R_RBP;
 			} else if (otmp->code == OREG) {
 				// reg(rm)
-				if (is_rsp_addr(otmp)) {
-					// REMEMBER: only R_RSI as SIB flag, esp is not allowed
-					// mod = 00, rm = 100, base = 100, index = 100
-					o->rm = R_RSP;
-					o->index = R_RSP;
-					o->base = otmp->rm;
-				} else if (is_rbp_addr(otmp)) {
-					o->rm = otmp->rm;
-					o->mod = MOD_MEM_D8;
-				} else
-					o->rm = otmp->rm;
-				free(otmp);
+				set_rm_to_op(o, otmp);
 			} else
 				eep(t0, POSSIBLE_WRONG_ORDER);
 
@@ -499,13 +525,7 @@ struct Oper *expression(struct Pser *p) {
 					set_index_to_op(o, otmp2);
 				} else if (otmp2->code == OREL || otmp2->code == OINT) {
 					// reg(rm) disp         | not sib
-					if (is_rsp_addr(otmp)) {
-						o->rm = R_RSP; // sib
-						o->index = R_RSP;
-						o->base = otmp->rm;
-					} else
-						o->rm = otmp->rm;
-					free(otmp);
+					set_rm_to_op(o, otmp);
 					set_disp_to_op(o, otmp2); // changes mod to non 00
 				} else
 					eep(t0, POSSIBLE_WRONG_ORDER);

@@ -316,11 +316,21 @@ enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
 		rex = 0b01000000;
 		if (is_64(l) || is_64(r))
 			rex |= REX_W;
-		if (is_mem(l) && l->rex)
-			rex |= l->rex;
-		else if (is_mem(r) && r->rex)
-			rex |= r->rex;
-
+		if (is_rm_l(code)) {
+			if (is_mem(l))
+				rex |= l->rex; // get mem REX's
+			else if (is_r_new(l))
+				rex |= REX_B; // Extension of ModR/M r/m
+			if (is_r_new(r))
+				rex |= REX_R; // Extension of ModR/M reg
+		} else if (is_rm_r(code)) {
+			if (is_mem(r))
+				rex |= r->rex; // get mem REX's
+			else if (is_r_new(r))
+				rex |= REX_B; // Extension of ModR/M r/m
+			if (is_r_new(l))
+				rex |= REX_R; // Extension of ModR/M reg
+		}
 		if (rex != 0b01000000)
 			blist_add(cmd, rex);
 		// here for example in mov word[r8d], 255
