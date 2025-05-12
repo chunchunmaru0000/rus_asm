@@ -13,7 +13,7 @@
 	xxd быть
 
 асм:
-	gcc main.c gner.c pser.c lists.c tzer.c -o асм
+	gcc main.c gner.c cmnd.c pser.c lists.c tzer.c -o асм
 
 test1:
 	fasm test1.asm

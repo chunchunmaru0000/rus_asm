@@ -11,10 +11,15 @@ void eep(struct Token *t, char *msg) { // error exit
 	exit(1);
 }
 
+void eeg(const char *msg, struct Inst *i) {
+	fprintf(stderr, "%s:%ld:%ld %s\n", i->file, i->line, i->col, msg);
+	exit(1);
+}
+
 int get_reg_field(enum RegCode rm) {
 	int f = -1;
 	if (is_f_reg8(rm))
-		f = rm - R_AH;
+		f = rm - R_AL;
 	else if (is_f_reg16(rm))
 		f = rm - R_AX;
 	else if (is_f_reg32(rm))

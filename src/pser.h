@@ -250,3 +250,4 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == DWORD)
 
 enum RegCode get_mem_reg(enum RegCode);
+void eeg(const char *, struct Inst *);
