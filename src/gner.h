@@ -108,7 +108,7 @@ void gen(struct Gner *);
 #define PLUS_REGF 3
 
 struct Cmnd {
-	enum ICode inc;
+	enum ICode inst;
 	// instruction code
 	uc cmd[4];
 	// command bytes

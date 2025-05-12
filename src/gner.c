@@ -265,13 +265,15 @@ int is_imm_r(enum OpsCode c) {
 //		add word [rax], 255
 // REX prefixes
 // TODO: VEX/EVEX prefixes
-enum OpsCode two_ops_inst_ops_code(struct Inst *, struct BList *);
+enum OpsCode two_ops_inst_ops_code(struct Inst *, struct BList *,
+								   const struct Cmnd **);
 
-enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd) {
+enum OpsCode get_ops_code(struct Inst *in, struct BList *cmd,
+						  const struct Cmnd **c) {
 	enum OpsCode code = OPC_INVALID;
 
 	if (in->os->size == 2)
-		code = two_ops_inst_ops_code(in, cmd);
+		code = two_ops_inst_ops_code(in, cmd, c);
 	else
 		eeg("йцук\n", in);
 
@@ -387,8 +389,11 @@ const struct Cmnd cmnds[] = {
 	{IMOV, {0xc7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
 };
 
-enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd) {
+enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd,
+								   const struct Cmnd **c) {
 	struct Oper *l, *r;
+	const struct Cmnd *ct; // cmnd tmp
+	size_t i;
 	enum OpsCode code = OPC_INVALID;
 	uc rex;
 	l = plist_get(in->os, 0);
@@ -509,6 +514,14 @@ enum OpsCode two_ops_inst_ops_code(struct Inst *in, struct BList *cmd) {
 	if (rex != 0b01000000)
 		blist_add(cmd, rex);
 
+	*c = 0;
+	for (i = 0; i < lenofarr(cmnds); i++) {
+		ct = cmnds + i; //&cmnds[i];
+		if (ct->inst == in->code && ct->opsc == code) {
+			*c = ct;
+			break;
+		}
+	}
 #define ba(v) (blist_add(cmd, (v)))
 
 	return code;
@@ -523,7 +536,8 @@ void get_cmd(enum OpsCode opsCode, struct Inst *in, struct BList *cmd) {
 	}
 }
 
-void get_data(enum OpsCode opsCode, struct Inst *in, struct BList *data) {
+void get_data(enum OpsCode opsCode, struct Inst *in, struct BList *cmd,
+			  struct BList *data, struct Cmnd *c) {
 	switch (opsCode) { default:; }
 }
 
@@ -534,6 +548,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	enum OpsCode opsCode;
+	const struct Cmnd *c;
 	// take
 	struct Inst *in;
 	struct Token *tok;
@@ -554,9 +569,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(data);
 
 		if (code == IADD) {
-			opsCode = get_ops_code(in, cmd); // sets prefs to cmd
-			get_cmd(opsCode, in, cmd);
-			get_data(opsCode, in, data);
+			opsCode = get_ops_code(in, cmd, &c); // sets prefs to cmd
+			// get_cmd(opsCode, in, cmd);
+			get_data(opsCode, in, cmd, data, c);
 
 			if (cmd->size + data->size) {
 				blat(g->text, cmd->st, cmd->size);
