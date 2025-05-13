@@ -207,7 +207,7 @@ struct Inst {
 };
 struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 
-#define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AH && (o)->rm <= R_R15B))
+#define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AL && (o)->rm <= R_R15B))
 #define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))
 #define is_r32(o) ((o)->code == OREG && ((o)->rm >= R_EAX && (o)->rm <= R_R15D))
 #define is_r64(o) ((o)->code == OREG && ((o)->rm >= R_RAX && (o)->rm <= R_R15))
@@ -226,7 +226,7 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 						   ((o)->rm >= R_R8W && (o)->rm <= R_R15W) ||          \
 						   ((o)->rm >= R_R8B && (o)->rm <= R_R15B)))
 
-#define is_f_reg8(rm) ((rm) >= R_AH && (rm) <= R_R15B)
+#define is_f_reg8(rm) ((rm) >= R_AL && (rm) <= R_R15B)
 #define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)
 #define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
 #define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)

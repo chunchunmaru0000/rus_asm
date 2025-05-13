@@ -192,6 +192,8 @@ void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
 		//   - BSWAP, PUSH r64/16, POP r64/16, XCHG r16/32/64 rAX
 		//   - B0+r MOV r8 imm8, B8+r MOV r16/32/64 imm16/32/64
 		*(cmd->st + cmd->size - 1) += get_reg_field(l->rm);
+		if (is_imm(r))
+			add_imm_data(data, r);
 	} else
 		eeg("че не так то", in);
 }
@@ -418,15 +420,17 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		else if (is_moffs(l) && !is_8(l) && is_rA(r))
 			code = MOFFS_16_32_64__RAX;
 		else if (is_imm(r)) {
+			if (l->sz < r->sz)
+				r->sz = l->sz;
 			if (is_reg(l)) {
-				if (is_8(l) && is_8(r))
+				if (is_8(l))
 					code = R_8__IMM_8;
-				else if (!is_8(l) && !is_8(r))
+				else if (!is_8(l))
 					code = R_16_32_64__IMM_16_32_64;
 			} else if (is_mem(l)) {
-				if (is_8(l) && is_8(r))
+				if (is_8(l))
 					code = RM_8__IMM_8;
-				else if (!is_8(l) && is_16(r) && is_32(r))
+				else if (!is_8(l))
 					code = RM_16_32_64__IMM_16_32;
 			}
 		}
