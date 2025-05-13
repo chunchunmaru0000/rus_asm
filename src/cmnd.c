@@ -14,16 +14,21 @@ const char *const WRONG_FST_OPER_REG_DWORD =
 	"Неверный регистр, для значения размера <чбайт> 4 байта";
 const char *const WRONG_FST_OPER_REG_QWORD =
 	"Неверный регистр, для значения размера <вбайт> 8 байт";
-const char *const WRONG_SND_OPER_SIZE = "Неверный размер второго операнда";
+const char *const WRONG_SND_OPER_SIZE = "Неверный размер второго операнда.";
 const char *const WRONG_FPN_OP_SIZE =
 	"Недопустимый размер для числа с плавающей "
 	"точкой, минимальный - <чбайт> 4 байта, "
 	"майсимальный - <вбайт> 8 байт";
-const char *const REGS_SIZES_NOT_MATCH = "Размеры регистров не совпадают";
+const char *const REGS_SIZES_NOT_MATCH = "Размеры регистров не совпадают.";
 const char *const MEM_REG_SIZES_NOT_MATCH =
-	"Размеры памяти и регистра не совпадают";
+	"Размеры памяти и регистра не совпадают.";
 const char *const REG_MEM_IMM_SIZES_NOT_MATCH =
-	"Размеры регистра или памяти и значения не совпадают";
+	"Размеры регистра или памяти и значения не совпадают.";
+const char *const WRONG_FPN_SZ =
+	"Не может вещественное число быть размером меньше, чем 4 байта.";
+const char *const MEM_IMM_SIZE_QWORD =
+	"Инструкция данного типа не может иметь оба значения с размерами вбайт, "
+	"правое выражение должно быть размером чбайт для данного левого выражения.";
 
 void get_zero_ops_code(struct Inst *, struct BList *);
 void get_one_ops_code(struct Inst *, struct BList *, struct BList *);
@@ -44,7 +49,8 @@ void get_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 }
 
 enum OpsCode get_two_opscode(struct Inst *);
-void get_two_ops_prefs(struct Inst *, struct BList *, enum OpsCode);
+void get_two_ops_prefs(struct Inst *, struct BList *, enum OpsCode,
+					   const struct Cmnd *);
 const struct Cmnd *get_cmnd(struct Inst *, enum OpsCode);
 void fill_two_ops_cmd_and_data(struct Inst *, struct BList *, struct BList *,
 							   const struct Cmnd *);
@@ -81,8 +87,7 @@ void add_imm_data(struct BList *data, struct Oper *o) {
 		} else if (o->sz == QWORD)
 			blat(data, (uc *)&o->t->fpn, QWORD);
 		else {
-			printf("Не может вещественное число быть "
-				   "размером меньше, чем 4 байта.");
+			printf("%s", WRONG_FPN_SZ);
 			exit(1);
 		}
 	}
@@ -114,8 +119,9 @@ void add_mem(struct BList *cmd, struct BList *data, struct Oper *m) {
 
 void get_two_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 	enum OpsCode code = get_two_opscode(in);
-	get_two_ops_prefs(in, cmd, code);
-	fill_two_ops_cmd_and_data(in, cmd, data, get_cmnd(in, code));
+	const struct Cmnd *c = get_cmnd(in, code);
+	get_two_ops_prefs(in, cmd, code, c);
+	fill_two_ops_cmd_and_data(in, cmd, data, c);
 }
 
 const enum OpsCode RM__R[] = {RM_8__R_8, RM_16_32_64__R_16_32_64};
@@ -142,10 +148,11 @@ void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
 
 	blat(cmd, (uc *)c->cmd, c->len);
 	// o Register/ Opcode Field
-	if (c->o == NOT_FIELD)
+	if (c->o == NOT_FIELD) {
 		//   0. NOT_FIELD just op code
-		eeg("ал, ра", in); // {IADD, {0x04}, 1, NOT_FIELD, 0, AL__IMM_8}
-	else if (c->o == NUM_FIELD) {
+		if (is_imm(r))
+			add_imm_data(data, r);
+	} else if (c->o == NUM_FIELD) {
 		//   1. NUM_FIELD The value of the opcode extension values from 0
 		//   through 7
 		//   - like ModR/M byte where Reg field is for o_num
@@ -377,6 +384,9 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		} else if (is_rm(l) && is_imm(r)) {
 			if (l->sz < r->sz)
 				r->sz = l->sz;
+			else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD))
+				r->sz = l->sz;
+
 			if (is_imm_can_be_a_byte(r))
 				r->sz = BYTE;
 			// TODO: check this out more
@@ -422,12 +432,22 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		else if (is_imm(r)) {
 			if (l->sz < r->sz)
 				r->sz = l->sz;
+			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
+				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
+
 			if (is_reg(l)) {
 				if (is_8(l))
 					code = R_8__IMM_8;
-				else if (!is_8(l))
-					code = R_16_32_64__IMM_16_32_64;
+				else if (!is_8(l)) {
+					if (is_64(r))
+						code = R_16_32_64__IMM_16_32_64;
+					else
+						code = RM_16_32_64__IMM_16_32;
+				}
 			} else if (is_mem(l)) {
+				if (is_64(l) && is_64(r))
+					eeg(MEM_IMM_SIZE_QWORD, in);
+
 				if (is_8(l))
 					code = RM_8__IMM_8;
 				else if (!is_8(l))
@@ -441,7 +461,8 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	return code;
 }
 
-void get_two_ops_prefs(struct Inst *in, struct BList *cmd, enum OpsCode code) {
+void get_two_ops_prefs(struct Inst *in, struct BList *cmd, enum OpsCode code,
+					   const struct Cmnd *c) {
 	struct Oper *l, *r;
 	declare_two_ops(in, l, r);
 	// {lock}     fs repne scas   word [edi] ->
@@ -478,9 +499,13 @@ void get_two_ops_prefs(struct Inst *in, struct BList *cmd, enum OpsCode code) {
 			if (is_mem(l))
 				rex |= l->rex; // get mem REX's
 			else if (is_r_new(l))
-				rex |= REX_B;	// Extension of ModR/M r/m
-		} else if (is_r_new(l)) // SUPPOSED TO BE REG
-			rex |= REX_R;		// Extension of ModR/M reg
+				rex |= REX_B;	  // Extension of ModR/M r/m
+		} else if (is_r_new(l)) { // SUPPOSED TO BE REG
+			if (c->o == PLUS_REGF)
+				rex |= REX_B; // Extension of ModR/M r/m
+			else
+				rex |= REX_R; // Extension of ModR/M reg
+		}
 	}
 	if (rex != 0b01000000)
 		blist_add(cmd, rex);

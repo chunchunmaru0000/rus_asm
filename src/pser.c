@@ -134,6 +134,9 @@ const struct Reg R_REGS[] = {
 	{R_R12, "р12"}, {R_R13, "р13"},		 {R_R14, "р14"}, {R_R15, "р15"},
 	{R_RIP, "рип"}, {R_RFLAGS, "рфлаги"}};
 
+char *CANT_CHANGE_REG_SZ =
+	"Нельзя менять размер регистра, это ни к чему не приведет так и так.";
+
 uc sc(char *view, const char *str) {
 	// printf("[%s]==[%s]\n", view, str);
 	return strcmp(view, str) == 0;
@@ -208,6 +211,8 @@ int search_size(char *v, struct Oper **o, struct Pser *p) {
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
 			*o = expression(p);
+			if ((*o)->code == OREG)
+				eep((*o)->t, CANT_CHANGE_REG_SZ);
 			(*o)->sz = 1 << i;
 			return 1;
 		}
