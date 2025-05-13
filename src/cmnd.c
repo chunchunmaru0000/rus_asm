@@ -25,6 +25,8 @@ const char *const MEM_REG_SIZES_NOT_MATCH =
 const char *const REG_MEM_IMM_SIZES_NOT_MATCH =
 	"Размеры регистра или памяти и значения не совпадают";
 
+void get_zero_ops_code(struct Inst *, struct BList *);
+void get_one_ops_code(struct Inst *, struct BList *, struct BList *);
 void get_two_ops_code(struct Inst *, struct BList *, struct BList *);
 
 void get_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
@@ -44,6 +46,8 @@ void get_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 enum OpsCode get_two_opscode(struct Inst *);
 void get_two_ops_prefs(struct Inst *, struct BList *, enum OpsCode);
 const struct Cmnd *get_cmnd(struct Inst *, enum OpsCode);
+void fill_cmd_and_data(struct Inst *, struct BList *, struct BList *,
+					   const struct Cmnd *);
 #define declare_two_ops(in, l, r)                                              \
 	do {                                                                       \
 		(l) = plist_get(in->os, 0);                                            \
@@ -57,12 +61,12 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 	sib += get_reg_field(o->base);
 	blist_add(cmd, sib);
 }
-void add_disp(struct BList *cmd, struct Oper *o, uc bytes) {
+void add_disp(struct BList *data, struct Oper *o, uc bytes) {
 	if (o->disp_is_rel_flag) {
 		printf("ПОКА НЕЛЬЗЯ В смещении ИСПОЛЬЗОВАТЬ МЕТКИ");
 		exit(1);
 	}
-	blat(cmd, (uc *)&o->disp, bytes);
+	blat(data, (uc *)&o->disp, bytes);
 }
 void add_imm_data(struct BList *data, struct Oper *o) {
 	if (o->code == OREL) {
@@ -85,12 +89,15 @@ void add_imm_data(struct BList *data, struct Oper *o) {
 }
 
 void get_two_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
-	struct Oper *l, *r;
-	declare_two_ops(in, l, r);
-
 	enum OpsCode code = get_two_opscode(in);
 	get_two_ops_prefs(in, cmd, code);
-	const struct Cmnd *c = get_cmnd(in, code);
+	fill_cmd_and_data(in, cmd, data, get_cmnd(in, code));
+}
+
+void fill_cmd_and_data(struct Inst *in, struct BList *cmd, struct BList *data,
+					   const struct Cmnd *c) {
+	struct Oper *l, *r;
+	declare_two_ops(in, l, r);
 	// o Register/ Opcode Field
 	//   0. NOT_FIELD just op code
 	//   1. NUM_FIELD The value of the opcode extension values from 0 through 7
@@ -106,7 +113,7 @@ void get_two_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 	uc modrm = 0;
 	blat(cmd, (uc *)c->cmd, c->len);
 	if (c->o == NOT_FIELD)
-		;
+		; // {IADD, {0x04}, 1, NOT_FIELD, 0, AL__IMM_8}
 	else if (c->o == NUM_FIELD) {
 		if (is_imm(r)) {
 			modrm = (c->o_num) << 3; // reg
@@ -118,20 +125,25 @@ void get_two_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 				if (l->mod == MOD_MEM) {
 					// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
 					if (l->rm == R_RBP)
-						add_disp(cmd, l, DWORD);
+						add_disp(data, l, DWORD);
 					else if (l->rm == R_RSP) {
 						add_sib(cmd, l);
 						// mod = 00, rm = 100, base = 101 == no base register
 						// and REMEMBER: do disp 32 although mod is 00
 						if (l->base == R_RBP)
-							add_disp(cmd, l, DWORD);
+							add_disp(data, l, DWORD);
 					}
 					// else nothing because already blist_add(cmd, modrm) before
 				} else if (l->mod == MOD_MEM_D8) {
+					if (l->rm == R_RSP)
+						add_sib(cmd, l);
+					add_disp(data, l, BYTE);
 				} else { // l->mod == MOD_MEM_D32
+					if (l->rm == R_RSP)
+						add_sib(cmd, l);
+					add_disp(data, l, DWORD);
 				}
 			}
-
 			add_imm_data(data, r);
 		} else
 			eeg("только числа пока", in);
