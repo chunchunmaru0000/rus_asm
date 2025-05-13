@@ -89,7 +89,9 @@ struct Cmnd {
 	//   - - - r__rm or rm__r, lea uses r__m
 	//   - - - also sreg__rm or rm__sreg
 	//   - - - also xmm, CRn, DRn and maybe more shit
-	//   3. PLUS_REGF When just op code + reg code like B0+r
+	//   3. PLUS_REGF When just op code + reg code
+	//   - BSWAP, PUSH r64/16, POP r64/16, XCHG r16/32/64 rAX
+	//   - B0+r MOV r8 imm8, B8+r MOV r16/32/64 imm16/32/64
 	uc o_num;
 	// instruction number if o == NUM_FIELD
 	enum OpsCode opsc;

@@ -215,7 +215,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(cmd);
 		blist_clear(data);
 
-		if (code == IADD) {
+		if (code == IADD || code == IMOV) {
 			get_ops_code(in, cmd, data);
 
 			if (cmd->size + data->size) {

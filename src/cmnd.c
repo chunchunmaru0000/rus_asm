@@ -188,7 +188,10 @@ void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
 		} else
 			eeg("только р__рм и рм__р пока", in);
 	} else if (c->o == PLUS_REGF) {
-		//   3. PLUS_REGF When just op code + reg code like B0+r
+		//   3. PLUS_REGF When just op code + reg code
+		//   - BSWAP, PUSH r64/16, POP r64/16, XCHG r16/32/64 rAX
+		//   - B0+r MOV r8 imm8, B8+r MOV r16/32/64 imm16/32/64
+		*(cmd->st + cmd->size - 1) += get_reg_field(l->rm);
 	} else
 		eeg("че не так то", in);
 }
