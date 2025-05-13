@@ -146,7 +146,6 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 	g->elfh = new_elfh(g, 0, 0x40, g->phs->size, 0x00, g->shs->size);
 }
 
-const char *UNKNOWN_LABEL = "Неизвестная метка [%s]";
 struct Plov *find_label(struct Gner *g, char *s) {
 	struct Plov *l;
 	for (long i = 0; i < g->lps->size; i++) {
@@ -158,15 +157,6 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	asprintf(&err, UNKNOWN_LABEL, s);
 	eeg(err, plist_get(g->is, g->pos));
 	return 0;
-}
-
-#define REL_SIZE 4
-
-struct Usage *new_usage(uint64_t place, enum UT type) {
-	struct Usage *u = malloc(sizeof(struct Usage));
-	u->place = place;
-	u->type = type;
-	return u;
 }
 
 uint64_t reg2reg(enum RegCode l, enum RegCode r, int size) {
@@ -205,8 +195,14 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	// make
 	struct Plov *l;
 	struct Usage *usage;
+
+	struct Ipcd *ipcd = malloc(sizeof(struct Ipcd));
+	ipcd->data = data;
+	ipcd->cmd = cmd;
+	ipcd->plovs = g->lps;
+	ipcd->not_plovs = new_plist(2);
+
 	long phs_counter = 0, phs_cur_sz;
-	// struct ELFSH *sh;
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
@@ -216,7 +212,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(data);
 
 		if (code == IADD || code == IMOV) {
-			get_ops_code(in, cmd, data);
+			// plist_clear(ipcd->not_plovs);
+			ipcd->in = in;
+			get_ops_code(ipcd);
+			// so here is has a list of denfs with usages relaative to data size
 
 			if (cmd->size + data->size) {
 				blat(g->text, cmd->st, cmd->size);

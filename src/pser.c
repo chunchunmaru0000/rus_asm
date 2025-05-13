@@ -10,10 +10,15 @@ void eep(struct Token *t, char *msg) { // error exit
 			t->view, t->code);
 	exit(1);
 }
-
 void eeg(const char *msg, struct Inst *i) {
 	fprintf(stderr, "%s:%ld:%ld %s\n", i->file, i->line, i->col, msg);
 	exit(1);
+}
+struct Usage *new_usage(uint64_t place, enum UT type) {
+	struct Usage *u = malloc(sizeof(struct Usage));
+	u->place = place;
+	u->type = type;
+	return u;
 }
 
 int get_reg_field(enum RegCode rm) {
@@ -619,6 +624,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 	uint64_t buf;
 	enum ICode code = ILET;
 	struct Defn *d;
+	struct Oper *o;
 
 	while (c->code == SLASH || c->code == SLASHN)
 		c = next_get(p, 0);
@@ -657,11 +663,11 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			d = is_defn(p, c->view);
 			if (!d)
 				break; // break if ID is not size or defn
-
-			if (d->value->code == OINT)
-				blat(data, (uc *)&d->value->t->number, size);
-			else if (d->value->code == OFPN) {
-				c = d->value->t;
+			o = d->value;
+			if (o->code == OINT)
+				blat(data, (uc *)&o->t->number, size);
+			else if (o->code == OFPN) {
+				c = o->t;
 				goto let_i_real;
 			} else
 				eep(c, INVALID_DEFN_USAGE);

@@ -1,8 +1,6 @@
 #include "pser.h"
 #include <stdint.h>
 
-void get_ops_code(struct Inst *, struct BList *, struct BList *);
-
 extern const char *const WRONG_FST_OPER;
 extern const char *const WRONG_FST_OPER_INT;
 extern const char *const WRONG_SND_OPER;
@@ -13,6 +11,7 @@ extern const char *const WRONG_FPN_OP_SIZE;
 extern const char *const REGS_SIZES_NOT_MATCH;
 extern const char *const MEM_REG_SIZES_NOT_MATCH;
 extern const char *const REG_MEM_IMM_SIZES_NOT_MATCH;
+extern const char *const UNKNOWN_LABEL;
 
 // for label and maybe variables that have a string view and ptr to value
 struct Plov {		  // Pointer Label Of Value
@@ -23,6 +22,16 @@ struct Plov {		  // Pointer Label Of Value
 	struct PList *us; // usages
 					  // uint64_t size; // like for db dd dw dq
 };
+
+struct Ipcd {
+	struct Inst *in;
+	struct PList *plovs;
+	struct BList *cmd;
+	struct BList *data;
+	struct PList *not_plovs;
+};
+
+void get_ops_code(struct Ipcd *);
 
 enum OpsCode {
 	OPC_INVALID,
@@ -49,16 +58,6 @@ enum OpsCode {
 	R_16_32_64__IMM_16_32_64,
 	// M_8__M_8, // they are not exists movs odes via rep movsq or just movsq
 	// M_16_32_64__M_16_32_64, // it doesn have operands
-};
-
-enum UT { // Usage Type
-	ADDR,
-	REL_ADDR,
-};
-
-struct Usage {
-	uint64_t place;
-	enum UT type;
 };
 
 #define NOT_FIELD 0

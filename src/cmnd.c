@@ -29,31 +29,45 @@ const char *const WRONG_FPN_SZ =
 const char *const MEM_IMM_SIZE_QWORD =
 	"Инструкция данного типа не может иметь оба значения с размерами вбайт, "
 	"правое выражение должно быть размером чбайт для данного левого выражения.";
+const char *const UNKNOWN_LABEL = "Метка не была найдена [%s]";
 
-void get_zero_ops_code(struct Inst *, struct BList *);
-void get_one_ops_code(struct Inst *, struct BList *, struct BList *);
-void get_two_ops_code(struct Inst *, struct BList *, struct BList *);
+void get_zero_ops_code(struct Ipcd *);
+void get_one_ops_code(struct Ipcd *);
+void get_two_ops_code(struct Ipcd *);
 
-void get_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
-	if (in->os->size == 2)
-		get_two_ops_code(in, cmd, data);
+void get_ops_code(struct Ipcd *i) {
+	if (i->in->os->size == 2)
+		get_two_ops_code(i);
 	else
-		eeg("йцук\n", in);
+		eeg("йцук\n", i->in);
 
-	printf("### команда %ld байт: ", cmd->size);
-	blist_print(cmd);
-	printf("### данные  %ld байт: ", data->size);
-	blist_print(data);
+	printf("### команда %ld байт: ", i->cmd->size);
+	blist_print(i->cmd);
+	printf("### данные  %ld байт: ", i->data->size);
+	blist_print(i->data);
 
-	eeg("эээ\n", in);
+	eeg("эээ\n", i->in);
 }
 
-enum OpsCode get_two_opscode(struct Inst *);
-void get_two_ops_prefs(struct Inst *, struct BList *, enum OpsCode,
-					   const struct Cmnd *);
+enum OpsCode get_two_opscode(struct Inst *in);
+void get_two_ops_prefs(struct Ipcd *, enum OpsCode, const struct Cmnd *);
 const struct Cmnd *get_cmnd(struct Inst *, enum OpsCode);
-void fill_two_ops_cmd_and_data(struct Inst *, struct BList *, struct BList *,
-							   const struct Cmnd *);
+void fill_two_ops_cmd_and_data(struct Ipcd *, const struct Cmnd *);
+
+void get_two_ops_code(struct Ipcd *i) {
+	enum OpsCode code = get_two_opscode(i->in);
+	const struct Cmnd *c = get_cmnd(i->in, code);
+	get_two_ops_prefs(i, code, c);
+	fill_two_ops_cmd_and_data(i, c);
+}
+
+struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut) {
+	struct Defn *np = malloc(sizeof(struct Defn));
+	np->view = view;
+	np->value = new_usage(place, ut);
+	return np;
+}
+
 #define declare_two_ops(in, l, r)                                              \
 	do {                                                                       \
 		(l) = plist_get(in->os, 0);                                            \
@@ -67,61 +81,57 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 	sib += get_reg_field(o->base);
 	blist_add(cmd, sib);
 }
-void add_disp(struct BList *data, struct Oper *o, uc bytes) {
+
+void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 	if (o->disp_is_rel_flag) {
-		printf("ПОКА НЕЛЬЗЯ В смещении ИСПОЛЬЗОВАТЬ МЕТКИ");
-		exit(1);
-	}
-	blat(data, (uc *)&o->disp, bytes);
+		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ADDR));
+		uint32_t some_value = 0x706d6a;
+		blat(i->data, (uc *)&some_value, REL_SIZE);
+	} else
+		blat(i->data, (uc *)&o->disp, bytes);
 }
-void add_imm_data(struct BList *data, struct Oper *o) {
+
+void add_imm_data(struct Ipcd *i, struct Oper *o) {
 	if (o->code == OREL) {
-		printf("ПОКА НЕЛЬЗЯ В imm ИСПОЛЬЗОВАТЬ МЕТКИ");
-		exit(1);
+		// TODO: add OREL in add_imm_data and add_disp
+		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ADDR));
+		uint32_t some_value = 0x706d6a;
+		blat(i->data, (uc *)&some_value, REL_SIZE);
 	} else if (o->code == OINT)
-		blat(data, (uc *)&o->t->number, o->sz);
+		blat(i->data, (uc *)&o->t->number, o->sz);
 	else if (o->code == OFPN) {
 		if (o->sz == DWORD) {
 			float value = o->t->fpn;
-			blat(data, (uc *)&value, DWORD);
+			blat(i->data, (uc *)&value, DWORD);
 		} else if (o->sz == QWORD)
-			blat(data, (uc *)&o->t->fpn, QWORD);
-		else {
-			printf("%s", WRONG_FPN_SZ);
-			exit(1);
-		}
+			blat(i->data, (uc *)&o->t->fpn, QWORD);
+		else
+			eeg(WRONG_FPN_SZ, i->in);
 	}
 }
 
-void add_mem(struct BList *cmd, struct BList *data, struct Oper *m) {
+void add_mem(struct Ipcd *i, struct Oper *m) {
 	if (m->mod == MOD_MEM) {
 		// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
 		if (m->rm == R_RBP)
-			add_disp(data, m, DWORD);
+			add_disp(i, m, DWORD);
 		else if (m->rm == R_RSP) {
-			add_sib(cmd, m);
+			add_sib(i->cmd, m);
 			// mod = 00, rm = 100, base = 101 == no base register
 			// and REMEMBER: do disp 32 although mod is 00
 			if (m->base == R_RBP)
-				add_disp(data, m, DWORD);
+				add_disp(i, m, DWORD);
 		}
 		// else nothing because doesnt care about modrm byte
 	} else if (m->mod == MOD_MEM_D8) {
 		if (m->rm == R_RSP)
-			add_sib(cmd, m);
-		add_disp(data, m, BYTE);
+			add_sib(i->cmd, m);
+		add_disp(i, m, BYTE);
 	} else { // l->mod == MOD_MEM_D32
 		if (m->rm == R_RSP)
-			add_sib(cmd, m);
-		add_disp(data, m, DWORD);
+			add_sib(i->cmd, m);
+		add_disp(i, m, DWORD);
 	}
-}
-
-void get_two_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
-	enum OpsCode code = get_two_opscode(in);
-	const struct Cmnd *c = get_cmnd(in, code);
-	get_two_ops_prefs(in, cmd, code, c);
-	fill_two_ops_cmd_and_data(in, cmd, data, c);
 }
 
 const enum OpsCode RM__R[] = {RM_8__R_8, RM_16_32_64__R_16_32_64};
@@ -140,18 +150,17 @@ int is_r__rm(enum OpsCode c) {
 	return 0;
 }
 
-void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
-							   struct BList *data, const struct Cmnd *c) {
+void fill_two_ops_cmd_and_data(struct Ipcd *i, const struct Cmnd *c) {
 	struct Oper *l, *r;
-	declare_two_ops(in, l, r);
+	declare_two_ops(i->in, l, r);
 	uc modrm = 0;
 
-	blat(cmd, (uc *)c->cmd, c->len);
+	blat(i->cmd, (uc *)c->cmd, c->len);
 	// o Register/ Opcode Field
 	if (c->o == NOT_FIELD) {
 		//   0. NOT_FIELD just op code
 		if (is_imm(r))
-			add_imm_data(data, r);
+			add_imm_data(i, r);
 	} else if (c->o == NUM_FIELD) {
 		//   1. NUM_FIELD The value of the opcode extension values from 0
 		//   through 7
@@ -165,12 +174,12 @@ void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
 			modrm = (c->o_num) << 3; // r
 			modrm += l->mod << 6;
 			modrm += get_reg_field(l->rm);
-			blist_add(cmd, modrm);
+			blist_add(i->cmd, modrm);
 			if (is_mem(l))
-				add_mem(cmd, data, l);
-			add_imm_data(data, r);
+				add_mem(i, l);
+			add_imm_data(i, r);
 		} else
-			eeg("только числа пока", in);
+			eeg("только числа пока", i->in);
 	} else if (c->o == REG_FIELD) {
 		//   2. REG_FIELD r indicates that the ModR/M byte contains a register
 		//   - operand and an r/m operand. 00 ADD
@@ -182,27 +191,27 @@ void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
 			modrm += l->mod << 6;				// mod
 			modrm += get_reg_field(r->rm) << 3; // r
 			modrm += get_reg_field(l->rm);		// rm
-			blist_add(cmd, modrm);
+			blist_add(i->cmd, modrm);
 			if (is_mem(l))
-				add_mem(cmd, data, l);
+				add_mem(i, l);
 		} else if (is_r__rm(c->opsc)) {
 			modrm += r->mod << 6;				// mod
 			modrm += get_reg_field(l->rm) << 3; // r
 			modrm += get_reg_field(r->rm);		// rm
-			blist_add(cmd, modrm);
+			blist_add(i->cmd, modrm);
 			if (is_mem(r))
-				add_mem(cmd, data, r);
+				add_mem(i, r);
 		} else
-			eeg("только р__рм и рм__р пока", in);
+			eeg("только р__рм и рм__р пока", i->in);
 	} else if (c->o == PLUS_REGF) {
 		//   3. PLUS_REGF When just op code + reg code
 		//   - BSWAP, PUSH r64/16, POP r64/16, XCHG r16/32/64 rAX
 		//   - B0+r MOV r8 imm8, B8+r MOV r16/32/64 imm16/32/64
-		*(cmd->st + cmd->size - 1) += get_reg_field(l->rm);
-		if (is_imm(r))
-			add_imm_data(data, r);
+		*(i->cmd->st + i->cmd->size - 1) += get_reg_field(l->rm);
+		if (i->in->code == IMOV)
+			add_imm_data(i, r);
 	} else
-		eeg("че не так то", in);
+		eeg("че не так то", i->in);
 }
 
 const enum OpsCode RM_L[] = {RM_8__R_8, RM_16_32_64__R_16_32_64, RM_8__IMM_8,
@@ -461,21 +470,21 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	return code;
 }
 
-void get_two_ops_prefs(struct Inst *in, struct BList *cmd, enum OpsCode code,
+void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code,
 					   const struct Cmnd *c) {
 	struct Oper *l, *r;
-	declare_two_ops(in, l, r);
+	declare_two_ops(i->in, l, r);
 	// {lock}     fs repne scas   word [edi] ->
 	// {f0}   [64 fs][f2   scas] [67   is_r32(r)][66 is_16(r)] af
 	// mov word[r8d], 255 -> 67 6641 c700 ff00
 
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
 	if (is_mem32(l) || is_mem32(r))
-		blist_add(cmd, 0x67);
+		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// TODO: check if its possible for r to be 16-bit
 	if (!is_seg(l) && is_16(l))
-		blist_add(cmd, 0x66);
+		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;
 	if (is_64(l) || is_64(r))
@@ -508,7 +517,7 @@ void get_two_ops_prefs(struct Inst *in, struct BList *cmd, enum OpsCode code,
 		}
 	}
 	if (rex != 0b01000000)
-		blist_add(cmd, rex);
+		blist_add(i->cmd, rex);
 }
 
 const struct Cmnd *get_cmnd(struct Inst *in, enum OpsCode code) {

@@ -1,4 +1,5 @@
 #include "tzer.h"
+#include <stdint.h>
 
 #define BYTE 1
 #define WORD 2
@@ -18,6 +19,17 @@
 #define REX_W 0b1000
 
 uc sc(char *, const char *);
+#define REL_SIZE 4
+enum UT { // Usage Type
+	ADDR,
+	REL_ADDR,
+};
+
+struct Usage {
+	uint64_t place;
+	enum UT type;
+};
+struct Usage *new_usage(uint64_t, enum UT);
 
 struct Pser {
 	struct PList *ts; // tokens
@@ -195,7 +207,7 @@ int get_reg_field(enum RegCode);
 
 struct Defn {
 	char *view;
-	struct Oper *value;
+	void *value;
 };
 
 struct Inst {
