@@ -85,6 +85,10 @@ struct Cmnd {
 	//   - - just usual mod and R/M fields with SIB if needed
 	//   2. REG_FIELD r indicates that the ModR/M byte contains a register
 	//   - operand and an r/m operand. 00 ADD
+	//   - - primary used with
+	//   - - - r__rm or rm__r, lea uses r__m
+	//   - - - also sreg__rm or rm__sreg
+	//   - - - also xmm, CRn, DRn and maybe more shit
 	//   3. PLUS_REGF When just op code + reg code like B0+r
 	uc o_num;
 	// instruction number if o == NUM_FIELD

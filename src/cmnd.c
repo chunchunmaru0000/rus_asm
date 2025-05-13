@@ -46,8 +46,8 @@ void get_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 enum OpsCode get_two_opscode(struct Inst *);
 void get_two_ops_prefs(struct Inst *, struct BList *, enum OpsCode);
 const struct Cmnd *get_cmnd(struct Inst *, enum OpsCode);
-void fill_cmd_and_data(struct Inst *, struct BList *, struct BList *,
-					   const struct Cmnd *);
+void fill_two_ops_cmd_and_data(struct Inst *, struct BList *, struct BList *,
+							   const struct Cmnd *);
 #define declare_two_ops(in, l, r)                                              \
 	do {                                                                       \
 		(l) = plist_get(in->os, 0);                                            \
@@ -88,68 +88,107 @@ void add_imm_data(struct BList *data, struct Oper *o) {
 	}
 }
 
+void add_mem(struct BList *cmd, struct BList *data, struct Oper *m) {
+	if (m->mod == MOD_MEM) {
+		// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
+		if (m->rm == R_RBP)
+			add_disp(data, m, DWORD);
+		else if (m->rm == R_RSP) {
+			add_sib(cmd, m);
+			// mod = 00, rm = 100, base = 101 == no base register
+			// and REMEMBER: do disp 32 although mod is 00
+			if (m->base == R_RBP)
+				add_disp(data, m, DWORD);
+		}
+		// else nothing because doesnt care about modrm byte
+	} else if (m->mod == MOD_MEM_D8) {
+		if (m->rm == R_RSP)
+			add_sib(cmd, m);
+		add_disp(data, m, BYTE);
+	} else { // l->mod == MOD_MEM_D32
+		if (m->rm == R_RSP)
+			add_sib(cmd, m);
+		add_disp(data, m, DWORD);
+	}
+}
+
 void get_two_ops_code(struct Inst *in, struct BList *cmd, struct BList *data) {
 	enum OpsCode code = get_two_opscode(in);
 	get_two_ops_prefs(in, cmd, code);
-	fill_cmd_and_data(in, cmd, data, get_cmnd(in, code));
+	fill_two_ops_cmd_and_data(in, cmd, data, get_cmnd(in, code));
 }
 
-void fill_cmd_and_data(struct Inst *in, struct BList *cmd, struct BList *data,
-					   const struct Cmnd *c) {
+const enum OpsCode RM__R[] = {RM_8__R_8, RM_16_32_64__R_16_32_64};
+const enum OpsCode R__RM[] = {R_8__RM_8, R_16_32_64__RM_16_32_64};
+
+int is_rm__r(enum OpsCode c) {
+	for (size_t i = 0; i < lenofarr(RM__R); i++)
+		if (c == RM__R[i])
+			return 1;
+	return 0;
+}
+int is_r__rm(enum OpsCode c) {
+	for (size_t i = 0; i < lenofarr(R__RM); i++)
+		if (c == R__RM[i])
+			return 1;
+	return 0;
+}
+
+void fill_two_ops_cmd_and_data(struct Inst *in, struct BList *cmd,
+							   struct BList *data, const struct Cmnd *c) {
 	struct Oper *l, *r;
 	declare_two_ops(in, l, r);
-	// o Register/ Opcode Field
-	//   0. NOT_FIELD just op code
-	//   1. NUM_FIELD The value of the opcode extension values from 0 through 7
-	//   - like ModR/M byte where Reg field is for o_num
-	//   - - primary used with imm or ?const regs?
-	//   - this "ModR/M" byte also have mod and if its just reg and imm then
-	//   - - mod = 11 and R/M field means just reg code
-	//   - if mod != 11 then it behaves as
-	//   - - just usual mod and R/M fields with SIB if needed
-	//   2. REG_FIELD r indicates that the ModR/M byte contains a register
-	//   operand and an r/m operand. 00 ADD
-	//   3. PLUS_REGF When just op code + reg code like B0+r
 	uc modrm = 0;
+
 	blat(cmd, (uc *)c->cmd, c->len);
+	// o Register/ Opcode Field
 	if (c->o == NOT_FIELD)
-		; // {IADD, {0x04}, 1, NOT_FIELD, 0, AL__IMM_8}
+		//   0. NOT_FIELD just op code
+		eeg("ал, ра", in); // {IADD, {0x04}, 1, NOT_FIELD, 0, AL__IMM_8}
 	else if (c->o == NUM_FIELD) {
+		//   1. NUM_FIELD The value of the opcode extension values from 0
+		//   through 7
+		//   - like ModR/M byte where Reg field is for o_num
+		//   - - primary used with imm or ?const regs?
+		//   - this "ModR/M" byte also have mod and if its just reg and imm then
+		//   - - mod = 11 and R/M field means just reg code
+		//   - if mod != 11 then it behaves as
+		//   - - just usual mod and R/M fields with SIB if needed
 		if (is_imm(r)) {
-			modrm = (c->o_num) << 3; // reg
+			modrm = (c->o_num) << 3; // r
 			modrm += l->mod << 6;
 			modrm += get_reg_field(l->rm);
 			blist_add(cmd, modrm);
-
-			if (is_mem(l)) {
-				if (l->mod == MOD_MEM) {
-					// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
-					if (l->rm == R_RBP)
-						add_disp(data, l, DWORD);
-					else if (l->rm == R_RSP) {
-						add_sib(cmd, l);
-						// mod = 00, rm = 100, base = 101 == no base register
-						// and REMEMBER: do disp 32 although mod is 00
-						if (l->base == R_RBP)
-							add_disp(data, l, DWORD);
-					}
-					// else nothing because already blist_add(cmd, modrm) before
-				} else if (l->mod == MOD_MEM_D8) {
-					if (l->rm == R_RSP)
-						add_sib(cmd, l);
-					add_disp(data, l, BYTE);
-				} else { // l->mod == MOD_MEM_D32
-					if (l->rm == R_RSP)
-						add_sib(cmd, l);
-					add_disp(data, l, DWORD);
-				}
-			}
+			if (is_mem(l))
+				add_mem(cmd, data, l);
 			add_imm_data(data, r);
 		} else
 			eeg("только числа пока", in);
 	} else if (c->o == REG_FIELD) {
-
+		//   2. REG_FIELD r indicates that the ModR/M byte contains a register
+		//   - operand and an r/m operand. 00 ADD
+		//   - - primary used with
+		//   - - - r__rm or rm__r, lea uses r__m
+		//   - - - also sreg__rm or rm__sreg
+		//   - - - also xmm, CRn, DRn and maybe more shit
+		if (is_rm__r(c->opsc)) {
+			modrm += l->mod << 6;				// mod
+			modrm += get_reg_field(r->rm) << 3; // r
+			modrm += get_reg_field(l->rm);		// rm
+			blist_add(cmd, modrm);
+			if (is_mem(l))
+				add_mem(cmd, data, l);
+		} else if (is_r__rm(c->opsc)) {
+			modrm += r->mod << 6;				// mod
+			modrm += get_reg_field(l->rm) << 3; // r
+			modrm += get_reg_field(r->rm);		// rm
+			blist_add(cmd, modrm);
+			if (is_mem(r))
+				add_mem(cmd, data, r);
+		} else
+			eeg("только р__рм и рм__р пока", in);
 	} else if (c->o == PLUS_REGF) {
+		//   3. PLUS_REGF When just op code + reg code like B0+r
 	} else
 		eeg("че не так то", in);
 }
@@ -331,11 +370,12 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_rm(l) && is_imm(r)) {
+			if (l->sz < r->sz)
+				r->sz = l->sz;
 			if (is_imm_can_be_a_byte(r))
 				r->sz = BYTE;
 			// TODO: check this out more
-			if (l->sz != r->sz &&
-				!(is_64(l) && is_32(r)) &&
+			if (l->sz != r->sz && !(is_64(l) && is_32(r)) &&
 				!(!is_8(l) && is_8(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
 			if (is_al(l))
