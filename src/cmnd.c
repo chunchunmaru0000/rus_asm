@@ -331,8 +331,12 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_rm(l) && is_imm(r)) {
-			// TODO: check this out
-			if (l->sz < r->sz) // l->sz != r->sz && !(is_64(l) && is_32(r)))
+			if (is_imm_can_be_a_byte(r))
+				r->sz = BYTE;
+			// TODO: check this out more
+			if (l->sz != r->sz &&
+				!(is_64(l) && is_32(r)) &&
+				!(!is_8(l) && is_8(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
 			if (is_al(l))
 				code = AL__IMM_8;

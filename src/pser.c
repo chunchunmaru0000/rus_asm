@@ -399,7 +399,7 @@ struct Oper *expression(struct Pser *p) {
 		ot = t0;
 		break;
 	case REAL:
-		set_tc(&t0, cp, t0, OFPN, &o->sz, DWORD);
+		set_tc(&t0, cp, t0, OFPN, &o->sz, QWORD);
 		ot = t0;
 		break;
 	case STR:

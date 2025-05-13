@@ -242,12 +242,14 @@ struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
 #define is_64(o) ((o)->sz == QWORD)
 #define is_al(o) ((o)->code == OREG && (o)->rm == R_AL)
 #define is_rA(o)                                                               \
-	((o)->code ==                                                               \
-		 OREG && ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
+	((o)->code == OREG &&                                                      \
+	 ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
 #define is_sib(o) ((o)->rm == R_RSI)
 #define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == DWORD)
+#define is_imm_can_be_a_byte(o)                                                \
+	((o)->code == OINT && o->t->number >= -128 && o->t->number <= 127)
 
 enum RegCode get_mem_reg(enum RegCode);
 void eeg(const char *, struct Inst *);
