@@ -9,15 +9,15 @@ int main(int argc, char **args) {
 		exit(1);
 	}
 	if (access(args[1], F_OK) != 0) {
-		printf(
-			"ОШИБКА: Файл [%s] с предполагаемым исходным кодом не существует\n",
-			args[1]);
+		printf("ОШИБКА: Файл [%s] с предполагаемым исходным кодом не "
+			   "существует или не доступен\n",
+			   args[1]);
 		exit(1);
 	}
 	char *filename = args[1];
 	char *outname = args[2];
 	enum Target tr = Linux_ELF_86_64; // also need to be in args later
-	uc debug = 0b01; // 0b10 prints cmnds by bytes
+	uc debug = 0b01;				  // 0b10 prints cmnds by bytes
 
 	struct Pser *p = new_pser(filename, debug);
 	struct PList *is = pse(p);

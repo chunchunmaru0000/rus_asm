@@ -4,23 +4,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-const char *const COLOR_BLACK = "\x1B[30m";
-const char *const COLOR_RED = "\x1B[31m";
-const char *const COLOR_GREEN = "\x1B[32m";
-const char *const COLOR_YELLOW = "\x1B[33m";
-const char *const COLOR_BLUE = "\x1B[34m";
-const char *const COLOR_PURPLE = "\x1B[35m";
-const char *const COLOR_GAY = "\x1B[36m";
-const char *const COLOR_WHITE = "\x1B[37m";
-const char *const COLOR_RESET = "\x1B[0m";
-
 char *fn;
+char *source_code;
+
 void eep(struct Token *t, char *msg) { // error exit
+	print_source_line(source_code, t->line);
 	fprintf(stderr, "%s%s:%ld:%ld %s [%s]:[%d]%s\n", COLOR_RED, fn, t->line,
 			t->col, msg, t->view, t->code, COLOR_RESET);
 	exit(1);
 }
 void eeg(const char *msg, struct Inst *i) {
+	print_source_line(source_code, i->line);
 	fprintf(stderr, "%s%s:%ld:%ld %s%s\n", COLOR_RED, i->file, i->line, i->col,
 			msg, COLOR_RESET);
 	exit(1);
@@ -64,6 +58,7 @@ struct Pser *new_pser(char *filename, uc debug) {
 	fn = filename;
 	struct Pser *p = malloc(sizeof(struct Pser));
 	struct Tzer *t = new_tzer(filename);
+	source_code = t->code;
 	struct PList *ts = tze(t, 10);
 	free(t);
 	p->pos = 0;
