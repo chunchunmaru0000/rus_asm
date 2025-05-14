@@ -4,17 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *fn;
-void eep(struct Token *t, char *msg) { // error exit
-	fprintf(stderr, "%s:%ld:%ld %s [%s]:[%d]\n", fn, t->line, t->col, msg,
-			t->view, t->code);
-	exit(1);
-}
-void eeg(const char *msg, struct Inst *i) {
-	fprintf(stderr, "%s:%ld:%ld %s\n", i->file, i->line, i->col, msg);
-	exit(1);
-}
-
 const char *const COLOR_BLACK = "\x1B[30m";
 const char *const COLOR_RED = "\x1B[31m";
 const char *const COLOR_GREEN = "\x1B[32m";
@@ -24,6 +13,18 @@ const char *const COLOR_PURPLE = "\x1B[35m";
 const char *const COLOR_GAY = "\x1B[36m";
 const char *const COLOR_WHITE = "\x1B[37m";
 const char *const COLOR_RESET = "\x1B[0m";
+
+char *fn;
+void eep(struct Token *t, char *msg) { // error exit
+	fprintf(stderr, "%s%s:%ld:%ld %s [%s]:[%d]%s\n", COLOR_RED, fn, t->line,
+			t->col, msg, t->view, t->code, COLOR_RESET);
+	exit(1);
+}
+void eeg(const char *msg, struct Inst *i) {
+	fprintf(stderr, "%s%s:%ld:%ld %s%s\n", COLOR_RED, i->file, i->line, i->col,
+			msg, COLOR_RESET);
+	exit(1);
+}
 
 // print warning inst
 void pwi(const char *const c, const char *msg, struct Inst *i) {
@@ -224,6 +225,7 @@ int search_size(char *v, struct Oper **o, struct Pser *p) {
 			if ((*o)->code == OREG)
 				eep((*o)->t, CANT_CHANGE_REG_SZ);
 			(*o)->sz = 1 << i;
+			(*o)->forsed_sz = 1;
 			return 1;
 		}
 	return 0;
@@ -399,6 +401,7 @@ struct Oper *expression(struct Pser *p) {
 	o->base = R_NONE;
 	o->rm = R_NONE;
 	o->rex = 0;
+	o->forsed_sz = 0;
 	o->sz = DWORD;
 
 	struct PList *sib = new_plist(4);

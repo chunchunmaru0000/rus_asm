@@ -198,6 +198,7 @@ struct Oper { // operand
 	enum OCode code;
 	struct Token *t;
 	uc sz;
+	uc forsed_sz; // if like size override(like mov rax, qword[rax])
 	enum RegCode rm; // OMEM and rsp then does SIB, mod 00 and rbp does rel
 	uc mem_sz; // size of regs in addr DWORD or QWORD, DWORD means 0x67 flag
 	uc rex;

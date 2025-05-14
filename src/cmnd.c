@@ -19,7 +19,8 @@ const char *const WRONG_FPN_OP_SIZE =
 	"Недопустимый размер для числа с плавающей "
 	"точкой, минимальный - <чбайт> 4 байта, "
 	"майсимальный - <вбайт> 8 байт";
-const char *const REGS_SIZES_NOT_MATCH = "Размеры регистров не совпадают.";
+const char *const REGS_SIZES_NOT_MATCH =
+	"Размеры регистров или памяти не совпадают.";
 const char *const MEM_REG_SIZES_NOT_MATCH =
 	"Размеры памяти и регистра не совпадают.";
 const char *const REG_MEM_IMM_SIZES_NOT_MATCH =
@@ -89,11 +90,12 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 
 void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 	if (o->disp_is_rel_flag) {
-		enum UT ut = ADDR;
-		if (ut == ADDR && o->sz < DWORD)
+		// TODO: rel8 also can exist
+		if (o->sz < DWORD)
 			eeg(WRONG_ADDR_SZ, i->in);
 
-		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ut));
+		struct Defn *np = new_not_plov(o->rel_view, i->data->size, REL_ADDR);
+		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
 
@@ -103,12 +105,12 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 
 void add_imm_data(struct Ipcd *i, struct Oper *o) {
 	if (o->code == OREL) {
-		enum UT ut = ADDR;
-		if (ut == ADDR && o->sz < DWORD)
+		if (o->sz < DWORD)
 			eeg(WRONG_ADDR_SZ, i->in);
 
 		// TODO: add REL_ADDR
-		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ut));
+		struct Defn *np = new_not_plov(o->t->view, i->data->size, ADDR);
+		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
 
@@ -392,6 +394,19 @@ const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
 	"ПРЕДУПРЕЖДЕНИЕ: Размер числа был вбайт, но данный тип инструкций не "
 	"поддерживает числа таких размеров, поэтому скорее всего размер числа "
 	"будет урезан.";
+const char *const WARN_CHANGE_MEM_SIZE =
+	"ПРЕДУПРЕЖДЕНИЕ: Размер адресанта не был равен размеру регистра, но при "
+	"этом был явно указан, его размер будет изменен под размер регистра.";
+
+void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
+	if (is_mem(rm) && rm->sz != r->sz) {
+		if (rm->forsed_sz)
+			pwi(COLOR_PURPLE, WARN_CHANGE_MEM_SIZE, in);
+		rm->sz = r->sz;
+	}
+	if (rm->sz != r->sz)
+		eeg(REGS_SIZES_NOT_MATCH, in);
+}
 
 enum OpsCode get_two_opscode(struct Inst *in) {
 	struct Oper *l, *r;
@@ -409,12 +424,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case ICMP:
 	case ITEST:
 		if (is_rm(l) && is_reg(r)) {
-			if (l->sz != r->sz)
-				eeg(REGS_SIZES_NOT_MATCH, in);
+			change_m_sz(in, r, l);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
 		} else if (is_reg(l) && is_rm(r)) {
-			if (l->sz != r->sz)
-				eeg(MEM_REG_SIZES_NOT_MATCH, in);
+			change_m_sz(in, l, r);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_rm(l) && is_imm(r)) {
 			// TODO: better warnings or even errors?
@@ -446,12 +459,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		break;
 	case IMOV:
 		if (is_rm(l) && is_reg(r)) {
-			if (l->sz != r->sz)
-				eeg(REGS_SIZES_NOT_MATCH, in);
+			change_m_sz(in, r, l);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
 		} else if (is_reg(l) && is_rm(r)) {
-			if (l->sz != r->sz)
-				eeg(MEM_REG_SIZES_NOT_MATCH, in);
+			change_m_sz(in, l, r);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_seg(r)) {
 			if (is_mem(l) && is_16(l))
