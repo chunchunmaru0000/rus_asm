@@ -159,37 +159,17 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	return 0;
 }
 
-uint64_t reg2reg(enum RegCode l, enum RegCode r, int size) {
-	uint64_t v = 0;
-	enum RegCode lmin, rmin;
-
-	switch (size) {
-	case QWORD:
-		lmin = l >= R_RAX && l <= R_RDI ? R_RAX : R_R8;
-		rmin = r >= R_RAX && r <= R_RDI ? R_RAX : R_R8;
-		v = (l - lmin) + (r - rmin) * 8;
-		break;
-	case DWORD:
-
-		break;
-	case WORD:
-		break;
-	case BYTE:
-		break;
-	}
-	return v;
-}
-
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
-	struct BList *cmd = new_blist(16), *data = new_blist(8);
-	uint64_t some_value = 0, vlen = 0;
+	struct BList *cmd = new_blist(16), *data = new_blist(16);
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
+	// ?
+	uint64_t some_value = 0;
+	struct Oper *ol;
 	// take
 	struct Inst *in;
 	struct Token *tok;
-	struct Oper * or, *ol;
 	struct BList *data_bl;
 	struct ELFPH *ph, *phl;
 	// make
@@ -212,7 +192,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(cmd);
 		blist_clear(data);
 
-		if (code == IADD || code == IMOV) {
+		switch (code) {
+		case IADD:
+		case IOR:
+		case IADC:
+		case ISBB:
+		case IAND:
+		case ISUB:
+		case IXOR:
+		case ICMP:
+		case ITEST:
+		case IMOV:
 			ipcd->in = in;
 			get_ops_code(ipcd);
 			// so here is has a list of denfs with usages relative to data size
@@ -223,122 +213,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
 				plist_add(l->us, usage);
 			}
-			// TODO: free valus(usages) of defns
 			plist_clear_items_free(ipcd->not_plovs);
-
-			if (cmd->size + data->size) {
-				blat(g->text, cmd->st, cmd->size);
-				blat(g->text, data->st, data->size);
-
-				phs_cur_sz += cmd->size + data->size;
-
-				blist_clear(cmd);
-				blist_clear(data);
-			}
-			continue;
-		} else if (code == IMOV) {
-			ol = plist_get(in->os, 0);
-			or = plist_get(in->os, 1);
-			switch (ol->code) {
-			case OREG:
-				switch (or->code) {
-				case OREG:
-					if (ol->sz != or->sz)
-						eeg(REGS_SIZES_NOT_MATCH, in);
-					some_value = reg2reg(ol->rm, or->rm, ol->sz);
-					switch (ol->sz) {
-					case QWORD:
-						vlen = 3;
-						some_value = (some_value << 16) + 0xc08948;
-						break;
-					case DWORD:
-						break;
-					case WORD:
-						break;
-					case BYTE:
-						break;
-					}
-					blat(cmd, (uc *)&some_value, vlen);
-					break;
-				case OINT:
-				case OFPN:
-				case OREL:
-					if (or->sz == DWORD) {
-						if (ol->rm >= R_EAX && ol->rm <= R_EDI) {
-							vlen = 1;
-							some_value = 0xb8 + ol->rm - R_EAX;
-						} else if (ol->rm >= R_R8D && ol->rm <= R_R15D) {
-							vlen = 2;
-							some_value = ((0xb8 + ol->rm - R_R8D) << 8) + 0x41;
-						} else if (ol->rm >= R_RAX && ol->rm <= R_RDI) {
-							vlen = 3;
-							some_value =
-								((0xc0 + ol->rm - R_RAX) << 16) + 0xc748;
-						} else if (ol->rm >= R_R8 && ol->rm <= R_R15) {
-							vlen = 3;
-							some_value =
-								((0xc0 + ol->rm - R_R8) << 16) + 0xc749;
-						} else
-							eeg(WRONG_FST_OPER_REG_DWORD, in);
-					} else if (or->sz == QWORD) {
-						if (ol->rm >= R_RAX && ol->rm <= R_RDI) {
-							vlen = 2;
-							some_value = ((0xb8 + ol->rm - R_RAX) << 8) + 0x48;
-						} else if (ol->rm >= R_R8 && ol->rm <= R_R15) {
-							vlen = 2;
-							some_value = ((0xb8 + ol->rm - R_R8) << 8) + 0x49;
-						} else
-							eeg(WRONG_FST_OPER_REG_QWORD, in);
-					} else
-						eeg(WRONG_SND_OPER_SIZE, in);
-
-					blat(cmd, (uc *)&some_value, vlen);
-
-					tok = or->t;
-					if (or->code == OINT)
-						blat(data, (uc *)&tok->number, or->sz);
-					else if (or->code == OFPN) {
-						if (or->sz == DWORD) {
-							float tmp_real = (float)tok->fpn;
-							blat(data, (uc *)&tmp_real, DWORD);
-						} else if (or->sz == QWORD)
-							blat(data, (uc *)&tok->fpn, QWORD);
-						else
-							eeg(WRONG_FPN_OP_SIZE, in);
-					} else {
-						some_value = 0x766f6d6c;
-						blat(data, (uc *)&some_value, or->sz);
-
-						l = find_label(g, tok->view);
-						usage = new_usage((uint64_t)(g->text->size) + cmd->size,
-										  ADDR);
-						plist_add(l->us, usage);
-					}
-					break;
-				default:
-					if (g->debug)
-						printf("прав код = %d\t", or->code);
-					eeg(WRONG_SND_OPER, in);
-				}
-				break;
-			default:
-				if (g->debug)
-					printf("лев  код = %d\t", ol->code);
-				eeg(WRONG_FST_OPER, in);
-			}
-			if (cmd->size + data->size) {
-				blat(g->text, cmd->st, cmd->size);
-				blat(g->text, data->st, data->size);
-
-				phs_cur_sz += cmd->size + data->size;
-
-				blist_clear(cmd);
-				blist_clear(data);
-			}
-			continue;
-		}
-
-		switch (code) {
+			break;
 		//  TODO: near jmp
 		case IJMP:
 			ol = plist_get(in->os, 0);

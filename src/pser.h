@@ -155,6 +155,7 @@ enum RegCode {
 };
 
 enum ICode {
+	// directives
 	INONE,
 	IEOI, // end of instructions
 	IENTRY,
@@ -163,7 +164,7 @@ enum ICode {
 	ILABEL,
 	ILET,
 	IDATA,
-
+	// two ops
 	IADD,
 	IOR,
 	IADC,
@@ -173,18 +174,18 @@ enum ICode {
 	IXOR,
 	ICMP,
 	ITEST,
-
+	// two ops other
+	IMOV,
+	IIMUL,
+	// one op
 	IPUSH,
 	IPOP,
-	IIMUL,
 	IJMP,
-	IMOV,
-
-	IRET,
-	INOP,
-
-	ICALL,
+	// zero ops
 	ISYSCALL,
+	INOP,
+	ICALL,
+	IRET,
 	// TODO: LOCK will be an instruction as its always first pref
 };
 
@@ -219,6 +220,11 @@ int get_reg_field(enum RegCode);
 struct Defn {
 	char *view;
 	void *value;
+};
+
+struct Word {
+	char *view;
+	enum ICode inst;
 };
 
 struct Inst {

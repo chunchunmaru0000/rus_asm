@@ -109,14 +109,16 @@ const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // instruction words
 const char *STR_NOP = "ыыы";
-const char *STR_IJMP = "идти";
-const char *STR_IMOV = "быть";
-const char *STR_IADD = "плюс";
-const char *STR_ISUB = "минс";
-const char *STR_IMUL = "зумн";
-const char *TWO_OPS_STRS[] = {"быть", "плюс", "минс", "зумн"};
 const char *STR_CALL = "зов";
 const char *STR_SCAL = "сзов";
+const char *STR_IJMP = "идти";
+
+const struct Word TWO_OPS_WORDS[] = {
+	{"быть", IMOV},	 {"плюс", IADD}, {"минс", ISUB}, {"зумн", IIMUL},
+	{"проб", ITEST}, {"срав", ICMP}, {"или", IOR},	 {"и", IAND},
+	{"искл", IXOR},	 {"плюн", IADC}, // carry - нести
+	{"минн", ISBB},					 // bottom - низ
+};
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
 							   {R_SS, "сс"},	 {R_FS, "фс"}, {R_GS, "гс"},
@@ -197,23 +199,10 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 
 struct Oper *expression(struct Pser *);
 
-enum ICode two_ops_i(struct Pser *p, struct PList *os) {
-	char *v = ((struct Token *)gettp(p, 0))->view;
-	enum ICode code;
-
-	if (sc(v, STR_IMOV))
-		code = IMOV;
-	else if (sc(v, STR_IADD))
-		code = IADD;
-	else if (sc(v, STR_ISUB))
-		code = ISUB;
-	else if (sc(v, STR_IMUL))
-		code = IIMUL;
-	// else
+enum ICode two_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
 	next_get(p, 0); // skip instruction
 	plist_add(os, expression(p));
 	plist_add(os, expression(p));
-
 	return code;
 }
 
@@ -746,9 +735,12 @@ struct Inst *get_inst(struct Pser *p) {
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
-		if (cont_str(cv, TWO_OPS_STRS, lenofarr(TWO_OPS_STRS)))
-			code = two_ops_i(p, os);
-		else if (sc(cv, STR_SCAL))
+		for (size_t i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
+			if (sc(cv, TWO_OPS_WORDS[i].view)) {
+				code = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
+				goto there_is_inst;
+			}
+		if (sc(cv, STR_SCAL))
 			code = no_ops_inst(p, ISYSCALL);
 		else if (n->code == COLO)
 			code = label_i(p, os);
@@ -768,7 +760,7 @@ struct Inst *get_inst(struct Pser *p) {
 			eep(n, "НЕИЗВЕСТНАЯ КОМАНДА");
 	} else
 		eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
-
+there_is_inst:
 	return new_inst(code, os, cur);
 }
 

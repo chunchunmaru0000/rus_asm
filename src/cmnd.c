@@ -56,12 +56,12 @@ void get_ops_code(struct Ipcd *i) {
 
 enum OpsCode get_two_opscode(struct Inst *in);
 void get_two_ops_prefs(struct Ipcd *, enum OpsCode, const struct Cmnd *);
-const struct Cmnd *get_cmnd(struct Inst *, enum OpsCode);
+const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
 void fill_two_ops_cmd_and_data(struct Ipcd *, const struct Cmnd *);
 
 void get_two_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_two_opscode(i->in);
-	const struct Cmnd *c = get_cmnd(i->in, code);
+	const struct Cmnd *c = get_cmnd(i, code);
 	get_two_ops_prefs(i, code, c);
 	fill_two_ops_cmd_and_data(i, c);
 }
@@ -366,6 +366,10 @@ const struct Cmnd cmnds[] = {
 	{IMOV, {0x89}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
 	{IMOV, {0x8a}, 1, REG_FIELD, 0, R_8__RM_8},
 	{IMOV, {0x8b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IMOV, {0xb0}, 1, PLUS_REGF, 0, R_8__IMM_8},
+	{IMOV, {0xb8}, 1, PLUS_REGF, 0, R_16_32_64__IMM_16_32_64},
+	{IMOV, {0xc6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
+	{IMOV, {0xc7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
 	//		sregs
 	{IMOV, {0x8c}, 1, REG_FIELD, 0, M_16__SREG},
 	{IMOV, {0x8c}, 1, REG_FIELD, 0, R_16_32_64__SREG},
@@ -375,11 +379,13 @@ const struct Cmnd cmnds[] = {
 	{IMOV, {0xa1}, 1, NOT_FIELD, 0, RAX__MOFFS_16_32_64},
 	{IMOV, {0xa2}, 1, NOT_FIELD, 0, MOFFS_8__AL},
 	{IMOV, {0xa3}, 1, NOT_FIELD, 0, MOFFS_16_32_64__RAX},
-	//		imms
-	{IMOV, {0xb0}, 1, PLUS_REGF, 0, R_8__IMM_8},
-	{IMOV, {0xb8}, 1, PLUS_REGF, 0, R_16_32_64__IMM_16_32_64},
-	{IMOV, {0xc6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
-	{IMOV, {0xc7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
+	// test
+	{ITEST, {0x84}, 1, REG_FIELD, 0, RM_8__R_8},
+	{ITEST, {0x85}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
+	{ITEST, {0xa8}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{ITEST, {0xa9}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
+	{ITEST, {0xf6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
+	{ITEST, {0xf7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
@@ -549,18 +555,23 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code,
 		blist_add(i->cmd, rex);
 }
 
-const struct Cmnd *get_cmnd(struct Inst *in, enum OpsCode code) {
+const char *const WRONG_INST_OPS =
+	"Для данной инструкции и выражений не мыбо найдено подходящего кода, "
+	"возможно выражения были неверные.";
+
+const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
 	const struct Cmnd *c = 0, *ct;
-	for (size_t i = 0; i < lenofarr(cmnds); i++) {
-		ct = cmnds + i; //&cmnds[i];
-		if (ct->inst == in->code && ct->opsc == code) {
+	for (size_t j = 0; j < lenofarr(cmnds); j++) {
+		ct = cmnds + j; //&cmnds[j];
+		if (ct->inst == i->in->code && ct->opsc == code) {
 			c = ct;
 			break;
 		}
 	}
 	if (c == 0) {
-		printf("инструкция %d, типы операндов %d\n", in->code, code);
-		eeg("НЕ НАЙДЕН КОД ИНСТРУКЦИИ", in);
+		if (i->debug)
+			printf("### инструкция %d, типы операндов %d\n", i->in->code, code);
+		eeg(WRONG_INST_OPS, i->in);
 	}
 	return c;
 }
