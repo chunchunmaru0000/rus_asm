@@ -18,6 +18,20 @@ void plist_free(struct PList *l) {
 	free(l);
 }
 
+void plist_clear(struct PList *l) {
+	if (l->cap != l->cap_pace) {
+		l->cap = l->cap_pace;
+		l->st = realloc(l->st, l->cap_pace * sizeof(void *));
+	}
+	l->size = 0;
+}
+
+void plist_clear_items_free(struct PList *l) {
+	for (long i = 0; i < l->size; i++)
+		free(plist_get(l, i));
+	plist_clear(l);
+}
+
 long plist_add(struct PList *l, void *p) {
 	if (l->size >= l->cap) {
 		l->cap += l->cap_pace;

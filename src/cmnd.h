@@ -25,10 +25,10 @@ struct Plov {		  // Pointer Label Of Value
 
 struct Ipcd {
 	struct Inst *in;
-	struct PList *plovs;
+	struct PList *not_plovs;
 	struct BList *cmd;
 	struct BList *data;
-	struct PList *not_plovs;
+	uc debug;
 };
 
 void get_ops_code(struct Ipcd *);

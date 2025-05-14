@@ -30,6 +30,8 @@ const char *const MEM_IMM_SIZE_QWORD =
 	"Инструкция данного типа не может иметь оба значения с размерами вбайт, "
 	"правое выражение должно быть размером чбайт для данного левого выражения.";
 const char *const UNKNOWN_LABEL = "Метка не была найдена [%s]";
+const char *const WRONG_ADDR_SZ =
+	"Не может адрес метки быть размером меньше, чем 4 байта.";
 
 void get_zero_ops_code(struct Ipcd *);
 void get_one_ops_code(struct Ipcd *);
@@ -41,12 +43,12 @@ void get_ops_code(struct Ipcd *i) {
 	else
 		eeg("йцук\n", i->in);
 
-	printf("### команда %ld байт: ", i->cmd->size);
-	blist_print(i->cmd);
-	printf("### данные  %ld байт: ", i->data->size);
-	blist_print(i->data);
-
-	eeg("эээ\n", i->in);
+	if (i->debug) {
+		printf("### команда %ld байт: ", i->cmd->size);
+		blist_print(i->cmd);
+		printf("### данные  %ld байт: ", i->data->size);
+		blist_print(i->data);
+	}
 }
 
 enum OpsCode get_two_opscode(struct Inst *in);
@@ -84,19 +86,29 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 
 void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 	if (o->disp_is_rel_flag) {
-		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ADDR));
-		uint32_t some_value = 0x706d6a;
-		blat(i->data, (uc *)&some_value, REL_SIZE);
+		enum UT ut = ADDR;
+		if (ut == ADDR && o->sz < DWORD)
+			eeg(WRONG_ADDR_SZ, i->in);
+
+		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ut));
+		uint64_t some_value = 0x72656c; // rel
+		blat(i->data, (uc *)&some_value, o->sz);
+
 	} else
 		blat(i->data, (uc *)&o->disp, bytes);
 }
 
 void add_imm_data(struct Ipcd *i, struct Oper *o) {
 	if (o->code == OREL) {
-		// TODO: add OREL in add_imm_data and add_disp
-		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ADDR));
-		uint32_t some_value = 0x706d6a;
-		blat(i->data, (uc *)&some_value, REL_SIZE);
+		enum UT ut = ADDR;
+		if (ut == ADDR && o->sz < DWORD)
+			eeg(WRONG_ADDR_SZ, i->in);
+
+		// TODO: add REL_ADDR
+		plist_add(i->not_plovs, new_not_plov(o->t->view, i->data->size, ut));
+		uint64_t some_value = 0x72656c; // rel
+		blat(i->data, (uc *)&some_value, o->sz);
+
 	} else if (o->code == OINT)
 		blat(i->data, (uc *)&o->t->number, o->sz);
 	else if (o->code == OFPN) {
@@ -448,7 +460,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				if (is_8(l))
 					code = R_8__IMM_8;
 				else if (!is_8(l)) {
-					if (is_64(r))
+					// if (is_64(r)) // what was this for, wtf is this
+					// else TODO: check why i did it
+					// 	code = RM_16_32_64__IMM_16_32;
+					if (l->sz == r->sz)
 						code = R_16_32_64__IMM_16_32_64;
 					else
 						code = RM_16_32_64__IMM_16_32;

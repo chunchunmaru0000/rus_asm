@@ -195,12 +195,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	// make
 	struct Plov *l;
 	struct Usage *usage;
+	struct Defn *not_plov;
 
 	struct Ipcd *ipcd = malloc(sizeof(struct Ipcd));
 	ipcd->data = data;
 	ipcd->cmd = cmd;
-	ipcd->plovs = g->lps;
 	ipcd->not_plovs = new_plist(2);
+	ipcd->debug = g->debug;
 
 	long phs_counter = 0, phs_cur_sz;
 
@@ -212,10 +213,18 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(data);
 
 		if (code == IADD || code == IMOV) {
-			// plist_clear(ipcd->not_plovs);
 			ipcd->in = in;
 			get_ops_code(ipcd);
-			// so here is has a list of denfs with usages relaative to data size
+			// so here is has a list of denfs with usages relative to data size
+			for (j = 0; j < ipcd->not_plovs->size; j++) {
+				not_plov = plist_get(ipcd->not_plovs, j);
+				l = find_label(g, not_plov->view);
+				usage = not_plov->value;
+				usage->place += (uint64_t)(g->text->size) + cmd->size;
+				plist_add(l->us, usage);
+			}
+			// TODO: free valus(usages) of defns
+			plist_clear_items_free(ipcd->not_plovs);
 
 			if (cmd->size + data->size) {
 				blat(g->text, cmd->st, cmd->size);

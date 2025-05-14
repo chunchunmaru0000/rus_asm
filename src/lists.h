@@ -12,6 +12,8 @@ long plist_add(struct PList *, void *);
 void *plist_get(struct PList *, long);
 void *plist_set(struct PList *, long, void *);
 void plist_free(struct PList *);
+void plist_clear(struct PList *);
+void plist_clear_items_free(struct PList *);
 
 struct BList {
 	uc *st; // start
