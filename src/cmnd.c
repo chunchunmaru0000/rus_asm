@@ -32,6 +32,9 @@ const char *const MEM_IMM_SIZE_QWORD =
 const char *const UNKNOWN_LABEL = "Метка не была найдена [%s]";
 const char *const WRONG_ADDR_SZ =
 	"Не может адрес метки быть размером меньше, чем 4 байта.";
+const char *const OPS_CODE_INVALID =
+	"Не удалось определисть типы выражений для инструкции, возможно она была "
+	"неверной.";
 
 void get_zero_ops_code(struct Ipcd *);
 void get_one_ops_code(struct Ipcd *);
@@ -43,7 +46,7 @@ void get_ops_code(struct Ipcd *i) {
 	else
 		eeg("йцук\n", i->in);
 
-	if (i->debug) {
+	if (0b00000010 & i->debug) {
 		printf("### команда %ld байт: ", i->cmd->size);
 		blist_print(i->cmd);
 		printf("### данные  %ld байт: ", i->data->size);
@@ -379,6 +382,11 @@ const struct Cmnd cmnds[] = {
 	{IMOV, {0xc7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
 };
 
+const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
+	"ПРЕДУПРЕЖДЕНИЕ: Размер числа был вбайт, но данный тип инструкций не "
+	"поддерживает числа таких размеров, поэтому скорее всего размер числа "
+	"будет урезан.";
+
 enum OpsCode get_two_opscode(struct Inst *in) {
 	struct Oper *l, *r;
 	declare_two_ops(in, l, r);
@@ -403,6 +411,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				eeg(MEM_REG_SIZES_NOT_MATCH, in);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_rm(l) && is_imm(r)) {
+			// TODO: better warnings or even errors?
+			if (r->sz == QWORD)
+				pwi(COLOR_PURPLE, WARN_IMM_SIZE_WILL_BE_CHANGED, in);
+
 			if (l->sz < r->sz)
 				r->sz = l->sz;
 			else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD))
@@ -482,6 +494,8 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	default:
 		eeg("нет пока для такой инструкции\n", in);
 	}
+	if (code == OPC_INVALID)
+		eeg(OPS_CODE_INVALID, in);
 	return code;
 }
 

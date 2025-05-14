@@ -14,6 +14,22 @@ void eeg(const char *msg, struct Inst *i) {
 	fprintf(stderr, "%s:%ld:%ld %s\n", i->file, i->line, i->col, msg);
 	exit(1);
 }
+
+const char *const COLOR_BLACK = "\x1B[30m";
+const char *const COLOR_RED = "\x1B[31m";
+const char *const COLOR_GREEN = "\x1B[32m";
+const char *const COLOR_YELLOW = "\x1B[33m";
+const char *const COLOR_BLUE = "\x1B[34m";
+const char *const COLOR_PURPLE = "\x1B[35m";
+const char *const COLOR_GAY = "\x1B[36m";
+const char *const COLOR_WHITE = "\x1B[37m";
+const char *const COLOR_RESET = "\x1B[0m";
+
+// print warning inst
+void pwi(const char *const c, const char *msg, struct Inst *i) {
+	printf("%s%s:%ld:%ld %s%s\n", c, i->file, i->line, i->col, msg,
+		   COLOR_RESET);
+}
 struct Usage *new_usage(uint64_t place, enum UT type) {
 	struct Usage *u = malloc(sizeof(struct Usage));
 	u->place = place;

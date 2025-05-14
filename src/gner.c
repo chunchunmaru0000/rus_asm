@@ -153,7 +153,7 @@ struct Plov *find_label(struct Gner *g, char *s) {
 		if (sc(l->l, s))
 			return l;
 	}
-	char *err;
+	char *err; // no need to free, cuz will be exit(1)
 	asprintf(&err, UNKNOWN_LABEL, s);
 	eeg(err, plist_get(g->is, g->pos));
 	return 0;
@@ -373,7 +373,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l->a = phs_cur_sz + ph->vaddr;
 			l->ra = g->text->size;
 			if (g->debug)
-				printf("label[%s]\t[0x%08lx]\n", l->l, l->a);
+				printf("метка[%s]\t[0x%08lx]\n", l->l, l->a);
 			break;
 		case IDATA:
 			data_bl = plist_get(in->os, 0);
@@ -389,7 +389,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l->a = phs_cur_sz + ph->vaddr;
 			l->ra = g->text->size;
 			if (g->debug)
-				printf(" var [%s]\t[0x%08lx]\n", l->l, l->a);
+				printf("перем[%s]\t[0x%08lx]\n", l->l, l->a);
 
 			data_bl = plist_get(in->os, 1);
 			blat(data, data_bl->st, data_bl->size);
