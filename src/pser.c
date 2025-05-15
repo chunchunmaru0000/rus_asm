@@ -104,13 +104,14 @@ const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // instruction words
-
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL},
 	{"ыыы", INOP},
 };
-const char *STR_IJMP = "идти";
-//	{"зов", ICALL}, // need rel, its in OPE_OPS_WORDS
+const struct Word ONE_OPS_WORDS[] = {
+	{"зов", ICALL}, {"идти", IJMP},	 {"прер", IINT},
+	{"выт", IPOP},	{"толк", IPUSH},
+};
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	 {"плюс", IADD}, {"минс", ISUB}, {"зумн", IIMUL},
 	{"проб", ITEST}, {"срав", ICMP}, {"или", IOR},	 {"и", IAND},
@@ -610,11 +611,10 @@ enum ICode label_i(struct Pser *p, struct PList *os) {
 	return ILABEL;
 }
 
-enum ICode jmp_i(struct Pser *p, struct PList *os) {
-	next_get(p, 0); // skip jmp
+enum ICode one_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
+	next_get(p, 0); // skip instruction
 	plist_add(os, expression(p));
-
-	return IJMP;
+	return code;
 }
 
 char *INVALID_SIZE_NOT_FOUND =
@@ -736,6 +736,11 @@ struct Inst *get_inst(struct Pser *p) {
 				code = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
 				goto there_is_inst;
 			}
+		for (i = 0; i < lenofarr(ONE_OPS_WORDS); i++)
+			if (sc(cv, ONE_OPS_WORDS[i].view)) {
+				code = one_ops_i(p, os, ONE_OPS_WORDS[i].inst);
+				goto there_is_inst;
+			}
 		for (i = 0; i < lenofarr(ZERO_OPS_WORDS); i++)
 			if (sc(cv, ZERO_OPS_WORDS[i].view)) {
 				next_get(p, 0);
@@ -746,8 +751,6 @@ struct Inst *get_inst(struct Pser *p) {
 			code = label_i(p, os);
 		else if (sc(cv, STR_LET))
 			code = let_i(p, os);
-		else if (sc(cv, STR_IJMP))
-			code = jmp_i(p, os);
 		else if (sc(cv, STR_DEFINE))
 			code = define_pd(p);
 		else if (sc(cv, STR_SEG))
@@ -756,7 +759,11 @@ struct Inst *get_inst(struct Pser *p) {
 			code = entry_i(p, os);
 		else
 			eep(n, "НЕИЗВЕСТНАЯ КОМАНДА");
-	} else
+	} else if (cur->code == INC)
+		code = one_ops_i(p, os, IINC);
+	else if (cur->code == DEC)
+		code = one_ops_i(p, os, IDEC);
+	else
 		eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 there_is_inst:
 	return new_inst(code, os, cur);

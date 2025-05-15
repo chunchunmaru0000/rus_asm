@@ -275,7 +275,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			data_bl = plist_get(in->os, 1);
 			blat(data, data_bl->st, data_bl->size);
 			break;
-			break;
 		case ISEGMENT:
 			if (phs_counter == 0)
 				phs_cur_sz = all_h_sz;

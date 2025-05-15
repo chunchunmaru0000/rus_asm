@@ -44,6 +44,8 @@ void get_two_ops_code(struct Ipcd *);
 void get_ops_code(struct Ipcd *i) {
 	if (i->in->os->size == 0)
 		get_zero_ops_code(i);
+	else if (i->in->os->size == 1)
+		get_ops_code(i);
 	else if (i->in->os->size == 2)
 		get_two_ops_code(i);
 	else
@@ -57,10 +59,22 @@ void get_ops_code(struct Ipcd *i) {
 	}
 }
 
+const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
+
+enum OpsCode get_one_opscode(struct Inst *in);
+void get_one_ops_prefs(struct Ipcd *, enum OpsCode, const struct Cmnd *);
+void fill_one_ops_cmd_and_data(struct Ipcd *, const struct Cmnd *);
+
 enum OpsCode get_two_opscode(struct Inst *in);
 void get_two_ops_prefs(struct Ipcd *, enum OpsCode, const struct Cmnd *);
-const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
 void fill_two_ops_cmd_and_data(struct Ipcd *, const struct Cmnd *);
+
+void get_one_ops_code(struct Ipcd *i) {
+	enum OpsCode code = get_one_opscode(i->in);
+	const struct Cmnd *c = get_cmnd(i, code);
+	get_one_ops_prefs(i, code, c);
+	fill_one_ops_cmd_and_data(i, c);
+}
 
 void get_two_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_two_opscode(i->in);
@@ -81,7 +95,7 @@ struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut) {
 		(l) = plist_get(in->os, 0);                                            \
 		(r) = plist_get(in->os, 1);                                            \
 	} while (0);
-
+#define get_first_o(in) (plist_get((in)->os, 0))
 // doesnt changes ModR/M byte
 void add_sib(struct BList *cmd, struct Oper *o) {
 	uc sib = o->scale << 6;
@@ -287,6 +301,13 @@ int is_imm_r(enum OpsCode c) {
 const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
+
+	{IINC, {0xfe}, 1, NUM_FIELD, 0, __RM_8},
+	{IDEC, {0xfe}, 1, NUM_FIELD, 1, __RM_8},
+	{IINC, {0xff}, 1, NUM_FIELD, 0, __RM_16_32_64},
+	{IDEC, {0xff}, 1, NUM_FIELD, 1, __RM_16_32_64},
+
+	{ICALL, {0xff}, 2, NUM_FIELD, 1, __RM_16_32_64},
 	// add
 	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
 	{IADD, {0x01}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
@@ -601,3 +622,69 @@ void get_zero_ops_code(struct Ipcd *i) {
 		}
 	}
 }
+
+enum OpsCode get_one_opscode(struct Inst *in) {
+	enum OpsCode code = OPC_INVALID;
+	struct Oper *o = get_first_o(in);
+	switch (in->code) {
+	case IJO:
+	case INO:
+	case IJB:
+	case IJNB:
+	case IJE:
+	case IJBE:
+	case IJA:
+	case IJS:
+	case IJNS:
+	case IJP:
+	case IJNP:
+	case IJL:
+	case IJNL:
+	case IJLE:
+	case IJG:
+	case IJMP:
+	case IINT:
+		if (is_imm(o)) {
+			if (is_8(o))
+				code = __REL_8;
+			else if (is_32(o))
+				code = __REL_32;
+		} else if (is_rm(o) && (is_16(o) || is_64(o)))
+			code = __RM_16_64;
+		break;
+	case IPUSH:
+	case IPOP:
+	case ICALL:
+		if (is_reg(o)) {
+			if (is_fs(o))
+				code = __FS;
+			else if (is_gs(o))
+				code = __GS;
+			else if (is_16(o) || is_64(o))
+				code = __R_16_64;
+		} else if (is_mem(o)) {
+			if (is_16(o) || is_64(o))
+				code = __RM_16_64;
+		} else if (is_imm(o)) {
+			if (is_32(o))
+				code = __IMM_32;
+			else if (is_8(o))
+				code = __IMM_8;
+		}
+		break;
+	case IINC:
+	case IDEC:
+		if (is_rm(o))
+			code = is_8(o) ? __RM_8 : __RM_16_32_64;
+		break;
+	default:
+		eeg("нет пока для такой инструкции\n", in);
+	}
+	if (code == OPC_INVALID)
+		eeg(OPS_CODE_INVALID, in);
+	return code;
+}
+void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops, const struct Cmnd *c) {
+
+}
+void fill_one_ops_cmd_and_data(struct Ipcd *i, const struct Cmnd *c) {}

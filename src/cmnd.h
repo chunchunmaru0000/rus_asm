@@ -35,6 +35,17 @@ void get_ops_code(struct Ipcd *);
 
 enum OpsCode {
 	OPC_INVALID,
+	__REL_8, // rel is just a number
+	__REL_32,
+	__IMM_8,
+	__IMM_32,
+	__R_16_64, //50+r, 58+r
+	__RM_16_64,
+	__GS,
+	__FS,
+	__RM_8, // inc and dec
+	__RM_16_32_64,
+
 	RM_8__R_8,
 	RM_16_32_64__R_16_32_64,
 	R_8__RM_8,

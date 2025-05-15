@@ -167,13 +167,34 @@ enum ICode {
 	IMOV,
 	IIMUL,
 	// one op
+	ICALL,
 	IPUSH,
 	IPOP,
+	IINT,
+	IINC,
+	IDEC,
+	ICALLF, // just
+	IJMPF,	// for them to be
+
 	IJMP,
+	IJO,
+	INO,
+	IJB,
+	IJNB,
+	IJE,
+	IJBE,
+	IJA,
+	IJS,
+	IJNS,
+	IJP,
+	IJNP,
+	IJL,
+	IJNL,
+	IJLE,
+	IJG,
 	// zero ops
 	ISYSCALL,
 	INOP,
-	ICALL,
 	IRET,
 	// TODO: LOCK will be an instruction as its always first pref
 };
@@ -187,7 +208,7 @@ struct Oper { // operand
 	enum OCode code;
 	struct Token *t;
 	uc sz;
-	uc forsed_sz; // if like size override(like mov rax, qword[rax])
+	uc forsed_sz;	 // if like size override(like mov rax, qword[rax])
 	enum RegCode rm; // OMEM and rsp then does SIB, mod 00 and rbp does rel
 	uc mem_sz; // size of regs in addr DWORD or QWORD, DWORD means 0x67 flag
 	uc rex;
@@ -251,6 +272,8 @@ void pwi(const char *const, const char *, struct Inst *);
 #define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
 #define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)
 
+#define is_fs(o) ((o)->code == OREG && (o)->rm == R_FS)
+#define is_gs(o) ((o)->code == OREG && (o)->rm == R_GS)
 #define is_reg(o) ((o)->code == OREG)
 #define is_mem(o) ((o)->code == OMEM)
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
