@@ -104,11 +104,13 @@ const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // instruction words
-const char *STR_NOP = "ыыы";
-const char *STR_CALL = "зов";
-const char *STR_SCAL = "сзов";
-const char *STR_IJMP = "идти";
 
+const struct Word ZERO_OPS_WORDS[] = {
+	{"сзов", ISYSCALL},
+	{"ыыы", INOP},
+};
+const char *STR_IJMP = "идти";
+//	{"зов", ICALL}, // need rel, its in OPE_OPS_WORDS
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	 {"плюс", IADD}, {"минс", ISUB}, {"зумн", IIMUL},
 	{"проб", ITEST}, {"срав", ICMP}, {"или", IOR},	 {"и", IAND},
@@ -706,11 +708,6 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 	return code;
 }
 
-enum ICode no_ops_inst(struct Pser *p, enum ICode code) {
-	next_get(p, 0);
-	return code;
-}
-
 enum ICode define_pd(struct Pser *p) {
 	struct Defn *d = malloc(sizeof(struct Defn));
 	d->view = next_get(p, 0)->view;
@@ -726,21 +723,26 @@ struct Inst *get_inst(struct Pser *p) {
 	while (cur->code == SLASHN || cur->code == SEP)
 		cur = next_get(p, 0);
 	char *cv = cur->view;
-	n = gettp(p, 1);
 	enum ICode code;
+	size_t i;
+	n = gettp(p, 1);
 
 	// fill *os in funcs
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
-		for (size_t i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
+		for (i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
 			if (sc(cv, TWO_OPS_WORDS[i].view)) {
 				code = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
 				goto there_is_inst;
 			}
-		if (sc(cv, STR_SCAL))
-			code = no_ops_inst(p, ISYSCALL);
-		else if (n->code == COLO)
+		for (i = 0; i < lenofarr(ZERO_OPS_WORDS); i++)
+			if (sc(cv, ZERO_OPS_WORDS[i].view)) {
+				next_get(p, 0);
+				code = ZERO_OPS_WORDS[i].inst;
+				goto there_is_inst;
+			}
+		if (n->code == COLO)
 			code = label_i(p, os);
 		else if (sc(cv, STR_LET))
 			code = let_i(p, os);
@@ -750,8 +752,6 @@ struct Inst *get_inst(struct Pser *p) {
 			code = define_pd(p);
 		else if (sc(cv, STR_SEG))
 			code = seg_i(p, os);
-		else if (sc(cv, STR_NOP))
-			code = no_ops_inst(p, INOP);
 		else if (sc(cv, STR_ENTRY))
 			code = entry_i(p, os);
 		else

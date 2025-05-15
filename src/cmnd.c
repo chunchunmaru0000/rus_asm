@@ -42,7 +42,9 @@ void get_one_ops_code(struct Ipcd *);
 void get_two_ops_code(struct Ipcd *);
 
 void get_ops_code(struct Ipcd *i) {
-	if (i->in->os->size == 2)
+	if (i->in->os->size == 0)
+		get_zero_ops_code(i);
+	else if (i->in->os->size == 2)
 		get_two_ops_code(i);
 	else
 		eeg("йцук\n", i->in);
@@ -283,6 +285,8 @@ int is_imm_r(enum OpsCode c) {
 // TODO: VEX/EVEX prefixes
 
 const struct Cmnd cmnds[] = {
+	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
 	// add
 	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
 	{IADD, {0x01}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
@@ -585,4 +589,15 @@ const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
 		eeg(WRONG_INST_OPS, i->in);
 	}
 	return c;
+}
+
+void get_zero_ops_code(struct Ipcd *i) {
+	const struct Cmnd *c;
+	for (size_t j = 0; j < lenofarr(cmnds); j++) {
+		c = cmnds + j;
+		if (c->inst == i->in->code) {
+			blat(i->cmd, (uc *)c->cmd, c->len);
+			break;
+		}
+	}
 }

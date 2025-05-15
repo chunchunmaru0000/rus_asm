@@ -192,7 +192,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(cmd);
 		blist_clear(data);
 
+		ipcd->in = in;
 		switch (code) {
+		case INOP:
+		case ICALL:
+		case ISYSCALL:
 		case IADD:
 		case IOR:
 		case IADC:
@@ -203,9 +207,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ICMP:
 		case ITEST:
 		case IMOV:
-			ipcd->in = in;
 			get_ops_code(ipcd);
 			// so here is has a list of denfs with usages relative to data size
+			if (ipcd->not_plovs->size == 0)
+				break;
 			for (j = 0; j < ipcd->not_plovs->size; j++) {
 				not_plov = plist_get(ipcd->not_plovs, j);
 				l = find_label(g, not_plov->view);
@@ -270,11 +275,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			data_bl = plist_get(in->os, 1);
 			blat(data, data_bl->st, data_bl->size);
 			break;
-		case ISYSCALL:
-			blat(cmd, (uc *)MLESYSCALL, 2);
-			break;
-		case INOP:
-			blist_add(cmd, 0x90);
 			break;
 		case ISEGMENT:
 			if (phs_counter == 0)
