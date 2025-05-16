@@ -302,12 +302,29 @@ const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
 
+	{IPUSH, {0x50}, 1, PLUS_REGF, 0, __R_16_64},
+	{IPOP, {0x58}, 1, PLUS_REGF, 0, __R_16_64},
+
+	{ICALL, {0xe8}, 1, NOT_FIELD, 0, __REL_32},
+	{IJMP, {0xe9}, 1, NOT_FIELD, 0, __REL_32},
+	{IJMP, {0xeb}, 1, NOT_FIELD, 0, __REL_8},
+
 	{IINC, {0xfe}, 1, NUM_FIELD, 0, __RM_8},
 	{IDEC, {0xfe}, 1, NUM_FIELD, 1, __RM_8},
 	{IINC, {0xff}, 1, NUM_FIELD, 0, __RM_16_32_64},
 	{IDEC, {0xff}, 1, NUM_FIELD, 1, __RM_16_32_64},
+	{ICALL, {0xff}, 1, NUM_FIELD, 2, __RM_16_64},
+	// {ICALLF, {0xff}, 1, NUM_FIELD, 3, __RM_16_64},
+	{IJMP, {0xff}, 1, NUM_FIELD, 4, __RM_16_64},
+	// {IJMPF, {0xff}, 1, NUM_FIELD, 5, __RM_16_64},
+	{IPOP, {0x8f}, 1, NUM_FIELD, 0, __RM_16_64},
+	{IPUSH, {0xff}, 1, NUM_FIELD, 6, __RM_16_64},
 
-	{ICALL, {0xff}, 2, NUM_FIELD, 1, __RM_16_32_64},
+	{IPUSH, {0x0f, 0xa1}, 2, NOT_FIELD, 0, __GS},
+	{IPOP, {0x0f, 0xa2}, 2, NOT_FIELD, 0, __GS},
+	{IPUSH, {0x0f, 0xa8}, 2, NOT_FIELD, 0, __FS},
+	{IPOP, {0x0f, 0xa9}, 2, NOT_FIELD, 0, __FS},
+
 	// add
 	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
 	{IADD, {0x01}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
@@ -623,6 +640,13 @@ void get_zero_ops_code(struct Ipcd *i) {
 	}
 }
 
+const char *const WARN_CHANGE_IMM_32_SIZE =
+	"ПРЕДУПРЕЖДЕНИЕ: Размер выражения не был равен чбайт, но при "
+	"этом был явно указан, его размер будет изменен под чбайт.";
+const char *const ERR_REG_NOT_16_OR_64 =
+	"Для данного типа инструкций поддерживаются только регистры размеров дбайт "
+	"и вбайт.";
+
 enum OpsCode get_one_opscode(struct Inst *in) {
 	enum OpsCode code = OPC_INVALID;
 	struct Oper *o = get_first_o(in);
@@ -644,17 +668,27 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	case IJG:
 	case IJMP:
 	case IINT:
+	case ICALL:
 		if (is_imm(o)) {
-			if (is_8(o))
+			if (in->code == ICALL) {
+				if (o->sz != DWORD && o->forsed_sz)
+					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_32_SIZE, in);
+				o->sz = DWORD;
+				code = __REL_32;
+			} else if (is_8(o))
 				code = __REL_8;
 			else if (is_32(o))
 				code = __REL_32;
+			else {
+				pwi(COLOR_PURPLE, WARN_CHANGE_IMM_32_SIZE, in);
+				o->sz = DWORD;
+				code = __REL_32;
+			}
 		} else if (is_rm(o) && (is_16(o) || is_64(o)))
 			code = __RM_16_64;
 		break;
 	case IPUSH:
 	case IPOP:
-	case ICALL:
 		if (is_reg(o)) {
 			if (is_fs(o))
 				code = __FS;
@@ -662,6 +696,8 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 				code = __GS;
 			else if (is_16(o) || is_64(o))
 				code = __R_16_64;
+			else
+				eeg(ERR_REG_NOT_16_OR_64, in);
 		} else if (is_mem(o)) {
 			if (is_16(o) || is_64(o))
 				code = __RM_16_64;
@@ -670,6 +706,11 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 				code = __IMM_32;
 			else if (is_8(o))
 				code = __IMM_8;
+			else {
+				pwi(COLOR_PURPLE, WARN_CHANGE_IMM_32_SIZE, in);
+				o->sz = DWORD;
+				code = __IMM_32;
+			}
 		}
 		break;
 	case IINC:
@@ -684,7 +725,25 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 		eeg(OPS_CODE_INVALID, in);
 	return code;
 }
-void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops, const struct Cmnd *c) {
 
+void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops, const struct Cmnd *c) {
+	struct Oper *o = get_first_o(i->in);
+	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
+	if (is_mem32(o))
+		blist_add(i->cmd, 0x67);
+	// 66 16-bit Operand-size OVERRIRE prefix
+	// TODO: check if its possible for r to be 16-bit
+	if (!is_seg(o) && is_16(o))
+		blist_add(i->cmd, 0x66);
+	// REX prefixes
+	uc rex = 0b01000000;
+	if (is_mem(o))
+		rex |= o->rex; // get mem REX's
+	else if (is_r_new(o))
+		rex |= REX_B; // Extension of ModR/M r/m
+
+	if (rex != 0b01000000)
+		blist_add(i->cmd, rex);
 }
+
 void fill_one_ops_cmd_and_data(struct Ipcd *i, const struct Cmnd *c) {}
