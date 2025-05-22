@@ -196,6 +196,8 @@ enum ICode {
 	ISYSCALL,
 	INOP,
 	IRET,
+	IRETF,
+	ISYSRET,
 	// TODO: LOCK will be an instruction as its always first pref
 };
 

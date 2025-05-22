@@ -104,19 +104,65 @@ const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // instruction words
+//	{"свозд", ISYSRET},
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL},
+	{"воздф", IRETF},
+	{"возд", IRET},
 	{"ыыы", INOP},
 };
+// not			н 	не
+// overflow 	и	избыток
+// below		п	под
+// above		в 	выше
+// equ			р 	равно
+// carry		с 	снести
+// zero			0 	ноль
+// sign			з 	знак
+// parity_even	ч 	чет
+// parity_odd 	нч 	не чет
+// less			м 	меньше
+// greater		б	больше
+
+// JO		owerflow			иди
+// JNO	n	owerflow			идни
+// JB 		below				идп
+// JNAE n 	above equ			иднвр
+// JC 		carry				идс
+// JNB 	n 	below				иднп
+// JAE 		above equ			идвр
+// JNC 	n 	carry				иднс
+// JZ 		zero				ид0
+// JE 		equ					идр
+// JNZ 	n 	zero				идн0
+// JNE 	n 	equ					иднр
+// JBE 		below equ			идпр
+// JNA 	n 	above				иднв
+// JNBE n 	below equ			иднпр
+// JA 		above				идв
+// JS 		sign				идз
+// JNS 	n 	sign				иднз
+// JP 		parity_even			идч
+// JPE 		parity_even equ		идчр
+// JNP 	n 	parity_even			иднч
+// JPO 		parity_odd 			иднч
+// JLE		less				идмр
+// JNGE n 	greater equ			иднбр
+// JNL 	n 	less				иднм
+// JGE 		greater equ			идбр
+// JLE 		less equ			идмр
+// JNG 	n 	greater				иднб
+// JNLE n 	less equ			иднмр
+// JG 		greater				идб
 const struct Word ONE_OPS_WORDS[] = {
-	{"зов", ICALL}, {"идти", IJMP},	 {"прер", IINT},
-	{"выт", IPOP},	{"толк", IPUSH},
+	{"зов", ICALL},	 {"идти", IJMP},   {"прер", IINT},	 {"выт", IPOP},
+	{"толк", IPUSH}, {"идтиф", IJMPF}, {"зовф", ICALLF}, {"увлч", IINC},
+	{"умнш", IDEC},	 {"воздф", IRETF}, {"возд", IRET},
 };
 const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},	 {"плюс", IADD}, {"минс", ISUB}, {"зумн", IIMUL},
-	{"проб", ITEST}, {"срав", ICMP}, {"или", IOR},	 {"и", IAND},
-	{"искл", IXOR},	 {"плюн", IADC}, // carry - нести
-	{"минн", ISBB},					 // bottom - низ
+	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"зумн", IIMUL},
+	{"проб", ITEST}, {"срав", ICMP},  {"или", IOR},	   {"и", IAND},
+	{"искл", IXOR},	 {"плюсс", IADC}, {"минсп", ISBB},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
@@ -731,20 +777,21 @@ struct Inst *get_inst(struct Pser *p) {
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
+		// TODO: vararg(varop) opcodes, like ret which can be 0 and 1 ops
 		for (i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
 			if (sc(cv, TWO_OPS_WORDS[i].view)) {
 				code = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
-				goto there_is_inst;
-			}
-		for (i = 0; i < lenofarr(ONE_OPS_WORDS); i++)
-			if (sc(cv, ONE_OPS_WORDS[i].view)) {
-				code = one_ops_i(p, os, ONE_OPS_WORDS[i].inst);
 				goto there_is_inst;
 			}
 		for (i = 0; i < lenofarr(ZERO_OPS_WORDS); i++)
 			if (sc(cv, ZERO_OPS_WORDS[i].view)) {
 				next_get(p, 0);
 				code = ZERO_OPS_WORDS[i].inst;
+				goto there_is_inst;
+			}
+		for (i = 0; i < lenofarr(ONE_OPS_WORDS); i++)
+			if (sc(cv, ONE_OPS_WORDS[i].view)) {
+				code = one_ops_i(p, os, ONE_OPS_WORDS[i].inst);
 				goto there_is_inst;
 			}
 		if (n->code == COLO)

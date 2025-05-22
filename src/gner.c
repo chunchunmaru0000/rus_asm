@@ -192,6 +192,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		ipcd->in = in;
 		switch (code) {
 		case INOP:
+		case IRET:
 		case ISYSCALL:
 		case IADD:
 		case IOR:
@@ -203,15 +204,15 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ICMP:
 		case ITEST:
 		case IMOV:
-		// TODO: near jmp
-		// case IJMPF:
+		case IJMPF:
 		case ICALL:
 		case IINT:
-		// case ICALLF:
+		case ICALLF:
 		case IPUSH:
 		case IPOP:
 		case IINC:
 		case IDEC:
+		// TODO: near jmp
 		case IJMP:
 		case IJO:
 		case INO:
