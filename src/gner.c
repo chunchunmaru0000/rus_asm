@@ -207,6 +207,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ICMP:
 		case ITEST:
 		case IMOV:
+		case IJMP:
 			get_ops_code(ipcd);
 			// so here is has a list of denfs with usages relative to data size
 			if (ipcd->not_plovs->size == 0)
@@ -220,8 +221,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			}
 			plist_clear_items_free(ipcd->not_plovs);
 			break;
-		//  TODO: near jmp
-		case IJMP:
+			//  TODO: near jmp
+		//case IJMP:
 			ol = plist_get(in->os, 0);
 			//  TODO: jmp for qword
 			if (ol->sz == DWORD) {

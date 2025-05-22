@@ -23,23 +23,13 @@ struct Plov {		  // Pointer Label Of Value
 					  // uint64_t size; // like for db dd dw dq
 };
 
-struct Ipcd {
-	struct Inst *in;
-	struct PList *not_plovs;
-	struct BList *cmd;
-	struct BList *data;
-	uc debug;
-};
-
-void get_ops_code(struct Ipcd *);
-
 enum OpsCode {
 	OPC_INVALID,
 	__REL_8, // rel is just a number
 	__REL_32,
 	__IMM_8,
 	__IMM_32,
-	__R_16_64, //50+r, 58+r
+	__R_16_64, // 50+r, 58+r
 	__RM_16_64,
 	__GS,
 	__FS,
@@ -107,3 +97,17 @@ struct Cmnd {
 	enum OpsCode opsc;
 	// instruction opperands
 };
+
+struct Ipcd {
+	struct Inst *in;
+	struct PList *not_plovs;
+	struct BList *cmd;
+	struct BList *data;
+	const struct Cmnd *c;
+	uc debug;
+};
+void get_ops_code(struct Ipcd *);
+
+#define is_rm__r(c) ((c) == RM_8__R_8 || (c) == RM_16_32_64__R_16_32_64)
+#define is_r__rm(c) ((c) == R_8__RM_8 || (c) == R_16_32_64__RM_16_32_64)
+#define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)

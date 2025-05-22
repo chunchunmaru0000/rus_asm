@@ -45,7 +45,7 @@ void get_ops_code(struct Ipcd *i) {
 	if (i->in->os->size == 0)
 		get_zero_ops_code(i);
 	else if (i->in->os->size == 1)
-		get_ops_code(i);
+		get_one_ops_code(i);
 	else if (i->in->os->size == 2)
 		get_two_ops_code(i);
 	else
@@ -62,25 +62,25 @@ void get_ops_code(struct Ipcd *i) {
 const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
 
 enum OpsCode get_one_opscode(struct Inst *in);
-void get_one_ops_prefs(struct Ipcd *, enum OpsCode, const struct Cmnd *);
-void fill_one_ops_cmd_and_data(struct Ipcd *, const struct Cmnd *);
+void get_one_ops_prefs(struct Ipcd *, enum OpsCode);
+void fill_one_ops_cmd_and_data(struct Ipcd *);
 
 enum OpsCode get_two_opscode(struct Inst *in);
-void get_two_ops_prefs(struct Ipcd *, enum OpsCode, const struct Cmnd *);
-void fill_two_ops_cmd_and_data(struct Ipcd *, const struct Cmnd *);
+void get_two_ops_prefs(struct Ipcd *, enum OpsCode);
+void fill_two_ops_cmd_and_data(struct Ipcd *);
 
 void get_one_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_one_opscode(i->in);
-	const struct Cmnd *c = get_cmnd(i, code);
-	get_one_ops_prefs(i, code, c);
-	fill_one_ops_cmd_and_data(i, c);
+	i->c = get_cmnd(i, code);
+	get_one_ops_prefs(i, code);
+	fill_one_ops_cmd_and_data(i);
 }
 
 void get_two_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_two_opscode(i->in);
-	const struct Cmnd *c = get_cmnd(i, code);
-	get_two_ops_prefs(i, code, c);
-	fill_two_ops_cmd_and_data(i, c);
+	i->c = get_cmnd(i, code);
+	get_two_ops_prefs(i, code);
+	fill_two_ops_cmd_and_data(i);
 }
 
 struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut) {
@@ -114,7 +114,6 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
-
 	} else
 		blat(i->data, (uc *)&o->disp, bytes);
 }
@@ -124,12 +123,11 @@ void add_imm_data(struct Ipcd *i, struct Oper *o) {
 		if (o->sz < DWORD)
 			eeg(WRONG_ADDR_SZ, i->in);
 
-		// TODO: add REL_ADDR
-		struct Defn *np = new_not_plov(o->t->view, i->data->size, ADDR);
+		enum UT ut = is_rel(i->c->opsc) ? REL_ADDR : ADDR;
+		struct Defn *np = new_not_plov(o->t->view, i->data->size, ut);
 		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
-
 	} else if (o->code == OINT)
 		blat(i->data, (uc *)&o->t->number, o->sz);
 	else if (o->code == OFPN) {
@@ -167,24 +165,9 @@ void add_mem(struct Ipcd *i, struct Oper *m) {
 	}
 }
 
-const enum OpsCode RM__R[] = {RM_8__R_8, RM_16_32_64__R_16_32_64};
-const enum OpsCode R__RM[] = {R_8__RM_8, R_16_32_64__RM_16_32_64};
-
-int is_rm__r(enum OpsCode c) {
-	for (size_t i = 0; i < lenofarr(RM__R); i++)
-		if (c == RM__R[i])
-			return 1;
-	return 0;
-}
-int is_r__rm(enum OpsCode c) {
-	for (size_t i = 0; i < lenofarr(R__RM); i++)
-		if (c == R__RM[i])
-			return 1;
-	return 0;
-}
-
-void fill_two_ops_cmd_and_data(struct Ipcd *i, const struct Cmnd *c) {
+void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	struct Oper *l, *r;
+	const struct Cmnd *c = i->c;
 	declare_two_ops(i->in, l, r);
 	uc modrm = 0;
 
@@ -347,12 +330,10 @@ const struct Cmnd cmnds[] = {
 	// {IJMPF, {0xff}, 1, NUM_FIELD, 5, __RM_16_64},
 	{IPOP, {0x8f}, 1, NUM_FIELD, 0, __RM_16_64},
 	{IPUSH, {0xff}, 1, NUM_FIELD, 6, __RM_16_64},
-
 	{IPUSH, {0x0f, 0xa1}, 2, NOT_FIELD, 0, __GS},
 	{IPOP, {0x0f, 0xa2}, 2, NOT_FIELD, 0, __GS},
 	{IPUSH, {0x0f, 0xa8}, 2, NOT_FIELD, 0, __FS},
 	{IPOP, {0x0f, 0xa9}, 2, NOT_FIELD, 0, __FS},
-
 	// add
 	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
 	{IADD, {0x01}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
@@ -586,8 +567,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	return code;
 }
 
-void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code,
-					   const struct Cmnd *c) {
+void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	struct Oper *l, *r;
 	declare_two_ops(i->in, l, r);
 	// {lock}     fs repne scas   word [edi] ->
@@ -626,7 +606,7 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code,
 			else if (is_r_new(l))
 				rex |= REX_B;	  // Extension of ModR/M r/m
 		} else if (is_r_new(l)) { // SUPPOSED TO BE REG
-			if (c->o == PLUS_REGF)
+			if (i->c->o == PLUS_REGF)
 				rex |= REX_B; // Extension of ModR/M r/m
 			else
 				rex |= REX_R; // Extension of ModR/M reg
@@ -754,7 +734,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	return code;
 }
 
-void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops, const struct Cmnd *c) {
+void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 	struct Oper *o = get_first_o(i->in);
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
 	if (is_mem32(o))
@@ -774,4 +754,42 @@ void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops, const struct Cmnd *c) {
 		blist_add(i->cmd, rex);
 }
 
-void fill_one_ops_cmd_and_data(struct Ipcd *i, const struct Cmnd *c) {}
+void fill_one_ops_cmd_and_data(struct Ipcd *i) {
+	const struct Cmnd *c = i->c;
+	struct Oper *o = get_first_o(i->in);
+	uc modrm = 0;
+
+	blat(i->cmd, (uc *)c->cmd, c->len);
+	// o Register/ Opcode Field
+	if (c->o == NOT_FIELD) {
+		//   0. NOT_FIELD just op code
+		if (is_imm(o))
+			add_imm_data(i, o);
+	} else if (c->o == NUM_FIELD) {
+		// 1. NUM_FIELD The value of the opcode extension values from 0 to 7
+		// - like ModR/M byte where Reg field is for o_num
+		// - - primary used with imm or ?const regs?
+		// - this "ModR/M" byte also have mod and if its just reg and imm then
+		// - - mod = 11 and R/M field means just reg code
+		// - if mod != 11 then it behaves as
+		// - - just usual mod and R/M fields with SIB if needed
+		if (is_rm(o)) {
+			modrm = (c->o_num) << 3; // r
+			modrm += o->mod << 6;
+			modrm += get_reg_field(o->rm);
+			blist_add(i->cmd, modrm);
+			if (is_mem(o))
+				add_mem(i, o);
+		} else
+			eeg("а э ээ ээээ ээ да", i->in);
+	} else if (c->o == REG_FIELD) {
+		// 2. REG_FIELD r indicates that the ModR/M byte contains a register
+		// - operand and an r/m operand
+		eeg("REG_FIELD наверно не существует для операций с одним выражением",
+			i->in);
+	} else if (c->o == PLUS_REGF) {
+		// 3. PLUS_REGF When just op code + reg code: PUSH r64/16, POP r64/16
+		*(i->cmd->st + i->cmd->size - 1) += get_reg_field(o->rm);
+	} else
+		eeg("у меня муха щас над столом летает", i->in);
+}
