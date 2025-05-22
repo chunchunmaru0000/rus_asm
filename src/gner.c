@@ -164,9 +164,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
-	// ?
-	uint64_t some_value = 0;
-	struct Oper *ol;
 	// take
 	struct Inst *in;
 	struct Token *tok;
@@ -195,7 +192,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		ipcd->in = in;
 		switch (code) {
 		case INOP:
-		case ICALL:
 		case ISYSCALL:
 		case IADD:
 		case IOR:
@@ -207,7 +203,31 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ICMP:
 		case ITEST:
 		case IMOV:
+		// TODO: near jmp
+		// case IJMPF:
+		case ICALL:
+		case IINT:
+		// case ICALLF:
+		case IPUSH:
+		case IPOP:
+		case IINC:
+		case IDEC:
 		case IJMP:
+		case IJO:
+		case INO:
+		case IJB:
+		case IJNB:
+		case IJE:
+		case IJBE:
+		case IJA:
+		case IJS:
+		case IJNS:
+		case IJP:
+		case IJNP:
+		case IJL:
+		case IJNL:
+		case IJLE:
+		case IJG:
 			get_ops_code(ipcd);
 			// so here is has a list of denfs with usages relative to data size
 			if (ipcd->not_plovs->size == 0)
@@ -220,32 +240,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				plist_add(l->us, usage);
 			}
 			plist_clear_items_free(ipcd->not_plovs);
-			break;
-			//  TODO: near jmp
-		//case IJMP:
-			ol = plist_get(in->os, 0);
-			//  TODO: jmp for qword
-			if (ol->sz == DWORD) {
-				blist_add(cmd, 0xe9);
-
-				if (ol->code == OREL) {
-					l = find_label(g, ol->t->view);
-					// text size + 1 is place in text to where need to put rel
-					usage = new_usage((uint64_t)(g->text->size) + cmd->size,
-									  REL_ADDR);
-					plist_add(l->us, usage);
-
-					some_value = 0x706d6a;
-					blat(cmd, (uc *)&some_value, DWORD);
-				} else if (ol->code == OINT)
-					blat(data, (uc *)&ol->t->number, DWORD);
-				//  TODO: jmp for reg
-				else {
-					if (g->debug)
-						printf("ol->code = %d\t", ol->code);
-					eeg(WRONG_FST_OPER, in);
-				}
-			}
 			break;
 		case ILABEL:
 			tok = plist_get(in->os, 0);
@@ -316,7 +310,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			break;
 		case IEOI:
 			phl = g->phs->st[phs_counter - 1];
-			phl->memsz = g->phs->size == 1 ? phl->memsz + g->text->size
+			phl->memsz = g->phs->size == 1 ? (int64_t)phl->memsz + g->text->size
 										   : g->text->size - last_text_sz;
 			phl->filesz = phl->memsz;
 			break;
@@ -342,8 +336,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		in = plist_get(g->is, i);
 
 		if (in->code == ILABEL || in->code == ILET) {
-			tok = plist_get(in->os,
-							0); // in both cases name is first opperand
+			// in both cases name is first opperand
+			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);
