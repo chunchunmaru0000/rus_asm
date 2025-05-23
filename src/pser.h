@@ -182,6 +182,9 @@ enum ICode {
 	IJB,
 	IJNB,
 	IJE,
+
+	IJNE,
+
 	IJBE,
 	IJA,
 	IJS,

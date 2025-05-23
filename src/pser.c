@@ -123,41 +123,40 @@ const struct Word ZERO_OPS_WORDS[] = {
 // parity_odd 	нч 	не чет
 // less			м 	меньше
 // greater		б	больше
-
-// JO		owerflow			иди
-// JNO	n	owerflow			идни
-// JB 		below				идп
-// JNAE n 	above equ			иднвр
-// JC 		carry				идс
-// JNB 	n 	below				иднп
-// JAE 		above equ			идвр
-// JNC 	n 	carry				иднс
-// JZ 		zero				ид0
-// JE 		equ					идр
-// JNZ 	n 	zero				идн0
-// JNE 	n 	equ					иднр
-// JBE 		below equ			идпр
-// JNA 	n 	above				иднв
-// JNBE n 	below equ			иднпр
-// JA 		above				идв
-// JS 		sign				идз
-// JNS 	n 	sign				иднз
-// JP 		parity_even			идч
-// JPE 		parity_even equ		идчр
-// JNP 	n 	parity_even			иднч
-// JPO 		parity_odd 			иднч
-// JLE		less				идмр
-// JNGE n 	greater equ			иднбр
-// JNL 	n 	less				иднм
-// JGE 		greater equ			идбр
-// JLE 		less equ			идмр
-// JNG 	n 	greater				иднб
-// JNLE n 	less equ			иднмр
-// JG 		greater				идб
 const struct Word ONE_OPS_WORDS[] = {
 	{"зов", ICALL},	 {"идти", IJMP},   {"прер", IINT},	 {"выт", IPOP},
 	{"толк", IPUSH}, {"идтиф", IJMPF}, {"зовф", ICALLF}, {"увлч", IINC},
 	{"умнш", IDEC},	 {"воздф", IRETF}, {"возд", IRET},
+// IJO		JO			owerflow			иди
+// IJNO		JNO		n	owerflow			идни
+// IJB		JB 			below				идп
+// IJB		JNAE	n 	above equ			иднвр
+// IJB		JC 			carry				идс
+// IJNB		JNB 	n 	below				иднп
+// IJNB		JAE 		above equ			идвр
+// IJNB		JNC 	n 	carry				иднс
+// IJE		JZ 			zero				ид0
+// IJE		JE 			equ					идр
+// IJNE		JNZ 	n 	zero				идн0
+// IJNE		JNE 	n 	equ					иднр
+// IJBE		JBE 		below equ			идпр
+// IJBE		JNA 	n 	above				иднв
+// IJA		JNBE 	n 	below equ			иднпр
+// IJA		JA 			above				идв
+// IJS		JS 			sign				идз
+// IJNS		JNS 	n 	sign				иднз
+// IJP		JP 			parity_even			идч
+// IJP		JPE 		parity_even equ		идчр
+// IJNP		JNP 	n 	parity_even			иднч
+// IJNP		JPO 		parity_odd 			иднч
+// IJL		JL			less				идмр
+// IJL		JNGE	n 	greater equ			иднбр
+// IJNL		JNL 	n 	less				иднм
+// IJNL		JGE 		greater equ			идбр
+// IJLE		JLE 		less equ			идмр
+// IJLE		JNG 	n 	greater				иднб
+// IJG		JNLE	n 	less equ			иднмр
+// IJG		JG 			greater				идб
 };
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"зумн", IIMUL},

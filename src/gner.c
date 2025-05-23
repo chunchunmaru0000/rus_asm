@@ -193,6 +193,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		switch (code) {
 		case INOP:
 		case IRET:
+		case IRETF:
 		case ISYSCALL:
 		case IADD:
 		case IOR:
@@ -219,6 +220,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case IJB:
 		case IJNB:
 		case IJE:
+		case IJNE:
 		case IJBE:
 		case IJA:
 		case IJS:
