@@ -286,7 +286,7 @@ const struct Cmnd cmnds[] = {
 	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
 
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
-	{INO, {0x71}, 1, NOT_FIELD, 0, __REL_8},
+	{IJNO, {0x71}, 1, NOT_FIELD, 0, __REL_8},
 	{IJB, {0x72}, 1, NOT_FIELD, 0, __REL_8},
 	{IJNB, {0x73}, 1, NOT_FIELD, 0, __REL_8},
 	{IJE, {0x74}, 1, NOT_FIELD, 0, __REL_8},
@@ -302,7 +302,7 @@ const struct Cmnd cmnds[] = {
 	{IJLE, {0x7e}, 1, NOT_FIELD, 0, __REL_8},
 	{IJG, {0x7f}, 1, NOT_FIELD, 0, __REL_8},
 	{IJO, {0x0f, 0x80}, 2, NOT_FIELD, 0, __REL_32},
-	{INO, {0x0f, 0x81}, 2, NOT_FIELD, 0, __REL_32},
+	{IJNO, {0x0f, 0x81}, 2, NOT_FIELD, 0, __REL_32},
 	{IJB, {0x0f, 0x82}, 2, NOT_FIELD, 0, __REL_32},
 	{IJNB, {0x0f, 0x83}, 2, NOT_FIELD, 0, __REL_32},
 	{IJE, {0x0f, 0x84}, 2, NOT_FIELD, 0, __REL_32},
@@ -662,7 +662,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	struct Oper *o = get_first_o(in);
 	switch (in->code) {
 	case IJO:
-	case INO:
+	case IJNO:
 	case IJB:
 	case IJNB:
 	case IJE:

@@ -216,7 +216,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		// TODO: near jmp
 		case IJMP:
 		case IJO:
-		case INO:
+		case IJNO:
 		case IJB:
 		case IJNB:
 		case IJE:

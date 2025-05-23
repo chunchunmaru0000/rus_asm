@@ -178,7 +178,7 @@ enum ICode {
 
 	IJMP,
 	IJO,
-	INO,
+	IJNO,
 	IJB,
 	IJNB,
 	IJE,

@@ -126,38 +126,15 @@ const struct Word ZERO_OPS_WORDS[] = {
 const struct Word ONE_OPS_WORDS[] = {
 	{"зов", ICALL},	 {"идти", IJMP},   {"прер", IINT},	 {"выт", IPOP},
 	{"толк", IPUSH}, {"идтиф", IJMPF}, {"зовф", ICALLF}, {"увлч", IINC},
-	{"умнш", IDEC},	 {"воздф", IRETF}, {"возд", IRET},
-// IJO		JO			owerflow			иди
-// IJNO		JNO		n	owerflow			идни
-// IJB		JB 			below				идп
-// IJB		JNAE	n 	above equ			иднвр
-// IJB		JC 			carry				идс
-// IJNB		JNB 	n 	below				иднп
-// IJNB		JAE 		above equ			идвр
-// IJNB		JNC 	n 	carry				иднс
-// IJE		JZ 			zero				ид0
-// IJE		JE 			equ					идр
-// IJNE		JNZ 	n 	zero				идн0
-// IJNE		JNE 	n 	equ					иднр
-// IJBE		JBE 		below equ			идпр
-// IJBE		JNA 	n 	above				иднв
-// IJA		JNBE 	n 	below equ			иднпр
-// IJA		JA 			above				идв
-// IJS		JS 			sign				идз
-// IJNS		JNS 	n 	sign				иднз
-// IJP		JP 			parity_even			идч
-// IJP		JPE 		parity_even equ		идчр
-// IJNP		JNP 	n 	parity_even			иднч
-// IJNP		JPO 		parity_odd 			иднч
-// IJL		JL			less				идмр
-// IJL		JNGE	n 	greater equ			иднбр
-// IJNL		JNL 	n 	less				иднм
-// IJNL		JGE 		greater equ			идбр
-// IJLE		JLE 		less equ			идмр
-// IJLE		JNG 	n 	greater				иднб
-// IJG		JNLE	n 	less equ			иднмр
-// IJG		JG 			greater				идб
-};
+	{"умнш", IDEC},	 {"воздф", IRETF}, {"возд", IRET},	 {"иди", IJO},
+	{"идни", IJNO},	 {"идп", IJB},	   {"иднвр", IJB},	 {"идс", IJB},
+	{"иднп", IJNB},	 {"идвр", IJNB},   {"иднс", IJNB},	 {"ид0", IJE},
+	{"идр", IJE},	 {"идн0", IJNE},   {"иднр", IJNE},	 {"идпр", IJBE},
+	{"иднв", IJBE},	 {"иднпр", IJA},   {"идв", IJA},	 {"идз", IJS},
+	{"иднз", IJNS},	 {"идч", IJP},	   {"идчр", IJP},	 {"иднч", IJNP},
+	{"иднч", IJNP},	 {"идмр", IJL},	   {"иднбр", IJL},	 {"иднм", IJNL},
+	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
+	{"идб", IJG}};
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"зумн", IIMUL},
 	{"проб", ITEST}, {"срав", ICMP},  {"или", IOR},	   {"и", IAND},
