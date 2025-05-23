@@ -1,10 +1,7 @@
 #include "tzer.h"
 #include <stdint.h>
 
-#define BYTE 1
-#define WORD 2
-#define DWORD 4
-#define QWORD 8
+#define RESERVED -1
 #define SCALE_1 0b00
 #define SCALE_2 0b01
 #define SCALE_4 0b10

@@ -237,7 +237,7 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
 // OCode c) { *tp = t; *cp = c; }
 
 const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
-
+const char *STR_RESERVED = "запас";
 int search_size(char *v, struct Oper **o, struct Pser *p) {
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
@@ -252,6 +252,8 @@ int search_size(char *v, struct Oper **o, struct Pser *p) {
 }
 
 int is_size_word(char *v) {
+	if (sc(v, STR_RESERVED))
+		return RESERVED; // -1
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i]))
 			return 1 << i;
@@ -640,16 +642,29 @@ enum ICode one_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
 }
 
 char *INVALID_SIZE_NOT_FOUND =
-	"Ожидался размер операнда: <байт> <дбайт> <чбайт> <вбайт>";
+	"Ожидался размер операнда: <байт> <дбайт> <чбайт> <вбайт>.";
 char *INVALID_SIZE_OF_FPN = "Неверный размер для числа с плавающей точкой, "
-							"ожидался размер <чбайт> или <вбайт>";
-char *AWAITED_SLASHN = "Ожидался перевод строки";
-char *INVALID_DEFN_USAGE = "Неверное использование определения";
+							"ожидался размер <чбайт> или <вбайт>.";
+char *AWAITED_SLASHN = "Ожидался перевод строки.";
+char *INVALID_DEFN_USAGE = "Неверное использование определения.";
+char *INVALID_RESERVED_USAGE_BEGIN =
+	"Нельзя начинать объявление переменной со слова \"запас\".";
+char *INVALID_RESERVED_USAGE =
+	"Нельзя так использовать слово \"запас\"."
+	"\nПравильный синтаксис для использования слова \"запас\":"
+	"\n\tзапас значение раз.";
+char *EXPEXTED_INT_FOR_RESERVED_TIMES =
+	"Правильный синтаксис для использования слова \"запас\":"
+	"\n\tзапас значение раз.";
+char *INVALID_INT_FOR_RESERVED_TIMES =
+	"Число означающее количество раз значений не может быть меньше 1.";
+
 enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
 	struct Token *c = next_get(p, 0), *name; // skip let word
-	uint64_t buf;
 	enum ICode code = ILET;
+	uc reserved_flag = 0;
+	long value;
 	struct Defn *d;
 	struct Oper *o;
 
@@ -657,9 +672,12 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		c = next_get(p, 0);
 
 	int size = is_size_word(c->view), old_sz;
-	if (size)
+	if (size > 0) // -1 is RESERVED
 		code = IDATA;
 	else {
+		if (size < 0)
+			eep(c, INVALID_RESERVED_USAGE_BEGIN);
+
 		name = c;
 		do
 			c = next_get(p, 0);
@@ -667,6 +685,8 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		size = is_size_word(c->view);
 		if (!size)
 			eep(c, INVALID_SIZE_NOT_FOUND);
+		if (size == RESERVED)
+			eep(c, INVALID_RESERVED_USAGE_BEGIN);
 	}
 
 	loop {
@@ -684,8 +704,13 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		if (c->code == ID) {
 			old_sz = size;
 			size = is_size_word(c->view);
-			if (size)
+			if (size) {
+				if (size == RESERVED) {
+					reserved_flag = 1;
+					size = old_sz;
+				}
 				continue;
+			}
 			size = old_sz;
 			d = is_defn(p, c->view);
 			if (!d)
@@ -694,23 +719,37 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			if (o->code == OINT)
 				blat(data, (uc *)&o->t->number, size);
 			else if (o->code == OFPN) {
-				c = o->t;
+				c->fpn = o->t->fpn;
 				goto let_i_real;
 			} else
 				eep(c, INVALID_DEFN_USAGE);
-		} else if (c->code == INT)
-			blat(data, (uc *)&c->number, size);
-		else if (c->code == STR)
+		} else if (c->code == INT) {
+			if (!reserved_flag)
+				blat(data, (uc *)&c->number, size);
+			else {
+				value = c->number;
+				c = next_get(p, 0);
+				if (c->code != INT)
+					eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
+				if (c->number < 1)
+					eep(c, INVALID_INT_FOR_RESERVED_TIMES);
+
+				blist_add_set(data, size, &value, c->number);
+				reserved_flag = 0;
+			}
+		} else if (c->code == STR) {
+			if (reserved_flag)
+				eep(c, INVALID_RESERVED_USAGE);
 			blat(data, (uc *)c->string, c->string_len);
-		else if (c->code == REAL) {
+		} else if (c->code == REAL) {
 		let_i_real:
-			if (size == 8) {
-				memcpy(&buf, &c->fpn, 8);
-				blat(data, (uc *)&buf, 8);
-			} else if (size == 4) {
+			if (reserved_flag)
+				eep(c, INVALID_RESERVED_USAGE);
+			if (size == QWORD)
+				blat(data, (uc *)&c->fpn, QWORD);
+			else if (size == DWORD) {
 				float value = c->fpn;
-				memcpy(&buf, &value, 4);
-				blat(data, (uc *)&buf, 4);
+				blat(data, (uc *)&value, DWORD);
 			} else
 				eep(c, INVALID_SIZE_OF_FPN);
 		} else {

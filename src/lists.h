@@ -1,4 +1,10 @@
+#include <stdlib.h>
+
 #define uc unsigned char
+#define BYTE 1
+#define WORD 2
+#define DWORD 4
+#define QWORD 8
 
 struct PList {
 	void **st; // start
@@ -29,3 +35,4 @@ uc blist_set(struct BList *, long, uc);
 void blat(struct BList *, uc *, long);
 void blist_clear(struct BList *);
 void blist_print(struct BList *);
+void blist_add_set(struct BList *, uc, long *, size_t);

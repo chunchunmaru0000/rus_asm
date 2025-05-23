@@ -84,7 +84,7 @@ void blat(struct BList *l, uc *s, long t) {
 	if (t <= 0)
 		return;
 	if (l->cap < l->size + t) {
-		l->cap += t;
+		l->cap += t; // TODO: check if better += t - l->cap + ?l->cap_pace?
 		l->st = realloc(l->st, l->cap * sizeof(uc));
 	}
 	memcpy(l->st + l->size, s, t);
@@ -105,4 +105,22 @@ void blist_print(struct BList *l) {
 		putchar(' ');
 	}
 	putchar('\n');
+}
+
+void blist_add_set(struct BList *l, uc sz, long *value, size_t n) {
+	if (n < 1)
+		return;
+
+	long new_size = l->size + n * sz, old_size = l->size;
+	if (l->cap < new_size) {
+		l->cap = new_size + l->cap_pace;
+		l->st = realloc(l->st, l->cap * sizeof(uc));
+	}
+	l->size = new_size;
+
+	if (sz == 1)
+		memset(l->st + old_size, *value, n * sz);
+	else
+		for (; old_size < new_size; old_size += sz)
+			memcpy(l->st + old_size, value, sz);
 }
