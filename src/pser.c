@@ -665,7 +665,6 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
 	struct Token *c = next_get(p, 0), *name; // skip let word
 	enum ICode code = ILET;
-	uc reserved_flag = 0;
 	long value;
 	struct Defn *d;
 	struct Oper *o;
@@ -708,8 +707,20 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			size = is_size_word(c->view);
 			if (size) {
 				if (size == RESERVED) {
-					reserved_flag = 1;
 					size = old_sz;
+					next_get(p, 0); // skip запас word
+
+					o = expression(p);
+					if (o->code != OINT)
+						eep(c, INVALID_RESERVED_USAGE);
+					value = o->t->number;
+
+					o = expression(p);
+					if (o->code != OINT)
+						eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
+
+					blist_add_set(data, size, &value, o->t->number);
+					p->pos--; // here expression eats next token so
 				}
 				continue;
 			}
@@ -718,12 +729,6 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			if (!d)
 				break; // break if ID is not size or defn
 			o = d->value;
-			if (reserved_flag) {
-				if (o->code != OINT)
-					eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
-				value = o->t->number;
-				goto got_value_for_dup;
-			}
 			if (o->code == OINT)
 				blat(data, (uc *)&o->t->number, size);
 			else if (o->code == OFPN) {
@@ -731,36 +736,12 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				goto let_i_real;
 			} else
 				eep(c, INVALID_DEFN_USAGE);
-		} else if (c->code == INT) {
-			if (!reserved_flag)
-				blat(data, (uc *)&c->number, size);
-			else {
-				value = c->number;
-			got_value_for_dup:
-				c = next_get(p, 0);
-				if (c->code != INT) {
-					if (c->code != ID)
-						eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
-					d = is_defn(p, c->view);
-					if (!d)
-						eep(c, DEFN_NOT_FOUND);
-					o = d->value;
-					c = o->t;
-				}
-				if (c->number < 1)
-					eep(c, INVALID_INT_FOR_RESERVED_TIMES);
-
-				blist_add_set(data, size, &value, c->number);
-				reserved_flag = 0;
-			}
-		} else if (c->code == STR) {
-			if (reserved_flag)
-				eep(c, INVALID_RESERVED_USAGE);
+		} else if (c->code == INT)
+			blat(data, (uc *)&c->number, size);
+		else if (c->code == STR)
 			blat(data, (uc *)c->string, c->string_len);
-		} else if (c->code == REAL) {
+		else if (c->code == REAL) {
 		let_i_real:
-			if (reserved_flag)
-				eep(c, INVALID_RESERVED_USAGE);
 			if (size == QWORD)
 				blat(data, (uc *)&c->fpn, QWORD);
 			else if (size == DWORD) {
