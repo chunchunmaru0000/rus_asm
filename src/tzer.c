@@ -19,7 +19,7 @@ const char *const TEXT_TAB = "    ";
 char *EMPTY_STR = "_";
 char *EOF_STR = "_КОНЕЦ_ФАЙЛА_"; // конец файла
 
-void print_source_line(char *source_code, long line) {
+void print_source_line(char *source_code, long line, const char *const color) {
 	line--;
 	char *str_start = source_code, *tmps;
 	size_t str_len = 0, nc = line, j;
@@ -34,8 +34,8 @@ void print_source_line(char *source_code, long line) {
 		tmps++;
 	str_len = tmps - str_start;
 
-	printf("      |\n");
-	printf("%5ld |%s", line + 1, COLOR_LIGHT_RED);
+	printf("      |\n"); // TODO: these lines too
+	printf("%5ld |%s", line + 1, color);
 	for (j = 0; j < str_len; j++) {
 		if (*str_start == '\t')
 			printf("%s", TEXT_TAB);
@@ -48,7 +48,7 @@ void print_source_line(char *source_code, long line) {
 }
 
 void ee(struct Tzer *t, char *msg) { // error exit
-	print_source_line(t->code, t->line);
+	print_source_line(t->code, t->line, COLOR_LIGHT_RED);
 	fprintf(stderr, "%s:%ld:%ld %s\n", t->filename, t->line, t->col, msg);
 	exit(1);
 }

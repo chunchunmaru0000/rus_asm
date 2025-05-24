@@ -6,6 +6,7 @@
 
 extern const char *const COLOR_BLACK;
 extern const char *const COLOR_RED;
+extern const char *const COLOR_LIGHT_RED;
 extern const char *const COLOR_GREEN;
 extern const char *const COLOR_YELLOW;
 extern const char *const COLOR_BLUE;
@@ -28,4 +29,4 @@ struct Tzer {
 struct Tzer *new_tzer(char *);
 struct Token *new_token(struct Tzer *);
 struct PList *tze(struct Tzer *, long);
-void print_source_line(char *, long);
+void print_source_line(char *, long, const char *const);

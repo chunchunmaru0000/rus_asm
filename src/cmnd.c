@@ -450,6 +450,8 @@ const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
 const char *const WARN_CHANGE_MEM_SIZE =
 	"ПРЕДУПРЕЖДЕНИЕ: Размер адресанта не был равен размеру регистра, но при "
 	"этом был явно указан, его размер будет изменен под размер регистра.";
+const char *const WARN_CHANGE_IMM_SIZE =
+	"ПРЕДУПРЕЖДЕНИЕ: Размер числа был явно указан но будет изменен.";
 
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
 	if (is_mem(rm) && rm->sz != r->sz) {
@@ -487,13 +489,21 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			if (r->sz == QWORD)
 				pwi(COLOR_PURPLE, WARN_IMM_SIZE_WILL_BE_CHANGED, in);
 
-			if (l->sz < r->sz)
+			if (l->sz < r->sz) {
+				if (r->forsed_sz)
+					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
 				r->sz = l->sz;
-			else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD))
+			} else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD)) {
+				if (r->forsed_sz)
+					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
 				r->sz = l->sz;
+			}
 
-			if (is_imm_can_be_a_byte(r))
+			if (is_imm_can_be_a_byte(r)) {
+				if (r->forsed_sz)
+					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
 				r->sz = BYTE;
+			}
 			// TODO: check this out more
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)) &&
 				!(!is_8(l) && is_8(r)))

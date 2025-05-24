@@ -8,13 +8,13 @@ char *fn;
 char *source_code;
 
 void eep(struct Token *t, char *msg) { // error exit
-	print_source_line(source_code, t->line);
+	print_source_line(source_code, t->line, COLOR_LIGHT_RED);
 	fprintf(stderr, "%s%s:%ld:%ld %s [%s]:[%d]%s\n", COLOR_RED, fn, t->line,
 			t->col, msg, t->view, t->code, COLOR_RESET);
 	exit(1);
 }
 void eeg(const char *msg, struct Inst *i) {
-	print_source_line(source_code, i->line);
+	print_source_line(source_code, i->line, COLOR_LIGHT_RED);
 	fprintf(stderr, "%s%s:%ld:%ld %s%s\n", COLOR_RED, i->file, i->line, i->col,
 			msg, COLOR_RESET);
 	exit(1);
@@ -22,6 +22,7 @@ void eeg(const char *msg, struct Inst *i) {
 
 // print warning inst
 void pwi(const char *const c, const char *msg, struct Inst *i) {
+	print_source_line(source_code, i->line, c);
 	printf("%s%s:%ld:%ld %s%s\n", c, i->file, i->line, i->col, msg,
 		   COLOR_RESET);
 }
