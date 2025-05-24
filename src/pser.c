@@ -648,6 +648,7 @@ char *INVALID_SIZE_OF_FPN = "Неверный размер для числа с 
 							"ожидался размер <чбайт> или <вбайт>.";
 char *AWAITED_SLASHN = "Ожидался перевод строки.";
 char *INVALID_DEFN_USAGE = "Неверное использование определения.";
+char *DEFN_NOT_FOUND = "Определение не было найдено.";
 char *INVALID_RESERVED_USAGE_BEGIN =
 	"Нельзя начинать объявление переменной со слова \"запас\".";
 char *INVALID_RESERVED_USAGE =
@@ -717,6 +718,12 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			if (!d)
 				break; // break if ID is not size or defn
 			o = d->value;
+			if (reserved_flag) {
+				if (o->code != OINT)
+					eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
+				value = o->t->number;
+				goto got_value_for_dup;
+			}
 			if (o->code == OINT)
 				blat(data, (uc *)&o->t->number, size);
 			else if (o->code == OFPN) {
@@ -729,9 +736,17 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				blat(data, (uc *)&c->number, size);
 			else {
 				value = c->number;
+			got_value_for_dup:
 				c = next_get(p, 0);
-				if (c->code != INT)
-					eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
+				if (c->code != INT) {
+					if (c->code != ID)
+						eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
+					d = is_defn(p, c->view);
+					if (!d)
+						eep(c, DEFN_NOT_FOUND);
+					o = d->value;
+					c = o->t;
+				}
 				if (c->number < 1)
 					eep(c, INVALID_INT_FOR_RESERVED_TIMES);
 
