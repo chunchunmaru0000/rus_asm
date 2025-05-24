@@ -66,7 +66,11 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 	h->elf_class = 2;	// 2 for 64 bit
 	h->data = 1;		// little endian
 	h->elf_version = 1; // only possible
-	h->osabi = 0;		// UNIX System V ABI TODO: target relatable
+
+	h->osabi = 0;		// UNIX System V ABI
+	if (g->t == Linux_ELF_86_64)
+		h->osabi = 3; // ELFOSABI_GNU
+
 	memcpy(h->indent, ELFH_INDENT, 8);
 
 	memcpy(h->machine, ELFH_MACHINE_AMD_x86_64, 2);
