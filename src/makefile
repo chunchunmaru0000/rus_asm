@@ -1,3 +1,7 @@
+all: асм
+	./асм тест.асм тест -о 0
+	./асм тест_заглавными.асм тест_заглавными -о 0
+
 тест: асм
 	./асм тест.асм тест
 	xxd тест
@@ -15,7 +19,7 @@
 	xxd быть
 
 асм:
-	gcc main.c gner.c cmnd.c pser.c lists.c tzer.c -o асм
+	gcc main.c flgs.c gner.c cmnd.c pser.c lists.c tzer.c -o асм
 
 test1:
 	fasm test1.asm
