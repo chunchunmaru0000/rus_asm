@@ -283,6 +283,7 @@ int is_imm_r(enum OpsCode c) {
 
 const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IRET, {0xc3}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
 
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
@@ -499,7 +500,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				r->sz = l->sz;
 			}
 
-			if (is_imm_can_be_a_byte(r)) {
+			if (is_imm_can_be_a_byte(r) && !(is_al(l) || is_rA(l))) {
 				if (r->forsed_sz)
 					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
 				r->sz = BYTE;
@@ -653,11 +654,13 @@ void get_zero_ops_code(struct Ipcd *i) {
 	const struct Cmnd *c;
 	for (size_t j = 0; j < lenofarr(cmnds); j++) {
 		c = cmnds + j;
-		if (c->inst == i->in->code) {
+		if (c->inst == i->in->code && c->opsc == OPC_INVALID) {
 			blat(i->cmd, (uc *)c->cmd, c->len);
-			break;
+			goto good_zero_ops;
 		}
 	}
+	eeg("не найдена инструкция, добавь", i->in);
+good_zero_ops:;
 }
 
 const char *const WARN_CHANGE_IMM_32_SIZE =
@@ -758,6 +761,9 @@ void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;
+	// TODO: better and check if there is others that require REX_W thing
+	if (ops == __RM_16_32_64 && is_64(o))
+		rex |= REX_W;
 	if (is_mem(o))
 		rex |= o->rex; // get mem REX's
 	else if (is_r_new(o))
