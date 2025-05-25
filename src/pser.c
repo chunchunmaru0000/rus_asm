@@ -432,7 +432,6 @@ struct Oper *expression(struct Pser *p) {
 
 	struct Token *ot, *t0 = next_get(p, -1); //, *t1, *t2;
 	char *v;
-	uint64_t buf;
 
 	switch (t0->code) {
 	case INT:
@@ -448,12 +447,7 @@ struct Oper *expression(struct Pser *p) {
 			t0->number = (uint64_t)t0->string[0];
 			o->sz = BYTE;
 		} else if (t0->string_len == 2) {
-			buf = 0;
-			memcpy((uc *)&buf + 1, t0->string + 1, 1);
-			memcpy(&buf, t0->string, 1);
-			t0->number = buf;
-			// TODO: do it as a human, not as a черт
-			//((uint32_t)t0->string[1] << 8) + (uint32_t)t0->string[0];
+			t0->number = *(uint16_t *)(t0->string);
 			o->sz = WORD;
 		} else
 			eep(t0, INVALID_STR_LEN);
