@@ -8,23 +8,23 @@ char *fn;
 char *source_code;
 
 void eep(struct Token *t, char *msg) { // error exit
+	fprintf(stderr, "%s%s:%ld:%ld:%s ОШИБКА: %s [%s]:[%d]%s\n", COLOR_WHITE, fn,
+			t->line, t->col, COLOR_RED, msg, t->view, t->code, COLOR_RESET);
 	print_source_line(source_code, t->line, COLOR_LIGHT_RED);
-	fprintf(stderr, "%s%s:%ld:%ld %s [%s]:[%d]%s\n", COLOR_RED, fn, t->line,
-			t->col, msg, t->view, t->code, COLOR_RESET);
 	exit(1);
 }
 void eeg(const char *msg, struct Inst *i) {
+	fprintf(stderr, "%s%s:%ld:%ld:%s ОШИБКА: %s%s\n", COLOR_WHITE, i->file,
+			i->line, i->col, COLOR_RED, msg, COLOR_RESET);
 	print_source_line(source_code, i->line, COLOR_LIGHT_RED);
-	fprintf(stderr, "%s%s:%ld:%ld %s%s\n", COLOR_RED, i->file, i->line, i->col,
-			msg, COLOR_RESET);
 	exit(1);
 }
 
 // print warning inst
-void pwi(const char *const c, const char *msg, struct Inst *i) {
-	print_source_line(source_code, i->line, c);
-	printf("%s%s:%ld:%ld %s%s\n", c, i->file, i->line, i->col, msg,
-		   COLOR_RESET);
+void pwi(const char *msg, struct Inst *i) {
+	printf("%s%s:%ld:%ld%s ПРЕДУПРЕЖДЕНИЕ: %s%s\n", COLOR_WHITE, i->file,
+		   i->line, i->col, COLOR_PURPLE, msg, COLOR_RESET);
+	print_source_line(source_code, i->line, COLOR_LIGHT_PURPLE);
 }
 struct Usage *new_usage(uint64_t place, enum UT type) {
 	struct Usage *u = malloc(sizeof(struct Usage));
@@ -107,11 +107,8 @@ const char *STR_ADDR = "адр";
 // instruction words
 //	{"свозд", ISYSRET},
 const struct Word ZERO_OPS_WORDS[] = {
-	{"сзов", ISYSCALL},
-	{"воздф", IRETF},
-	{"возд", IRET},
-	{"атом", ILOCK},
-	{"ыыы", INOP},
+	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"возд", IRET},
+	{"атом", ILOCK},	{"ыыы", INOP},
 };
 // not			н 	не
 // overflow 	и	избыток
@@ -812,7 +809,7 @@ struct Inst *get_inst(struct Pser *p) {
 		else if (sc(cv, STR_ENTRY))
 			code = entry_i(p, os);
 		else
-			eep(n, "НЕИЗВЕСТНАЯ КОМАНДА");
+			eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 	} else if (cur->code == INC)
 		code = one_ops_i(p, os, IINC);
 	else if (cur->code == DEC)

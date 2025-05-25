@@ -11,6 +11,7 @@ extern const char *const COLOR_GREEN;
 extern const char *const COLOR_YELLOW;
 extern const char *const COLOR_BLUE;
 extern const char *const COLOR_PURPLE;
+extern const char *const COLOR_LIGHT_PURPLE;
 extern const char *const COLOR_GAY;
 extern const char *const COLOR_WHITE;
 extern const char *const COLOR_RESET;

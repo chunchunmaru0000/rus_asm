@@ -248,7 +248,7 @@ struct Inst {
 	char *file;
 };
 struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
-void pwi(const char *const, const char *, struct Inst *);
+void pwi(const char *, struct Inst *);
 
 #define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AL && (o)->rm <= R_R15B))
 #define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))

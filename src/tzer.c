@@ -5,12 +5,14 @@
 #include <string.h>
 
 const char *const COLOR_BLACK = "\x1B[30m";
+const char *const COLOR_LIGHT_BLACK = "\033[90m";
 const char *const COLOR_LIGHT_RED = "\x1B[91m";
 const char *const COLOR_RED = "\x1B[31m";
 const char *const COLOR_GREEN = "\x1B[32m";
 const char *const COLOR_YELLOW = "\x1B[33m";
 const char *const COLOR_BLUE = "\x1B[34m";
 const char *const COLOR_PURPLE = "\x1B[35m";
+const char *const COLOR_LIGHT_PURPLE = "\033[95m";
 const char *const COLOR_GAY = "\x1B[36m";
 const char *const COLOR_WHITE = "\x1B[37m";
 const char *const COLOR_RESET = "\x1B[0m";
@@ -19,10 +21,27 @@ const char *const TEXT_TAB = "    ";
 char *EMPTY_STR = "_";
 char *EOF_STR = "_КОНЕЦ_ФАЙЛА_"; // конец файла
 
+char *write_ln(char *line) {
+	if (*line == '\n')
+		line++;
+	while (*line && *line != '\n') {
+		if (*line == '\t')
+			printf("%s", TEXT_TAB);
+		else
+			putchar(*line);
+		line++;
+	}
+	if (*line == '\n')
+		line++;
+	return line;
+}
+
 void print_source_line(char *source_code, long line, const char *const color) {
 	line--;
 	char *str_start = source_code, *tmps;
 	size_t str_len = 0, nc = line, j;
+	if (line)
+		nc--;
 	while (nc) {
 		str_start++;
 		if (*str_start == '\n')
@@ -32,24 +51,29 @@ void print_source_line(char *source_code, long line, const char *const color) {
 	tmps = str_start;
 	while (*tmps != '\n')
 		tmps++;
+	if (*str_start == '\n')
+		str_start++;
+	str_start--;
 	str_len = tmps - str_start;
 
-	printf("      |\n"); // TODO: these lines too
+	printf("%5ld |", line);
+	if (line)
+		str_start = write_ln(str_start);
+	putchar('\n');
+
 	printf("%5ld |%s", line + 1, color);
-	for (j = 0; j < str_len; j++) {
-		if (*str_start == '\t')
-			printf("%s", TEXT_TAB);
-		else
-			putchar(*(str_start));
-		str_start++;
-	}
+	str_start = write_ln(str_start);
 	printf("%s\n", COLOR_RESET);
-	printf("      |\n");
+
+	printf("%5ld |", line + 2);
+	str_start = write_ln(str_start);
+	putchar('\n');
 }
 
 void ee(struct Tzer *t, char *msg) { // error exit
+	fprintf(stderr, "%s%s:%ld:%ld %sОШИБКА: %s\n", COLOR_WHITE, t->filename,
+			t->line, t->col, COLOR_RED, msg);
 	print_source_line(t->code, t->line, COLOR_LIGHT_RED);
-	fprintf(stderr, "%s:%ld:%ld %s\n", t->filename, t->line, t->col, msg);
 	exit(1);
 }
 
@@ -231,7 +255,7 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 	char *str_view;
 	next(t);
 	// TODO: maybe do like \т\н\0\t\n\0
-	while (cur(t) != '"') {
+	while (cur(t) != '"' && cur(t)) {
 		if (cur(t) == '\n') {
 			t->col = 1;
 			t->line++;

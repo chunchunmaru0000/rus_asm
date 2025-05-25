@@ -439,19 +439,19 @@ const struct Cmnd cmnds[] = {
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
-	"ПРЕДУПРЕЖДЕНИЕ: Размер числа был вбайт, но данный тип инструкций не "
+	"Размер числа был вбайт, но данный тип инструкций не "
 	"поддерживает числа таких размеров, поэтому скорее всего размер числа "
 	"будет урезан.";
 const char *const WARN_CHANGE_MEM_SIZE =
-	"ПРЕДУПРЕЖДЕНИЕ: Размер адресанта не был равен размеру регистра, но при "
+	"Размер адресанта не был равен размеру регистра, но при "
 	"этом был явно указан, его размер будет изменен под размер регистра.";
 const char *const WARN_CHANGE_IMM_SIZE =
-	"ПРЕДУПРЕЖДЕНИЕ: Размер числа был явно указан но будет изменен.";
+	"Размер числа был явно указан но будет изменен.";
 
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
 	if (is_mem(rm) && rm->sz != r->sz) {
 		if (rm->forsed_sz)
-			pwi(COLOR_PURPLE, WARN_CHANGE_MEM_SIZE, in);
+			pwi(WARN_CHANGE_MEM_SIZE, in);
 		rm->sz = r->sz;
 	}
 	if (rm->sz != r->sz)
@@ -482,21 +482,21 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		} else if (is_rm(l) && is_imm(r)) {
 			// TODO: better warnings or even errors?
 			if (r->sz == QWORD)
-				pwi(COLOR_PURPLE, WARN_IMM_SIZE_WILL_BE_CHANGED, in);
+				pwi(WARN_IMM_SIZE_WILL_BE_CHANGED, in);
 
 			if (l->sz < r->sz) {
 				if (r->forsed_sz)
-					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
+					pwi(WARN_CHANGE_IMM_SIZE, in);
 				r->sz = l->sz;
 			} else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD)) {
 				if (r->forsed_sz)
-					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
+					pwi(WARN_CHANGE_IMM_SIZE, in);
 				r->sz = l->sz;
 			}
 
 			if (is_imm_can_be_a_byte(r) && !(is_al(l) || is_rA(l))) {
 				if (r->forsed_sz)
-					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_SIZE, in);
+					pwi(WARN_CHANGE_IMM_SIZE, in);
 				r->sz = BYTE;
 			}
 			// TODO: check this out more
@@ -538,8 +538,11 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		else if (is_moffs(l) && !is_8(l) && is_rA(r))
 			code = MOFFS_16_32_64__RAX;
 		else if (is_imm(r)) {
-			if (l->sz < r->sz)
+			if (l->sz < r->sz) {
+				if (r->forsed_sz)
+					pwi(WARN_CHANGE_IMM_SIZE, in);
 				r->sz = l->sz;
+			}
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
 
@@ -658,7 +661,7 @@ good_zero_ops:;
 }
 
 const char *const WARN_CHANGE_IMM_32_SIZE =
-	"ПРЕДУПРЕЖДЕНИЕ: Размер выражения не был равен чбайт, но при "
+	"Размер выражения не был равен чбайт, но при "
 	"этом был явно указан, его размер будет изменен под чбайт.";
 const char *const ERR_REG_NOT_16_OR_64 =
 	"Для данного типа инструкций поддерживаются только регистры размеров дбайт "
@@ -690,7 +693,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 		if (is_imm(o)) {
 			if (in->code == ICALL) {
 				if (o->sz != DWORD && o->forsed_sz)
-					pwi(COLOR_PURPLE, WARN_CHANGE_IMM_32_SIZE, in);
+					pwi(WARN_CHANGE_IMM_32_SIZE, in);
 				o->sz = DWORD;
 				code = __REL_32;
 			} else if (is_8(o))
@@ -698,7 +701,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			else if (is_32(o))
 				code = __REL_32;
 			else {
-				pwi(COLOR_PURPLE, WARN_CHANGE_IMM_32_SIZE, in);
+				pwi(WARN_CHANGE_IMM_32_SIZE, in);
 				o->sz = DWORD;
 				code = __REL_32;
 			}
@@ -725,7 +728,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			else if (is_8(o))
 				code = __IMM_8;
 			else {
-				pwi(COLOR_PURPLE, WARN_CHANGE_IMM_32_SIZE, in);
+				pwi(WARN_CHANGE_IMM_32_SIZE, in);
 				o->sz = DWORD;
 				code = __IMM_32;
 			}
