@@ -198,7 +198,7 @@ enum ICode {
 	IRET,
 	IRETF,
 	ISYSRET,
-	// TODO: LOCK will be an instruction as its always first pref
+	ILOCK
 };
 
 struct Reg {

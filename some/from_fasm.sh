@@ -17,6 +17,7 @@ dict=(
     "flags флаги"
     "word дбайт"
     "byte байт"
+    "lock атом"
     "jnae иднвр"
     "jnbe иднпр"
     "jnge иднбр"

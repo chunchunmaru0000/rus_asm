@@ -110,6 +110,7 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL},
 	{"воздф", IRETF},
 	{"возд", IRET},
+	{"атом", ILOCK},
 	{"ыыы", INOP},
 };
 // not			н 	не

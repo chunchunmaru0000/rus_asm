@@ -199,6 +199,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case IRET:
 		case IRETF:
 		case ISYSCALL:
+		case ILOCK:
 		case IADD:
 		case IOR:
 		case IADC:

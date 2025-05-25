@@ -106,23 +106,16 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 
 void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 	if (o->disp_is_rel_flag) {
-		// TODO: rel8 also can exist
-		if (o->sz < DWORD)
-			eeg(WRONG_ADDR_SZ, i->in);
-
 		struct Defn *np = new_not_plov(o->rel_view, i->data->size, REL_ADDR);
 		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
-		blat(i->data, (uc *)&some_value, o->sz);
+		blat(i->data, (uc *)&some_value, bytes);
 	} else
 		blat(i->data, (uc *)&o->disp, bytes);
 }
 
 void add_imm_data(struct Ipcd *i, struct Oper *o) {
 	if (o->code == OREL) {
-		if (o->sz < DWORD)
-			eeg(WRONG_ADDR_SZ, i->in);
-
 		enum UT ut = is_rel(i->c->opsc) ? REL_ADDR : ADDR;
 		struct Defn *np = new_not_plov(o->t->view, i->data->size, ut);
 		plist_add(i->not_plovs, np);
@@ -284,6 +277,7 @@ int is_imm_r(enum OpsCode c) {
 const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IRET, {0xc3}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{ILOCK, {0xf0}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
 
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
