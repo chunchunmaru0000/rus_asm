@@ -1,3 +1,5 @@
+#include "lists.h"
+
 enum Target {
 	Linux_ELF_86_64,
 	Linux_OBJ_86_64,
@@ -47,6 +49,5 @@ struct Token {
 	// literals reserved than may not always be used
 	long number;
 	double fpn; // Floatimg Point Number
-	char *string;
-	long string_len;
+	struct BList *str;
 };

@@ -244,28 +244,79 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 	return code;
 }
 
+struct S2Uc {
+	const uc len;
+	const char *s;
+	const uc c;
+	uc x;
+};
+#define SUC_NONE 255
+#define SUC_X 254
+struct S2Uc s2ucs[] = {
+	{2, "\\t", '\t'}, {2, "\\n", '\n'},	 {2, "\\r", '\r'},	{2, "\\т", '\t'},
+	{2, "\\н", '\n'}, {2, "\\р", '\r'},	 {2, "\\0", '\0'},	{2, "\"", '"'},
+	{2, "\'", '\''},  {2, "\\\\", '\\'}, {4, "\\x", SUC_X},
+};
+struct S2Uc none_s2uc = {0, "0", SUC_NONE};
+
+struct S2Uc *search_pattern(char *text) {
+	struct S2Uc *suc;
+	char *s = malloc(5); // max len so "\\x"->len = 4 + 1 terminator
+
+	for (long i = 0; i < (long)lenofarr(s2ucs); i++) {
+		suc = s2ucs + i;
+		memcpy(s, text, suc->len);
+		s[suc->len] = 0;
+
+		if (sc(s, suc->s)) {
+			if (suc->c == 254)
+				; // TODO:
+			else
+				goto search_pattern_ret;
+		}
+	}
+	suc = &none_s2uc;
+
+search_pattern_ret:
+	free(s);
+	return suc;
+}
+
 enum TCode str_token(struct Tzer *t, struct Token *token) {
-	long start_pos = t->pos, str_len = 2;
-	char *str_view;
-	next(t);
-	// TODO: maybe do like \т\н\0\t\n\0
+	long start_pos = t->pos, str_len = 2, i;
+	struct BList *str_str = new_blist(16);
+	struct S2Uc *suc;
+
+	next(t); // skip "
 	while (cur(t) != '"' && cur(t)) {
 		if (cur(t) == '\n') {
 			t->col = 1;
 			t->line++;
 		}
+		if (cur(t) == '\\') {
+			suc = search_pattern(t->code + t->pos);
+			if (suc->c != SUC_NONE) {
+				blist_add(str_str, suc->c == SUC_X ? suc->x : suc->c);
+				for (i = 0; i < suc->len; i--)
+					next(t);
+				// t->pos += suc->len;t->col += suc->len; TODO: check
+				str_len += suc->len;
+			}
+			continue;
+		}
+		blist_add(str_str, cur(t));
 		next(t);
 		str_len++;
 	}
-	next(t);
+	next(t); // skip "
 
-	str_view = malloc(str_len + 1);
+	char *str_view = malloc(str_len + 1);
 	str_view[str_len] = 0;
 	strncpy(str_view, &t->code[start_pos], str_len);
 
 	token->view = str_view;
-	token->string = str_view + 1;
-	token->string_len = str_len - 2;
+	token->str = str_str;
+	blist_cut(str_str);
 	return STR;
 }
 

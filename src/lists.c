@@ -69,6 +69,16 @@ long blist_add(struct BList *l, uc p) {
 	return l->size;
 }
 
+long blist_cut(struct BList *l) {
+	l->cap = l->size;
+	if (!l->size){
+		free(l->st);
+		return 0;
+	}
+	l->st = realloc(l->st, l->size);
+	return l->size;
+}
+
 uc blist_get(struct BList *l, long i) { return l->st[i]; }
 
 uc blist_set(struct BList *l, long i, uc p) {

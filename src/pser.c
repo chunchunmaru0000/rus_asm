@@ -180,10 +180,6 @@ const struct Reg R_REGS[] = {
 char *CANT_CHANGE_REG_SZ =
 	"Нельзя менять размер регистра, это ни к чему не приведет так и так.";
 
-uc sc(char *view, const char *str) {
-	// printf("[%s]==[%s]\n", view, str);
-	return strcmp(view, str) == 0;
-}
 uc cont_str(char *view, const char **strs, long strs_len) {
 	for (int i = 0; i < strs_len; i++)
 		if (sc(view, strs[i]))
@@ -441,11 +437,12 @@ struct Oper *expression(struct Pser *p) {
 		ot = t0;
 		break;
 	case STR:
-		if (t0->string_len == 1) {
-			t0->number = (uint64_t)t0->string[0];
+		printf("\t\t%ld\n", t0->str->size);
+		if (t0->str->size == 1) {
+			t0->number = (uint64_t)t0->str->st[0];
 			o->sz = BYTE;
-		} else if (t0->string_len == 2) {
-			t0->number = *(uint16_t *)(t0->string);
+		} else if (t0->str->size == 2) {
+			t0->number = *(uint16_t *)(t0->str->st);
 			o->sz = WORD;
 		} else
 			eep(t0, INVALID_STR_LEN);
@@ -731,7 +728,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		} else if (c->code == INT)
 			blat(data, (uc *)&c->number, size);
 		else if (c->code == STR)
-			blat(data, (uc *)c->string, c->string_len);
+			blat(data, (uc *)c->str->st, c->str->size);
 		else if (c->code == REAL) {
 		let_i_real:
 			if (size == QWORD)

@@ -15,7 +15,6 @@
 #define REX_R 0b0100
 #define REX_W 0b1000
 
-uc sc(char *, const char *);
 #define REL_SIZE 4
 enum UT { // Usage Type
 	ADDR,
