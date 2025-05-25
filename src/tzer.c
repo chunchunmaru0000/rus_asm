@@ -38,8 +38,8 @@ char *write_ln(char *line) {
 
 void print_source_line(char *source_code, long line, const char *const color) {
 	line--;
-	char *str_start = source_code, *tmps;
-	size_t str_len = 0, nc = line, j;
+	char *str_start = source_code;
+	size_t nc = line;
 	if (line)
 		nc--;
 	while (nc) {
@@ -47,14 +47,8 @@ void print_source_line(char *source_code, long line, const char *const color) {
 		if (*str_start == '\n')
 			nc--;
 	}
-	str_start++;
-	tmps = str_start;
-	while (*tmps != '\n')
-		tmps++;
 	if (*str_start == '\n')
 		str_start++;
-	str_start--;
-	str_len = tmps - str_start;
 
 	printf("%5ld |", line);
 	if (line)
