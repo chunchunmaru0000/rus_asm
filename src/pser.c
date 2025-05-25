@@ -25,7 +25,7 @@ void pwi(const char *msg, struct Inst *i) {
 	if (!NEED_WARN)
 		return;
 	printf("%s%s:%ld:%ld%s ПРЕДУПРЕЖДЕНИЕ: %s%s\n", COLOR_WHITE, i->file,
-		   i->line, i->col, COLOR_PURPLE, msg, COLOR_RESET);
+		   i->line, i->col, COLOR_LIGHT_PURPLE, msg, COLOR_RESET);
 	print_source_line(source_code, i->line, COLOR_LIGHT_PURPLE);
 }
 struct Usage *new_usage(uint64_t place, enum UT type) {

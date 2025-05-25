@@ -253,15 +253,16 @@ struct S2Uc {
 #define SUC_NONE 255
 #define SUC_X 254
 struct S2Uc s2ucs[] = {
-	{2, "\\t", '\t'}, {2, "\\n", '\n'},	 {2, "\\r", '\r'},	{2, "\\т", '\t'},
-	{2, "\\н", '\n'}, {2, "\\р", '\r'},	 {2, "\\0", '\0'},	{2, "\"", '"'},
-	{2, "\'", '\''},  {2, "\\\\", '\\'}, {4, "\\x", SUC_X},
+	{2, "\\t", '\t'},  {2, "\\n", '\n'},  {2, "\\r", '\r'},	 {3, "\\т", '\t'},
+	{3, "\\н", '\n'},  {3, "\\р", '\r'},  {2, "\\0", '\0'},	 {2, "\\\"", '"'},
+	{2, "\\\\", '\\'}, {2, "\\x", SUC_X}, {2, "\\X", SUC_X}, {3, "\\х", SUC_X},
+	{3, "\\Х", SUC_X}, // {2, "\'", '\''},
 };
 struct S2Uc none_s2uc = {0, "0", SUC_NONE};
 
 struct S2Uc *search_pattern(char *text) {
 	struct S2Uc *suc;
-	char *s = malloc(5); // max len so "\\x"->len = 4 + 1 terminator
+	char *s = malloc(6); // max len + terminator
 
 	for (long i = 0; i < (long)lenofarr(s2ucs); i++) {
 		suc = s2ucs + i;
@@ -282,6 +283,11 @@ search_pattern_ret:
 	return suc;
 }
 
+void start_line(struct Tzer *t) {
+	t->col = 1;
+	t->line++;
+}
+
 enum TCode str_token(struct Tzer *t, struct Token *token) {
 	long start_pos = t->pos, str_len = 2, i;
 	struct BList *str_str = new_blist(16);
@@ -289,18 +295,22 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 
 	next(t); // skip "
 	while (cur(t) != '"' && cur(t)) {
-		if (cur(t) == '\n') {
-			t->col = 1;
-			t->line++;
-		}
+		if (cur(t) == '\n')
+			start_line(t);
 		if (cur(t) == '\\') {
 			suc = search_pattern(t->code + t->pos);
 			if (suc->c != SUC_NONE) {
 				blist_add(str_str, suc->c == SUC_X ? suc->x : suc->c);
-				for (i = 0; i < suc->len; i--)
+				for (i = 0; i < suc->len; i++)
 					next(t);
 				// t->pos += suc->len;t->col += suc->len; TODO: check
 				str_len += suc->len;
+			} else {
+				// skip slash
+				if (next(t) == '\n')
+					start_line(t);
+				next(t);
+				str_len += 2;
 			}
 			continue;
 		}
