@@ -49,7 +49,7 @@ void get_ops_code(struct Ipcd *i) {
 	else if (i->in->os->size == 2)
 		get_two_ops_code(i);
 	else
-		eeg("йцук\n", i->in);
+		eeg("йцук", i->in);
 
 	if (0b00000010 & i->debug) {
 		printf("### команда %ld байт: ", i->cmd->size);
@@ -447,6 +447,9 @@ const char *const WARN_CHANGE_MEM_SIZE =
 	"этом был явно указан, его размер будет изменен под размер регистра.";
 const char *const WARN_CHANGE_IMM_SIZE =
 	"Размер числа был явно указан но будет изменен.";
+const char *const ERR_WRONG_OPS_FOR_THIS_INST =
+	"Неверные выражения для данного типа инструкции."
+	"(МОЖЕТ ПРОСТО НЕ ДОДЕЛАНО ПОКА)";
 
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
 	if (is_mem(rm) && rm->sz != r->sz) {
@@ -570,7 +573,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		}
 		break;
 	default:
-		eeg("нет пока для такой инструкции\n", in);
+		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);
 	}
 	if (code == OPC_INVALID)
 		eeg(OPS_CODE_INVALID, in);
@@ -740,7 +743,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			code = is_8(o) ? __RM_8 : __RM_16_32_64;
 		break;
 	default:
-		eeg("нет пока для такой инструкции\n", in);
+		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);
 	}
 	if (code == OPC_INVALID)
 		eeg(OPS_CODE_INVALID, in);

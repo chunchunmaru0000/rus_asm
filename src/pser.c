@@ -107,7 +107,10 @@ const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // instruction words
-//	{"свозд", ISYSRET},
+const struct Word VAR_OPS_WORDS[] = {
+	{"возд", IRET},
+	{"воздф", IRETF},
+};
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"возд", IRET},
 	{"атом", ILOCK},	{"ыыы", INOP},
@@ -765,6 +768,39 @@ enum ICode define_pd(struct Pser *p) {
 	return INONE;
 }
 
+int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
+	size_t i;
+	for (i = 0; i < lenofarr(VAR_OPS_WORDS); i++)
+		if (sc(view, VAR_OPS_WORDS[i].view)) {
+			struct Token *cur = next_get(p, 0);
+			while (cur->code != SLASHN && cur->code != SEP && cur->code != EF) {
+				plist_add(os, expression(p));
+				cur = gettp(p, 0);
+			}
+			// this is still can be a wrong instruction because its just
+			// wont have the right opsCode in cmnd so dont care here about it
+			*c = VAR_OPS_WORDS[i].inst;
+			return 1;
+		}
+	for (i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
+		if (sc(view, TWO_OPS_WORDS[i].view)) {
+			*c = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
+			return 1;
+		}
+	for (i = 0; i < lenofarr(ZERO_OPS_WORDS); i++)
+		if (sc(view, ZERO_OPS_WORDS[i].view)) {
+			next_get(p, 0);
+			*c = ZERO_OPS_WORDS[i].inst;
+			return 1;
+		}
+	for (i = 0; i < lenofarr(ONE_OPS_WORDS); i++)
+		if (sc(view, ONE_OPS_WORDS[i].view)) {
+			*c = one_ops_i(p, os, ONE_OPS_WORDS[i].inst);
+			return 1;
+		}
+	return 0;
+}
+
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
 	struct Token *cur = gettp(p, 0), *n;
@@ -772,31 +808,15 @@ struct Inst *get_inst(struct Pser *p) {
 		cur = next_get(p, 0);
 	char *cv = cur->view;
 	enum ICode code;
-	size_t i;
 	n = gettp(p, 1);
 
 	// fill *os in funcs
 	if (cur->code == EF)
 		code = IEOI;
 	else if (cur->code == ID) {
-		// TODO: vararg(varop) opcodes, like ret which can be 0 and 1 ops
-		for (i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
-			if (sc(cv, TWO_OPS_WORDS[i].view)) {
-				code = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
-				goto there_is_inst;
-			}
-		for (i = 0; i < lenofarr(ZERO_OPS_WORDS); i++)
-			if (sc(cv, ZERO_OPS_WORDS[i].view)) {
-				next_get(p, 0);
-				code = ZERO_OPS_WORDS[i].inst;
-				goto there_is_inst;
-			}
-		for (i = 0; i < lenofarr(ONE_OPS_WORDS); i++)
-			if (sc(cv, ONE_OPS_WORDS[i].view)) {
-				code = one_ops_i(p, os, ONE_OPS_WORDS[i].inst);
-				goto there_is_inst;
-			}
-		if (n->code == COLO)
+		if (ops_i(p, os, cv, &code))
+			;
+		else if (n->code == COLO)
 			code = label_i(p, os);
 		else if (sc(cv, STR_LET))
 			code = let_i(p, os);
@@ -814,7 +834,7 @@ struct Inst *get_inst(struct Pser *p) {
 		code = one_ops_i(p, os, IDEC);
 	else
 		eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
-there_is_inst:
+
 	return new_inst(code, os, cur);
 }
 
