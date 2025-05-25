@@ -22,6 +22,8 @@ void eeg(const char *msg, struct Inst *i) {
 
 // print warning inst
 void pwi(const char *msg, struct Inst *i) {
+	if (!NEED_WARN)
+		return;
 	printf("%s%s:%ld:%ld%s ПРЕДУПРЕЖДЕНИЕ: %s%s\n", COLOR_WHITE, i->file,
 		   i->line, i->col, COLOR_PURPLE, msg, COLOR_RESET);
 	print_source_line(source_code, i->line, COLOR_LIGHT_PURPLE);

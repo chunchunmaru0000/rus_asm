@@ -3,6 +3,7 @@
 enum CMD_FLAG {
 	CF_DEBUG,
 	CF_TARGET,
+	CF_WARNS,
 };
 
 struct Flag {

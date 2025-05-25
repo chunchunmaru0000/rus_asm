@@ -3,9 +3,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+uc NEED_WARN = 1;
+
 const struct Flag flags[] = {
-	{"-д", CF_DEBUG},  {"-о", CF_DEBUG},  {"-d", CF_DEBUG},
-	{"-ц", CF_TARGET}, {"-t", CF_TARGET},
+	{"-д", CF_DEBUG},  {"-о", CF_DEBUG}, {"-d", CF_DEBUG}, {"-ц", CF_TARGET},
+	{"-t", CF_TARGET}, {"-w", CF_WARNS}, {"-п", CF_WARNS},
 };
 
 void exit_msg(char *msg) {
@@ -42,21 +44,24 @@ struct Flags *get_flags(int argc, char **args) {
 			flag = flags[j];
 
 			if (sc(arg, flag.v)) {
+				i++;
+				if (i >= flen)
+					exit_msg_arg("Нехватает значения для флага", arg);
+
 				switch (flag.f) {
 				case CF_DEBUG:
-					i++;
-					if (i >= flen)
-						exit_msg_arg("Нехватает значения для флага", arg);
-					arg = args[i];
-					f->debug = atoi(arg);
-					goto exit_j_loop;
+					f->debug = atoi(args[i]);
+					goto get_flags_exit_j_loop;
 				case CF_TARGET:
-					goto exit_j_loop;
+					goto get_flags_exit_j_loop;
+				case CF_WARNS:
+
+					NEED_WARN = atoi(args[i]);
+					goto get_flags_exit_j_loop;
 				}
 			}
 		}
-	exit_j_loop:;
+	get_flags_exit_j_loop:;
 	}
-
 	return f;
 }

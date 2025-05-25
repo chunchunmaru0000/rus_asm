@@ -16,6 +16,7 @@
 #define REX_W 0b1000
 
 #define REL_SIZE 4
+extern uc NEED_WARN;
 enum UT { // Usage Type
 	ADDR,
 	REL_ADDR,
