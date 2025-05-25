@@ -4,24 +4,20 @@
 	chmod +x тест
 	./тест
 
-all: асм
-	./асм тест.асм тест -о 0
-	./асм тест_заглавными.асм тест_заглавными -о 0
-
-тест1: асм
-	cat тест1.асм
-	./асм тест1.асм тест1
-	xxd тест1
-	rm тест1
-
-быть: асм
-	./асм быть.асм быть
-	xxd быть
-
 асм:
 	gcc main.c flgs.c gner.c cmnd.c pser.c lists.c tzer.c -o асм
 
-test1:
-	fasm test1.asm
-	xxd test1
-	cat test1.asm
+
+TESTS := ../tests/
+BUILD := ../tests/build
+TS := $(wildcard $(TESTS)/*.асм)
+BS := $(patsubst $(TESTS)/%.асм, $(BUILD)/%, $(TS))
+
+$(BUILD)/%: $(TESTS)%.асм асм
+	mkdir -p $(BUILD)
+	./асм $< $@ -о 0
+
+all: $(BS)
+	./асм тест.асм тест -о 0
+	./асм тест_заглавными.асм тест_заглавными -о 0
+	rm -rf $(BUILD)

@@ -1,0 +1,50 @@
+[4mMKDIR[24m(1)                                                        User Commands                                                        [4mMKDIR[24m(1)
+
+[1mNAME[0m
+       mkdir - make directories
+
+[1mSYNOPSIS[0m
+       [1mmkdir [22m[[4mOPTION[24m]... [4mDIRECTORY[24m...
+
+[1mDESCRIPTION[0m
+       Create the DIRECTORY(ies), if they do not already exist.
+
+       Mandatory arguments to long options are mandatory for short options too.
+
+       [1m-m[22m, [1m--mode[22m=[4mMODE[0m
+              set file mode (as in chmod), not a=rwx - umask
+
+       [1m-p[22m, [1m--parents[0m
+              no error if existing, make parent directories as needed, with their file modes unaffected by any [1m-m [22moption.
+
+       [1m-v[22m, [1m--verbose[0m
+              print a message for each created directory
+
+       [1m-Z     [22mset SELinux security context of each created directory to the default type
+
+       [1m--context[22m[=[4mCTX[24m]
+              like [1m-Z[22m, or if CTX is specified then set the SELinux or SMACK security context to CTX
+
+       [1m--help [22mdisplay this help and exit
+
+       [1m--version[0m
+              output version information and exit
+
+[1mAUTHOR[0m
+       Written by David MacKenzie.
+
+[1mREPORTING BUGS[0m
+       GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
+       Report any translation bugs to <https://translationproject.org/team/>
+
+[1mCOPYRIGHT[0m
+       Copyright © 2023 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+[1mSEE ALSO[0m
+       [1mmkdir[22m(2)
+
+       Full documentation <https://www.gnu.org/software/coreutils/mkdir>
+       or available locally via: info '(coreutils) mkdir invocation'
+
+GNU coreutils 9.4                                                 April 2024                                                         [4mMKDIR[24m(1)

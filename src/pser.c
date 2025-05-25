@@ -437,7 +437,6 @@ struct Oper *expression(struct Pser *p) {
 		ot = t0;
 		break;
 	case STR:
-		printf("\t\t%ld\n", t0->str->size);
 		if (t0->str->size == 1) {
 			t0->number = (uint64_t)t0->str->st[0];
 			o->sz = BYTE;
