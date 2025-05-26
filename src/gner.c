@@ -67,7 +67,7 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 	h->data = 1;		// little endian
 	h->elf_version = 1; // only possible
 
-	h->osabi = 0;		// UNIX System V ABI
+	h->osabi = 0; // UNIX System V ABI
 	if (g->t == Linux_ELF_86_64)
 		h->osabi = 3; // ELFOSABI_GNU
 
@@ -245,7 +245,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				l = find_label(g, not_plov->view);
 				usage = not_plov->value;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
+				// REMEMBER: gner does it
+				usage->cmd_end = usage->place + data->size;
 				plist_add(l->us, usage);
+				// TODO: need to have usage ph ptr and label ph ptr
+				// to count with segments offset
 			}
 			plist_clear_items_free(ipcd->not_plovs);
 			break;
@@ -256,7 +260,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->a = phs_cur_sz + ph->vaddr;
 			l->ra = g->text->size;
-			if (g->debug)
+			if (g->debug & 1)
 				printf("метка[%s]\t[0x%08lx]\n", l->l, l->a);
 			break;
 		case IDATA:
@@ -265,14 +269,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			break;
 		case ILET:
 			tok = plist_get(in->os, 0);
-			// printf("try find [%s], i = %ld, code = %d\n", tok->view, i,
-			// code);
 			l = find_label(g, tok->view);
 
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->a = phs_cur_sz + ph->vaddr;
 			l->ra = g->text->size;
-			if (g->debug)
+			if (g->debug & 1)
 				printf("перем[%s]\t[0x%08lx]\n", l->l, l->a);
 
 			data_bl = plist_get(in->os, 1);
@@ -354,8 +356,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				if (usage->type == ADDR) {
 					memcpy(textptr, &l->a, REL_SIZE);
 				} else if (usage->type == REL_ADDR) {
-					long text_pos = l->ra - usage->place - REL_SIZE;
-					memcpy(textptr, &text_pos, REL_SIZE);
+					long text_pos = l->ra - usage->cmd_end;
+					memcpy(textptr, &text_pos, REL_SIZE); // TODO: rel8
 				}
 			}
 		} else if (in->code == IENTRY) {
