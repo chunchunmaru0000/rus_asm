@@ -131,7 +131,8 @@ void add_imm_data(struct Ipcd *i, struct Oper *o) {
 			blat(i->data, (uc *)&o->t->fpn, QWORD);
 		else
 			eeg(WRONG_FPN_SZ, i->in);
-	}
+	} else if (o->code == OMOFFS)
+		blat(i->data, (uc *)&o->t->number, o->mem_sz);
 }
 
 void add_mem(struct Ipcd *i, struct Oper *m) {
@@ -168,8 +169,10 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	// o Register/ Opcode Field
 	if (c->o == NOT_FIELD) {
 		//   0. NOT_FIELD just op code
-		if (is_imm(r))
+		if (is_imm(r) || is_moffs(r))
 			add_imm_data(i, r);
+		else if (is_moffs(l))
+			add_imm_data(i, l);
 	} else if (c->o == NUM_FIELD) {
 		//   1. NUM_FIELD The value of the opcode extension values from 0
 		//   through 7
@@ -451,14 +454,27 @@ const char *const ERR_WRONG_OPS_FOR_THIS_INST =
 	"Неверные выражения для данного типа инструкции."
 	"(МОЖЕТ ПРОСТО НЕ ДОДЕЛАНО ПОКА)";
 
+void change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
+	if (r->forsed_sz)
+		pwi(WARN_CHANGE_IMM_SIZE, in);
+	r->sz = l->sz;
+}
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
-	if (is_mem(rm) && rm->sz != r->sz) {
-		if (rm->forsed_sz)
-			pwi(WARN_CHANGE_MEM_SIZE, in);
-		rm->sz = r->sz;
-	}
-	if (rm->sz != r->sz)
+	if (is_mem(rm) && rm->sz != r->sz)
+		change_size_lr(in, r, rm);
+	else if (rm->sz != r->sz)
 		eeg(REGS_SIZES_NOT_MATCH, in);
+}
+void warn_change_to_eq_size_lr(struct Inst *i, struct Oper *l, struct Oper *r) {
+	if (l->sz != r->sz)
+		change_size_lr(i, l, r);
+}
+int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
+	if (l->sz < r->sz) {
+		change_size_lr(in, l, r);
+		return 1;
+	}
+	return 0;
 }
 
 enum OpsCode get_two_opscode(struct Inst *in) {
@@ -487,15 +503,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			if (r->sz == QWORD)
 				pwi(WARN_IMM_SIZE_WILL_BE_CHANGED, in);
 
-			if (l->sz < r->sz) {
-				if (r->forsed_sz)
-					pwi(WARN_CHANGE_IMM_SIZE, in);
-				r->sz = l->sz;
-			} else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD)) {
-				if (r->forsed_sz)
-					pwi(WARN_CHANGE_IMM_SIZE, in);
-				r->sz = l->sz;
-			}
+			if (warn_change_size_lr(in, l, r))
+				;
+			else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD))
+				change_size_lr(in, l, r);
 
 			if (is_imm_can_be_a_byte(r) && !(is_al(l) || is_rA(l))) {
 				if (r->forsed_sz)
@@ -532,20 +543,21 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				code = R_16_32_64__SREG;
 		} else if (is_seg(l) && is_16(r) && is_rm(r))
 			code = SREG__RM_16;
-		else if (is_al(l) && is_moffs(r) && is_8(r))
+		else if (is_al(l) && is_moffs(r)) {
+			warn_change_to_eq_size_lr(in, l, r);
 			code = AL__MOFFS_8;
-		else if (is_rA(l) && is_moffs(r) && !is_8(r))
+		} else if (is_rA(l) && is_moffs(r)) {
+			warn_change_to_eq_size_lr(in, l, r);
 			code = RAX__MOFFS_16_32_64;
-		else if (is_moffs(l) && is_8(l) && is_al(r))
+		} else if (is_moffs(l) && is_al(r)) {
+			warn_change_to_eq_size_lr(in, r, l);
 			code = MOFFS_8__AL;
-		else if (is_moffs(l) && !is_8(l) && is_rA(r))
+		} else if (is_moffs(l) && is_rA(r)) {
+			warn_change_to_eq_size_lr(in, r, l);
 			code = MOFFS_16_32_64__RAX;
-		else if (is_imm(r)) {
-			if (l->sz < r->sz) {
-				if (r->forsed_sz)
-					pwi(WARN_CHANGE_IMM_SIZE, in);
-				r->sz = l->sz;
-			}
+		} else if (is_imm(r)) {
+			warn_change_size_lr(in, l, r);
+
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
 
@@ -553,9 +565,6 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				if (is_8(l))
 					code = R_8__IMM_8;
 				else if (!is_8(l)) {
-					// if (is_64(r)) // what was this for, wtf is this
-					// else TODO: check why i did it
-					// 	code = RM_16_32_64__IMM_16_32;
 					if (l->sz == r->sz)
 						code = R_16_32_64__IMM_16_32_64;
 					else
@@ -588,7 +597,7 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	// mov word[r8d], 255 -> 67 6641 c700 ff00
 
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-	if (is_mem32(l) || is_mem32(r))
+	if (is_addr32(l) || is_addr32(r))
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// TODO: check if its possible for r to be 16-bit
@@ -636,7 +645,7 @@ const char *const WRONG_INST_OPS =
 const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
 	const struct Cmnd *c = 0, *ct;
 	for (size_t j = 0; j < lenofarr(cmnds); j++) {
-		ct = cmnds + j; //&cmnds[j];
+		ct = cmnds + j;
 		if (ct->inst == i->in->code && ct->opsc == code) {
 			c = ct;
 			break;
@@ -753,7 +762,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 	struct Oper *o = get_first_o(i->in);
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
-	if (is_mem32(o))
+	if (is_addr32(o))
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// TODO: check if its possible for r to be 16-bit

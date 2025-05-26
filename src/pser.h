@@ -292,7 +292,7 @@ void pwi(const char *, struct Inst *);
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
 #define is_sib(o) ((o)->rm == R_RSI)
-#define is_mem32(o) ((o)->code == OMEM && (o)->mem_sz == DWORD)
+#define is_addr32(o) (((o)->code == OMEM || (o)->code == OMOFFS) && (o)->mem_sz == DWORD)
 #define is_imm_can_be_a_byte(o)                                                \
 	((o)->code == OINT && o->t->number >= -128 && o->t->number <= 127)
 

@@ -238,7 +238,7 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
 
 const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
 const char *STR_RESERVED = "запас";
-int search_size(char *v, struct Oper **o, struct Pser *p) {
+int search_size(struct Pser *p, struct Oper **o, char *v) {
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
 			*o = expression(p);
@@ -260,7 +260,7 @@ int is_size_word(char *v) {
 	return 0;
 }
 
-int search_defn(char *v, struct Oper **o, struct Pser *p) {
+int search_defn(struct Pser *p, struct Oper **o, char *v) {
 	struct Defn *d;
 	for (int i = 0; i < p->ds->size; i++) {
 		d = plist_get(p->ds, i);
@@ -282,10 +282,10 @@ struct Defn *is_defn(struct Pser *p, char *v) {
 	return 0;
 }
 
-char *ERR_WRONG_TOKEN = "Неверное выражение";
-char *ERR_WRONG_MINUS = "Минус можно использовать только перед числами";
+char *ERR_WRONG_TOKEN = "Неверное выражение.";
+char *ERR_WRONG_MINUS = "Минус можно использовать только перед числами.";
 char *INVALID_STR_LEN =
-	"Длина строки в выражении не может быть равна 0 или быть больше 2";
+	"Длина строки в выражении не может быть равна 0 или быть больше 2.";
 char *TOO_MUCH_OS =
 	"Слишком много или мало выражений в адресанте, максимум может быть "
 	"4, минимум 1, в следующих порядках:\n"
@@ -297,21 +297,24 @@ char *POSSIBLE_WRONG_ORDER =
 	"\t[<регистр> <множитель: 1,2,4,8> регистр <смещение>]\n"
 	"\t[смещение]\n";
 char *WRONG_ADDRES_OP = "Неверное выражение внутри адресанта, ими могут быть "
-						"только регистры, метки или целые числа";
-char *WRONG_DISP = "Неверное смещение, ожидалось число 32 бит или метка";
+						"только регистры, метки или целые числа.";
+char *WRONG_DISP = "Неверное смещение, ожидалось число 32 бит или метка.";
 char *WRONG_SCALE =
-	"Неверный множитель, ожидалось число(0, 2, 4, 8) или его отсутствие";
-char *WRONG_INDEX = "Неверный индекс, ожидался регистр";
-char *WRONG_RM = "Неверное выражение, ожидался регистр";
-char *WRONG_BASE = "Неверная основа, ожидался регистр";
+	"Неверный множитель, ожидалось число(0, 2, 4, 8) или его отсутствие.";
+char *WRONG_INDEX = "Неверный индекс, ожидался регистр.";
+char *WRONG_RM = "Неверное выражение, ожидался регистр.";
+char *WRONG_BASE = "Неверная основа, ожидался регистр.";
+char *WRONG_MOFFS = "Неверное выражение, ожидалось число в качестве адреса.";
 char *WRONG_ADDR_REG_SZ =
 	"Неверный размер регистра в выражении операнда, адресными регистрами могут "
-	"быть только 32-х или 64-х битные регистры";
+	"быть только 32-х или 64-х битные регистры.";
+char *WRONG_MOFFS_MEM_SZ = "Неверный размер адреса, адресация в х64 может быть "
+						   "только или 64 бит или 32 бит.";
 // МИО - Множитель Индекс Основа
 char *FORBIDDEN_RSP_INDEX =
-	"Регистр рсп или есп запрещены в качестве индекса в МИО байте";
+	"Регистр рсп или есп запрещены в качестве индекса в МИО байте.";
 char *DISSERENT_SIZE_REGS = "Регистры адресанта не могут быть разных размеров, "
-							"только или все 64 бит или 32 бит";
+							"только или все 64 бит или 32 бит.";
 
 enum RegCode get_mem_reg(enum RegCode r) {
 	enum RegCode n = R_NONE; // new
@@ -412,6 +415,18 @@ void set_rm_to_op(struct Oper *o, struct Oper *rm) {
 	free(rm);
 }
 
+void get_moffs(struct Pser *p, struct Oper **o) {
+	*o = expression(p);
+	if ((*o)->code != OINT)
+		eep((*o)->t, WRONG_MOFFS);
+	if ((*o)->sz != DWORD && (*o)->sz != QWORD)
+		eep((*o)->t, WRONG_MOFFS_MEM_SZ);
+
+	(*o)->code = OMOFFS;
+	(*o)->mem_sz = (*o)->sz;
+	(*o)->sz = DWORD;
+}
+
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp, *otmp2;
 	o->disp_is_rel_flag = 0;
@@ -477,17 +492,13 @@ struct Oper *expression(struct Pser *p) {
 			;
 		else if (search_reg(v, lenofarr(B_REGS), B_REGS, o, BYTE))
 			;
-		else if (search_size(v, &o, p)) {
+		else if (search_size(p, &o, v) || search_defn(p, &o, v)) {
 			plist_free(sib);
 			return o; // its special
-		} else if (search_defn(v, &o, p)) {
-			plist_free(sib);
-			return o; // its too
 		} else if (sc(v, STR_ADDR)) {
-			code = OMOFFS;
-			// TODO: moffs
-			// return get_moffs(p, o);
-			eep(t0, "НЕ СДЕЛАНО MOFFS");
+			get_moffs(p, &o);
+			plist_free(sib);
+			return o; // not so special indeed
 		}
 		if (o->rm != R_NONE) {
 			code = OREG;
