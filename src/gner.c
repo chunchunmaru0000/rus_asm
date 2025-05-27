@@ -248,17 +248,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
 
 				ph = plist_get(g->phs, phs_counter - 1);
-				
-				usage->cmd_end = (g->text->size - ) + cmd->size + data->size;
+				uint64_t ph_start = ph->offset - all_h_sz * (phs_counter > 1);
+				// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
+				usage->cmd_end =
+					(g->text->size - ph_start) + cmd->size + data->size;
 
 				l = find_label(g, not_plov->view);
 				plist_add(l->us, usage);
-
-				if (sc(l->label, "main")) {
-					printf("\ttext->size %ld\n\tcmd->size  %ld\n\tdata->size %ld\n", g->text->size, cmd->size, data->size);
-				}
-				// TODO: need to have usage ph ptr and label ph ptr
-				// to count with segments offset
 			}
 			plist_clear_items_free(ipcd->not_plovs);
 			break;
@@ -361,12 +357,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					memcpy(usage_place, &l->addr, REL_SIZE);
 				} else if (usage->type == REL_ADDR) {
 					ph = plist_get(g->phs, usage->hc - 1);
-					if (sc(l->label, "main"))
-						printf("\t\tl->addr %ld\n\t\tph->vaddr "
-							   "%ld\n\t\tusage->cmd_end %ld\n",
-							   l->addr, ph->vaddr, usage->cmd_end);
 					uint64_t rel_addr = l->addr - (ph->vaddr + usage->cmd_end);
-					// l->rel_addr - usage->cmd_end;
 					memcpy(usage_place, &rel_addr, REL_SIZE); // TODO: rel8
 				}
 			}
