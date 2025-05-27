@@ -5,7 +5,7 @@
 	./тест
 
 асм:
-	gcc main.c flgs.c gner.c cmnd.c pser.c lists.c tzer.c -o асм
+	gcc main.c flgs.c gner.c cmnd.c lbel.c pser.c lsts.c tzer.c -o асм
 
 
 WARNS := 0

@@ -14,20 +14,8 @@
 #define REX_X 0b0010
 #define REX_R 0b0100
 #define REX_W 0b1000
-
 #define REL_SIZE 4
 extern uc NEED_WARN;
-enum UT { // Usage Type
-	ADDR,
-	REL_ADDR,
-};
-
-struct Usage {
-	uint64_t place;
-	enum UT type;
-	uint64_t cmd_end;
-};
-struct Usage *new_usage(uint64_t, enum UT);
 
 struct Pser {
 	struct PList *ts; // tokens
