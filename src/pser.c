@@ -106,7 +106,7 @@ const struct Word VAR_OPS_WORDS[] = {
 	{"зумн", IIMUL},
 };
 const struct Word ZERO_OPS_WORDS[] = {
-	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"возд", IRET},
+	{"сзов", ISYSCALL}, {"воздф", IRETF},
 	{"атом", ILOCK},	{"ыыы", INOP},
 };
 // not			н 	не
@@ -134,7 +134,7 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
 	{"идб", IJG},	 {"дел", IDIV},	   {"здел", IIDIV},	 {"умн", IMUL}};
 const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"зумн", IIMUL},
+	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},
 	{"проб", ITEST}, {"срав", ICMP},  {"или", IOR},	   {"и", IAND},
 	{"искл", IXOR},	 {"плюсс", IADC}, {"минсп", ISBB},
 };

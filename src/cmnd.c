@@ -4,21 +4,21 @@
 #include <stdlib.h>
 
 const char *const WRONG_FST_OPER =
-	"НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
+	"НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ.";
 const char *const WRONG_FST_OPER_INT =
 	"НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА, ЧИСЛО НЕ МОЖЕТ БЫТЬ ПЕРВЫМ ОПЕРАНДОМ "
-	"ДЛЯ ДАННОЙ КОМАНДЫ";
+	"ДЛЯ ДАННОЙ КОМАНДЫ.";
 const char *const WRONG_SND_OPER =
-	"НЕДОСТУПНЫЙ ТИП ВТОРОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ";
+	"НЕДОСТУПНЫЙ ТИП ВТОРОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ.";
 const char *const WRONG_FST_OPER_REG_DWORD =
-	"Неверный регистр, для значения размера <чбайт> 4 байта";
+	"Неверный регистр, для значения размера <чбайт> 4 байта.";
 const char *const WRONG_FST_OPER_REG_QWORD =
-	"Неверный регистр, для значения размера <вбайт> 8 байт";
+	"Неверный регистр, для значения размера <вбайт> 8 байт.";
 const char *const WRONG_SND_OPER_SIZE = "Неверный размер второго операнда.";
 const char *const WRONG_FPN_OP_SIZE =
 	"Недопустимый размер для числа с плавающей "
 	"точкой, минимальный - <чбайт> 4 байта, "
-	"майсимальный - <вбайт> 8 байт";
+	"майсимальный - <вбайт> 8 байт.";
 const char *const REGS_SIZES_NOT_MATCH =
 	"Размеры регистров или памяти не совпадают.";
 const char *const MEM_REG_SIZES_NOT_MATCH =
@@ -30,28 +30,31 @@ const char *const WRONG_FPN_SZ =
 const char *const MEM_IMM_SIZE_QWORD =
 	"Инструкция данного типа не может иметь оба значения с размерами вбайт, "
 	"правое выражение должно быть размером чбайт для данного левого выражения.";
-const char *const UNKNOWN_LABEL = "Метка не была найдена [%s]";
+const char *const UNKNOWN_LABEL = "Метка не была найдена [%s].";
 const char *const WRONG_ADDR_SZ =
 	"Не может адрес метки быть размером меньше, чем 4 байта.";
 const char *const OPS_CODE_INVALID =
 	"Не удалось определисть типы выражений для инструкции, возможно она была "
 	"неверной.";
+const char *const OPS_SIZE_WRONG =
+	"Неверное количество выражений для инструкции/";
 
 void get_zero_ops_code(struct Ipcd *);
 void get_one_ops_code(struct Ipcd *);
 void get_two_ops_code(struct Ipcd *);
+void get_tri_ops_code(struct Ipcd *);
+
+void (*gets[])(struct Ipcd *) = {
+	get_zero_ops_code, get_one_ops_code, get_two_ops_code,
+	//	get_tri_ops_code,
+};
 
 void get_ops_code(struct Ipcd *i) {
-	if (i->in->os->size == 0)
-		get_zero_ops_code(i);
-	else if (i->in->os->size == 1)
-		get_one_ops_code(i);
-	else if (i->in->os->size == 2)
-		get_two_ops_code(i);
-	else
-		eeg("йцук", i->in);
+	if (i->in->os->size >= (long)lenofarr(gets))
+		eeg(OPS_SIZE_WRONG, i->in);
+	(gets[i->in->os->size])(i);
 
-	if (0b00000010 & i->debug) {
+	if (0b10 & i->debug) {
 		printf("### команда %ld байт: ", i->cmd->size);
 		blist_print(i->cmd);
 		printf("### данные  %ld байт: ", i->data->size);
@@ -61,13 +64,17 @@ void get_ops_code(struct Ipcd *i) {
 
 const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
 
-enum OpsCode get_one_opscode(struct Inst *in);
+enum OpsCode get_one_opscode(struct Inst *);
 void get_one_ops_prefs(struct Ipcd *, enum OpsCode);
 void fill_one_ops_cmd_and_data(struct Ipcd *);
 
-enum OpsCode get_two_opscode(struct Inst *in);
+enum OpsCode get_two_opscode(struct Inst *);
 void get_two_ops_prefs(struct Ipcd *, enum OpsCode);
 void fill_two_ops_cmd_and_data(struct Ipcd *);
+
+enum OpsCode get_tri_opscode(struct Inst *);
+void get_tri_ops_prefs(struct Ipcd *, enum OpsCode);
+void fill_tri_ops_cmd_and_data(struct Ipcd *);
 
 void get_one_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_one_opscode(i->in);
@@ -81,6 +88,13 @@ void get_two_ops_code(struct Ipcd *i) {
 	i->c = get_cmnd(i, code);
 	get_two_ops_prefs(i, code);
 	fill_two_ops_cmd_and_data(i);
+}
+
+void get_tri_ops_code(struct Ipcd *i) {
+	enum OpsCode code = get_tri_opscode(i->in);
+	i->c = get_cmnd(i, code);
+	get_tri_ops_prefs(i, code);
+	fill_tri_ops_cmd_and_data(i);
 }
 
 struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut) {
@@ -465,6 +479,8 @@ const char *const WARN_CHANGE_IMM_SIZE =
 const char *const ERR_WRONG_OPS_FOR_THIS_INST =
 	"Неверные выражения для данного типа инструкции."
 	"(МОЖЕТ ПРОСТО НЕ ДОДЕЛАНО ПОКА)";
+const char *const ERR_WRONG_BYTE_REG =
+	"Данная инструкция не поддерживает регистры размером байт.";
 
 void change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 	if (r->forsed_sz)
@@ -472,9 +488,11 @@ void change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 	r->sz = l->sz;
 }
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
-	if (is_mem(rm) && rm->sz != r->sz)
-		change_size_lr(in, r, rm);
-	else if (rm->sz != r->sz)
+	if (is_mem(rm) && rm->sz != r->sz) {
+		if (rm->forsed_sz)
+			pwi(WARN_CHANGE_MEM_SIZE, in);
+		rm->sz = r->sz;
+	} else if (rm->sz != r->sz)
 		eeg(REGS_SIZES_NOT_MATCH, in);
 }
 void warn_change_to_eq_size_lr(struct Inst *i, struct Oper *l, struct Oper *r) {
@@ -842,3 +860,39 @@ void fill_one_ops_cmd_and_data(struct Ipcd *i) {
 	} else
 		eeg("у меня муха щас над столом летает", i->in);
 }
+
+enum OpsCode get_tri_opscode(struct Inst *in) {
+	enum OpsCode code = OPC_INVALID;
+	struct Oper *l = plist_get(in->os, 0);
+	struct Oper *r = plist_get(in->os, 1);
+	struct Oper *o = plist_get(in->os, 2);
+
+	switch (in->code) {
+	case IIMUL:
+		if (is_reg(l) && is_rm(r) && is_imm(o)) {
+			if (is_8(l))
+				eeg(ERR_WRONG_BYTE_REG, in);
+
+			change_m_sz(in, l, r);
+
+			if (is_64(o)) {
+				if (o->forsed_sz)
+					pwi(WARN_CHANGE_IMM_SIZE, in);
+				o->sz = is_64(l) ? DWORD : l->sz;
+			}
+			if (is_imm_can_be_a_byte(r)) {
+				if (o->forsed_sz)
+					pwi(WARN_CHANGE_IMM_SIZE, in);
+				r->sz = BYTE;
+			}
+			code = is_8(r) ? R_16_32_64__RM_16_32_64__IMM_8
+						   : R_16_32_64__RM_16_32_64__IMM_16_32;
+		}
+		break;
+	default:
+		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);
+	}
+	return code;
+}
+void get_tri_ops_prefs(struct Ipcd *i, enum OpsCode ops) {}
+void fill_tri_ops_cmd_and_data(struct Ipcd *i) {}
