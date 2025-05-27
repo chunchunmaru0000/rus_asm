@@ -118,7 +118,7 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	struct Plov *p = malloc(sizeof(struct Plov));
 
 	int segment_place = g->phs->size - 1;
-	p->l = ((struct Token *)plist_get(in->os, 0))->view;
+	p->label = ((struct Token *)plist_get(in->os, 0))->view;
 	p->si = segment_place;
 	p->us = new_plist(4);
 	// p->a = g->pie; // + first ph memsz;
@@ -154,7 +154,7 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	struct Plov *l;
 	for (long i = 0; i < g->lps->size; i++) {
 		l = g->lps->st[i];
-		if (sc(l->l, s))
+		if (sc(l->label, s))
 			return l;
 	}
 	char *err; // no need to free, cuz will be exit(1)
@@ -184,7 +184,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	ipcd->not_plovs = new_plist(2);
 	ipcd->debug = g->debug;
 
-	long phs_counter = 0, phs_cur_sz;
+	uint64_t phs_counter = 0, phs_cur_sz;
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
@@ -242,12 +242,21 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				break;
 			for (j = 0; j < ipcd->not_plovs->size; j++) {
 				not_plov = plist_get(ipcd->not_plovs, j);
-				l = find_label(g, not_plov->view);
 				usage = not_plov->value;
+
+				usage->hc = phs_counter;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
-				// REMEMBER: gner does it
-				usage->cmd_end = usage->place + data->size;
+
+				ph = plist_get(g->phs, phs_counter - 1);
+				
+				usage->cmd_end = (g->text->size - ) + cmd->size + data->size;
+
+				l = find_label(g, not_plov->view);
 				plist_add(l->us, usage);
+
+				if (sc(l->label, "main")) {
+					printf("\ttext->size %ld\n\tcmd->size  %ld\n\tdata->size %ld\n", g->text->size, cmd->size, data->size);
+				}
 				// TODO: need to have usage ph ptr and label ph ptr
 				// to count with segments offset
 			}
@@ -258,10 +267,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l = find_label(g, tok->view);
 
 			ph = plist_get(g->phs, phs_counter - 1);
-			l->a = phs_cur_sz + ph->vaddr;
-			l->ra = g->text->size;
+			l->addr = phs_cur_sz + ph->vaddr;
+			l->rel_addr = g->text->size;
 			if (g->debug & 1)
-				printf("метка[%s]\t[0x%08lx]\n", l->l, l->a);
+				printf("метка[%s]\t[0x%08lx]\n", l->label, l->addr);
 			break;
 		case IDATA:
 			data_bl = plist_get(in->os, 0);
@@ -272,19 +281,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l = find_label(g, tok->view);
 
 			ph = plist_get(g->phs, phs_counter - 1);
-			l->a = phs_cur_sz + ph->vaddr;
-			l->ra = g->text->size;
+			l->addr = phs_cur_sz + ph->vaddr;
+			l->rel_addr = g->text->size;
 			if (g->debug & 1)
-				printf("перем[%s]\t[0x%08lx]\n", l->l, l->a);
+				printf("перем[%s]\t[0x%08lx]\n", l->label, l->addr);
 
 			data_bl = plist_get(in->os, 1);
 			blat(data, data_bl->st, data_bl->size);
 			break;
 		case ISEGMENT:
-			if (phs_counter == 0)
-				phs_cur_sz = all_h_sz;
-			else
-				phs_cur_sz = 0;
+			phs_cur_sz = phs_counter ? 0 : all_h_sz;
 			/*
 			 * 0 offset = 0
 			 * 0 addr = 0 + pie
@@ -296,8 +302,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			//  do segment adress and offset and size for prev segment
 			ph = g->phs->st[phs_counter];
 			if (phs_counter == 0) {
-				ph->offset = 0;		  // 0 offset
-				ph->vaddr = g->pie;	  // 0 addr
+				ph->offset = 0;		  // 0 offset = 0
+				ph->vaddr = g->pie;	  // 0 addr = 0 + pie
 				ph->memsz = all_h_sz; // + segment size // 0 size
 			} else {
 				phl = g->phs->st[phs_counter - 1];
@@ -335,9 +341,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			blat(g->text, data->st, data->size);
 
 			phs_cur_sz += cmd->size + data->size;
-
-			blist_clear(cmd);
-			blist_clear(data);
 		}
 	}
 
@@ -349,21 +352,28 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			// in both cases name is first opperand
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
+
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);
+				uc *usage_place = g->text->st + usage->place;
 
-				void *textptr = ((uc *)g->text->st) + usage->place;
 				if (usage->type == ADDR) {
-					memcpy(textptr, &l->a, REL_SIZE);
+					memcpy(usage_place, &l->addr, REL_SIZE);
 				} else if (usage->type == REL_ADDR) {
-					long text_pos = l->ra - usage->cmd_end;
-					memcpy(textptr, &text_pos, REL_SIZE); // TODO: rel8
+					ph = plist_get(g->phs, usage->hc - 1);
+					if (sc(l->label, "main"))
+						printf("\t\tl->addr %ld\n\t\tph->vaddr "
+							   "%ld\n\t\tusage->cmd_end %ld\n",
+							   l->addr, ph->vaddr, usage->cmd_end);
+					uint64_t rel_addr = l->addr - (ph->vaddr + usage->cmd_end);
+					// l->rel_addr - usage->cmd_end;
+					memcpy(usage_place, &rel_addr, REL_SIZE); // TODO: rel8
 				}
 			}
 		} else if (in->code == IENTRY) {
 			tok = in->os->st[0];
 			l = find_label(g, tok->view);
-			g->elfh->entry = l->a;
+			g->elfh->entry = l->addr;
 		} else if (in->code == ISEGMENT)
 			phs_counter++;
 	}

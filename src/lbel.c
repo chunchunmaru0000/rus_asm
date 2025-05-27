@@ -5,6 +5,6 @@ struct Usage *new_usage(uint64_t place, enum UT type) {
 	u->place = place;
 	u->type = type;
 	u->cmd_end = 0;
-	//u->
+	u->hc = 0;
 	return u;
 }
