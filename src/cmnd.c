@@ -334,6 +334,18 @@ const struct Cmnd cmnds[] = {
 	{IPOP, {0x0f, 0xa2}, 2, NOT_FIELD, 0, __GS},
 	{IPUSH, {0x0f, 0xa8}, 2, NOT_FIELD, 0, __FS},
 	{IPOP, {0x0f, 0xa9}, 2, NOT_FIELD, 0, __FS},
+	// mul imul div idiv
+	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
+	{IIMUL, {0x6b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_8},
+	{IMUL, {0xf6}, 1, NUM_FIELD, 4, __RM_8},
+	{IIMUL, {0xf6}, 1, NUM_FIELD, 5, __RM_8},
+	{IDIV, {0xf6}, 1, NUM_FIELD, 6, __RM_8},
+	{IIDIV, {0xf6}, 1, NUM_FIELD, 7, __RM_8},
+	{IMUL, {0xf7}, 1, NUM_FIELD, 4, __RM_16_32_64},
+	{IIMUL, {0xf7}, 1, NUM_FIELD, 5, __RM_16_32_64},
+	{IDIV, {0xf7}, 1, NUM_FIELD, 6, __RM_16_32_64},
+	{IIDIV, {0xf7}, 1, NUM_FIELD, 7, __RM_16_32_64},
+	{IIMUL, {0x0f, 0xaf}, 2, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
 	// add
 	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
 	{IADD, {0x01}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
@@ -483,6 +495,12 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 
 	enum OpsCode code = OPC_INVALID;
 	switch (in->code) {
+	case IIMUL:
+		if (is_reg(l) && is_rm(r) && !is_8(l)) {
+			warn_change_to_eq_size_lr(in, l, r);
+			code = R_16_32_64__RM_16_32_64;
+		}
+		break;
 	case IADD:
 	case IOR:
 	case IADC:
@@ -499,7 +517,6 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			change_m_sz(in, l, r);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_rm(l) && is_imm(r)) {
-			// TODO: better warnings or even errors?
 			if (r->sz == QWORD)
 				pwi(WARN_IMM_SIZE_WILL_BE_CHANGED, in);
 
@@ -748,6 +765,10 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 		break;
 	case IINC:
 	case IDEC:
+	case IMUL:
+	case IIMUL:
+	case IDIV:
+	case IIDIV:
 		if (is_rm(o))
 			code = is_8(o) ? __RM_8 : __RM_16_32_64;
 		break;

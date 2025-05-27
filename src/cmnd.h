@@ -59,6 +59,8 @@ enum OpsCode {
 	R_16_32_64__IMM_16_32_64,
 	// M_8__M_8, // they are not exists movs odes via rep movsq or just movsq
 	// M_16_32_64__M_16_32_64, // it doesn have operands
+	R_16_32_64__RM_16_32_64__IMM_16_32,
+	R_16_32_64__RM_16_32_64__IMM_8,
 };
 
 #define NOT_FIELD 0

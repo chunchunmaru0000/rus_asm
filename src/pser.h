@@ -151,7 +151,10 @@ enum ICode {
 	ITEST,
 	// two ops other
 	IMOV,
+	IMUL,
 	IIMUL,
+	IDIV,
+	IIDIV,
 	// one op
 	ICALL,
 	IPUSH,

@@ -218,6 +218,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case IPOP:
 		case IINC:
 		case IDEC:
+		case IDIV:
+		case IIDIV:
+		case IMUL:
+		case IIMUL:
 		// TODO: near jmp
 		case IJMP:
 		case IJO:

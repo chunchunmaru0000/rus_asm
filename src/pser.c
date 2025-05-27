@@ -103,6 +103,7 @@ const char *STR_ADDR = "адр";
 const struct Word VAR_OPS_WORDS[] = {
 	{"возд", IRET},
 	{"воздф", IRETF},
+	{"зумн", IIMUL},
 };
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"возд", IRET},
@@ -131,7 +132,7 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"иднз", IJNS},	 {"идч", IJP},	   {"идчр", IJP},	 {"иднч", IJNP},
 	{"иднч", IJNP},	 {"идмр", IJL},	   {"иднбр", IJL},	 {"иднм", IJNL},
 	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
-	{"идб", IJG}};
+	{"идб", IJG},	 {"дел", IDIV},	   {"здел", IIDIV},	 {"умн", IMUL}};
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"зумн", IIMUL},
 	{"проб", ITEST}, {"срав", ICMP},  {"или", IOR},	   {"и", IAND},
