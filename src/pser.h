@@ -33,8 +33,7 @@ enum OCode { // operand type codes
 	OREG,	 // general purpose registers
 	OMEM,	 // [] size is size of entire op
 	OSIMD,	 // single instruction multiple data registers
-	// like word[rax] is size of word, not qword
-	OSREG, // segment registers cs, ds, fs, gs
+	OSREG,	 // segment registers cs, ds, fs, gs
 	OMOFFS,
 	// OCR // control registers?
 	// ODR // debug registers?
@@ -45,10 +44,10 @@ enum OCode { // operand type codes
 enum RegCode {
 	R_NONE,
 
-	R_CS,
-	R_DS,
 	R_ES,
+	R_CS,
 	R_SS,
+	R_DS,
 	R_FS,
 	R_GS,
 	R_LDTR,
@@ -274,9 +273,10 @@ void pwi(const char *, struct Inst *);
 #define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)
 #define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
 #define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)
+#define is_f_seg(rm) ((rm) >= R_ES && (rm) <= R_GS)
 
-#define is_fs(o) ((o)->code == OREG && (o)->rm == R_FS)
-#define is_gs(o) ((o)->code == OREG && (o)->rm == R_GS)
+#define is_fs(o) ((o)->code == OSREG && (o)->rm == R_FS)
+#define is_gs(o) ((o)->code == OSREG && (o)->rm == R_GS)
 #define is_reg(o) ((o)->code == OREG)
 #define is_mem(o) ((o)->code == OMEM)
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
@@ -293,7 +293,8 @@ void pwi(const char *, struct Inst *);
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
 #define is_sib(o) ((o)->rm == R_RSI)
-#define is_addr32(o) (((o)->code == OMEM || (o)->code == OMOFFS) && (o)->mem_sz == DWORD)
+#define is_addr32(o)                                                           \
+	(((o)->code == OMEM || (o)->code == OMOFFS) && (o)->mem_sz == DWORD)
 #define is_imm_can_be_a_byte(o)                                                \
 	((o)->code == OINT && o->t->number >= -128 && o->t->number <= 127)
 

@@ -608,13 +608,15 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			change_m_sz(in, l, r);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_seg(r)) {
-			if (is_mem(l) && is_16(l))
+			if (is_mem(l)) {
+				change_m_sz(in, r, l);
 				code = M_16__SREG;
-			else if (is_reg(l) && !is_8(l))
+			} else if (is_reg(l) && !is_8(l))
 				code = R_16_32_64__SREG;
-		} else if (is_seg(l) && is_16(r) && is_rm(r))
+		} else if (is_seg(l)) {
+			change_m_sz(in, l, r);
 			code = SREG__RM_16;
-		else if (is_al(l) && is_moffs(r)) {
+		} else if (is_al(l) && is_moffs(r)) {
 			warn_change_to_eq_size_lr(in, l, r);
 			code = AL__MOFFS_8;
 		} else if (is_rA(l) && is_moffs(r)) {
@@ -671,8 +673,9 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	if (is_addr32(l) || is_addr32(r))
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
+	// mov M_16__SREG dont need cuz its always 16-bit
 	// TODO: check if its possible for r to be 16-bit
-	if (!is_seg(l) && is_16(l))
+	if (!is_seg(l) && is_16(l) && (!is_mem(l) && is_seg(r)))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;

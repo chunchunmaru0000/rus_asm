@@ -38,6 +38,8 @@ int get_reg_field(enum RegCode rm) {
 		f = rm - R_EAX;
 	else if (is_f_reg64(rm))
 		f = rm - R_RAX;
+	else if (is_f_seg(rm))
+		f = rm - R_ES;
 	if (f > 0b111)
 		f -= 0b1000;
 	return f;
@@ -136,8 +138,8 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
 	{"идб", IJG},	 {"дел", IDIV},	   {"здел", IIDIV},	 {"умн", IMUL}};
 const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB}, {"проб", ITEST},
-	{"срав", ICMP},	 {"или", IOR},	  {"и", IAND},	  {"искл", IXOR},
+	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"проб", ITEST},
+	{"срав", ICMP},	 {"или", IOR},	  {"и", IAND},	   {"искл", IXOR},
 	{"плюсс", IADC}, {"минсп", ISBB}, {"обмн", IXCHG},
 };
 // seg
@@ -335,7 +337,19 @@ int search_reg(char *v, const int regs_len, const struct Reg regs[],
 		if (sc(v, regs[i].v)) {
 			o->rm = regs[i].c;
 			o->sz = sz;
+			o->code = OREG;
 			o->mod = MOD_REG;
+			return 1;
+		}
+	return 0;
+}
+
+int search_seg_reg(char *v, struct Oper *o) {
+	for (int i = 0; i < (long)lenofarr(SEG_REGS); i++)
+		if (sc(v, SEG_REGS[i].v)) {
+			o->rm = SEG_REGS[i].c;
+			o->code = OSREG;
+			o->sz = WORD;
 			return 1;
 		}
 	return 0;
@@ -488,6 +502,8 @@ struct Oper *expression(struct Pser *p) {
 			;
 		else if (search_reg(v, lenofarr(B_REGS), B_REGS, o, BYTE))
 			;
+		else if (search_seg_reg(v, o))
+			;
 		else if (search_size(p, &o, v) || search_defn(p, &o, v)) {
 			plist_free(sib);
 			return o; // its special
@@ -497,7 +513,7 @@ struct Oper *expression(struct Pser *p) {
 			return o; // not so special indeed
 		}
 		if (o->rm != R_NONE) {
-			code = OREG;
+			code = o->code; // OREG or OSREG for now and OSIMD later
 			break;
 		}
 		code = OREL;
