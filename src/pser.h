@@ -192,7 +192,13 @@ enum ICode {
 	IRETF,
 	ISYSRET,
 	ILOCK,
-	
+
+	IINSB,
+	IINSW,
+	IINSD,
+	IOUTSB,
+	IOUTSW,
+	IOUTSD,
 };
 
 struct Reg {
