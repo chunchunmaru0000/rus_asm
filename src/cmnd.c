@@ -675,7 +675,7 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// mov M_16__SREG dont need cuz its always 16-bit
 	// TODO: check if its possible for r to be 16-bit
-	if (!is_seg(l) && is_16(l) && (!is_mem(l) && is_seg(r)))
+	if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;
