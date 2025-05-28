@@ -199,6 +199,15 @@ enum ICode {
 	IOUTSB,
 	IOUTSW,
 	IOUTSD,
+
+	IPAUSE,
+	IWAIT,
+	ICBW,
+	ICWDE,
+	ICDQE,
+	ICWD,
+	ICDQ,
+	ICQO,
 };
 
 struct Reg {

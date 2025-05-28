@@ -107,6 +107,14 @@ const struct Word VAR_OPS_WORDS[] = {
 	{"возд", IRET},
 	{"воздф", IRETF},
 	{"зумн", IIMUL},
+	{"пауза", IPAUSE},
+	{"ожид", IWAIT},
+	{"перебд", ICBW},
+	{"передч", ICWDE},
+	{"перечв", ICDQE},
+	{"превдч", ICWD},
+	{"превчв", ICDQ},
+	{"преввш", ICQO},
 };
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"атом", ILOCK}, {"ыыы", INOP},
