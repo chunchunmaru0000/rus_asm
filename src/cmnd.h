@@ -61,6 +61,7 @@ enum OpsCode {
 	// M_16_32_64__M_16_32_64, // it doesn have operands
 	R_16_32_64__RM_16_32_64__IMM_16_32,
 	R_16_32_64__RM_16_32_64__IMM_8,
+	R_64__RM_32,
 };
 
 #define NOT_FIELD 0
@@ -114,5 +115,5 @@ void get_ops_code(struct Ipcd *);
 #define is_r__rm(c)                                                            \
 	((c) == R_8__RM_8 || (c) == R_16_32_64__RM_16_32_64 ||                     \
 	 (c) == R_16_32_64__RM_16_32_64__IMM_16_32 ||                              \
-	 (c) == R_16_32_64__RM_16_32_64__IMM_8)
+	 (c) == R_16_32_64__RM_16_32_64__IMM_8 || (c) == R_64__RM_32)
 #define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)

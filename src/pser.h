@@ -155,6 +155,7 @@ enum ICode {
 	IIMUL,
 	IDIV,
 	IIDIV,
+	// IMOVSXD, its just mov here
 	// one op
 	ICALL,
 	IPUSH,
@@ -190,7 +191,8 @@ enum ICode {
 	IRET,
 	IRETF,
 	ISYSRET,
-	ILOCK
+	ILOCK,
+	
 };
 
 struct Reg {

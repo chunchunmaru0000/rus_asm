@@ -253,6 +253,7 @@ const enum OpsCode RM_R[] = {
 	SREG__RM_16,
 	R_16_32_64__RM_16_32_64__IMM_8,
 	R_16_32_64__RM_16_32_64__IMM_16_32,
+	R_64__RM_32,
 };
 const enum OpsCode IMM_R[] = {AL__IMM_8,
 							  RAX__IMM_16_32,
@@ -451,6 +452,7 @@ const struct Cmnd cmnds[] = {
 	{ICMP, {0x81}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_16_32},
 	{ICMP, {0x83}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_8},
 	// mov
+	{IMOV, {0x63}, 1, REG_FIELD, 0, R_64__RM_32},
 	{IMOV, {0x88}, 1, REG_FIELD, 0, RM_8__R_8},
 	{IMOV, {0x89}, 1, REG_FIELD, 0, RM_16_32_64__R_16_32_64},
 	{IMOV, {0x8a}, 1, REG_FIELD, 0, R_8__RM_8},
@@ -575,7 +577,9 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		}
 		break;
 	case IMOV:
-		if (is_rm(l) && is_reg(r)) {
+		if (is_reg(l) && is_64(l) && is_rm(r) && is_32(r))
+			code = R_64__RM_32;
+		else if (is_rm(l) && is_reg(r)) {
 			change_m_sz(in, r, l);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
 		} else if (is_reg(l) && is_rm(r)) {

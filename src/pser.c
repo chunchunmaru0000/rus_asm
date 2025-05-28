@@ -99,6 +99,7 @@ const char *STR_WORD = "дбайт";
 const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
+// TODO: implement all opcodes from 00 - D7 and E0 - FF inclusive
 // instruction words
 const struct Word VAR_OPS_WORDS[] = {
 	{"возд", IRET},
@@ -106,8 +107,10 @@ const struct Word VAR_OPS_WORDS[] = {
 	{"зумн", IIMUL},
 };
 const struct Word ZERO_OPS_WORDS[] = {
-	{"сзов", ISYSCALL}, {"воздф", IRETF},
-	{"атом", ILOCK},	{"ыыы", INOP},
+	{"сзов", ISYSCALL},
+	{"воздф", IRETF},
+	{"атом", ILOCK},
+	{"ыыы", INOP},
 };
 // not			н 	не
 // overflow 	и	избыток
@@ -134,9 +137,9 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
 	{"идб", IJG},	 {"дел", IDIV},	   {"здел", IIDIV},	 {"умн", IMUL}};
 const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},
-	{"проб", ITEST}, {"срав", ICMP},  {"или", IOR},	   {"и", IAND},
-	{"искл", IXOR},	 {"плюсс", IADC}, {"минсп", ISBB},
+	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB}, {"проб", ITEST},
+	{"срав", ICMP},	 {"или", IOR},	  {"и", IAND},	  {"искл", IXOR},
+	{"плюсс", IADC}, {"минсп", ISBB},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},

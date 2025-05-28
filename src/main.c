@@ -1,6 +1,7 @@
 #include "flgs.h"
 #include <stdio.h>
 
+// TODO: fix segfault when empty file
 int main(int argc, char **args) {
 	struct Flags *fs = get_flags(argc, args);
 
