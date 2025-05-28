@@ -37,7 +37,7 @@ const char *const OPS_CODE_INVALID =
 	"Не удалось определисть типы выражений для инструкции, возможно она была "
 	"неверной.";
 const char *const OPS_SIZE_WRONG =
-	"Неверное количество выражений для инструкции/";
+	"Неверное количество выражений для инструкции.";
 
 void get_zero_ops_code(struct Ipcd *);
 void get_one_ops_code(struct Ipcd *);
@@ -45,8 +45,10 @@ void get_two_ops_code(struct Ipcd *);
 void get_tri_ops_code(struct Ipcd *);
 
 void (*gets[])(struct Ipcd *) = {
-	get_zero_ops_code, get_one_ops_code, get_two_ops_code,
-	//	get_tri_ops_code,
+	get_zero_ops_code,
+	get_one_ops_code,
+	get_two_ops_code,
+	get_tri_ops_code,
 };
 
 void get_ops_code(struct Ipcd *i) {
@@ -240,9 +242,18 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 		eeg("че не так то", i->in);
 }
 
-const enum OpsCode RM_L[] = {RM_8__R_8, RM_16_32_64__R_16_32_64, RM_8__IMM_8,
-							 RM_16_32_64__IMM_16_32, RM_16_32_64__IMM_8};
-const enum OpsCode RM_R[] = {R_8__RM_8, R_16_32_64__RM_16_32_64, SREG__RM_16};
+const enum OpsCode RM_L[] = {
+	RM_8__R_8,			RM_16_32_64__R_16_32_64,
+	RM_8__IMM_8,		RM_16_32_64__IMM_16_32,
+	RM_16_32_64__IMM_8,
+};
+const enum OpsCode RM_R[] = {
+	R_8__RM_8,
+	R_16_32_64__RM_16_32_64,
+	SREG__RM_16,
+	R_16_32_64__RM_16_32_64__IMM_8,
+	R_16_32_64__RM_16_32_64__IMM_16_32,
+};
 const enum OpsCode IMM_R[] = {AL__IMM_8,
 							  RAX__IMM_16_32,
 							  RM_8__IMM_8,
@@ -250,7 +261,6 @@ const enum OpsCode IMM_R[] = {AL__IMM_8,
 							  RM_16_32_64__IMM_8,
 							  R_8__IMM_8,
 							  R_16_32_64__IMM_16_32_64};
-
 int is_rm_l(enum OpsCode c) {
 	for (size_t i = 0; i < lenofarr(RM_L); i++)
 		if (c == RM_L[i])
@@ -894,5 +904,38 @@ enum OpsCode get_tri_opscode(struct Inst *in) {
 	}
 	return code;
 }
-void get_tri_ops_prefs(struct Ipcd *i, enum OpsCode ops) {}
-void fill_tri_ops_cmd_and_data(struct Ipcd *i) {}
+
+void get_tri_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
+	// i beleive there is no three regs op code in x64
+	get_two_ops_prefs(i, ops);
+}
+
+const char *const TRI_OPS_DIDNT_EXISTS =
+	"НЕ СУЩЕСТВУЮЩИЙ ТИП КОМАНД ДЛЯ ДАННЫХ ВЫРАЖЕНИЙ(трёх).";
+
+void fill_tri_ops_cmd_and_data(struct Ipcd *i) {
+	const struct Cmnd *c = i->c;
+	struct Oper *l = plist_get(i->in->os, 0);
+	struct Oper *r = plist_get(i->in->os, 1);
+	struct Oper *o = plist_get(i->in->os, 2);
+	uc modrm = 0;
+
+	blat(i->cmd, (uc *)c->cmd, c->len);
+	if (c->o == REG_FIELD) {
+		//  2. REG_FIELD r indicates that the ModR/M byte contains a register
+		//  - operand and an r/m operand
+		if (is_r__rm(c->opsc)) {
+			modrm += r->mod << 6;				// mod
+			modrm += get_reg_field(l->rm) << 3; // r
+			modrm += get_reg_field(r->rm);		// rm
+			blist_add(i->cmd, modrm);
+			if (is_mem(r))
+				add_mem(i, r);
+			// R_16_32_64__RM_16_32_64__IMM_16_32
+			// R_16_32_64__RM_16_32_64__IMM_8
+			add_imm_data(i, o);
+		} else
+			eeg("REG_FIELD ЭЭЭ", i->in);
+	} else
+		eeg(TRI_OPS_DIDNT_EXISTS, i->in);
+}

@@ -111,5 +111,8 @@ struct Ipcd {
 void get_ops_code(struct Ipcd *);
 
 #define is_rm__r(c) ((c) == RM_8__R_8 || (c) == RM_16_32_64__R_16_32_64)
-#define is_r__rm(c) ((c) == R_8__RM_8 || (c) == R_16_32_64__RM_16_32_64)
+#define is_r__rm(c)                                                            \
+	((c) == R_8__RM_8 || (c) == R_16_32_64__RM_16_32_64 ||                     \
+	 (c) == R_16_32_64__RM_16_32_64__IMM_16_32 ||                              \
+	 (c) == R_16_32_64__RM_16_32_64__IMM_8)
 #define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)
