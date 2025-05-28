@@ -156,6 +156,7 @@ enum ICode {
 	IDIV,
 	IIDIV,
 	// IMOVSXD, its just mov here
+	IXCHG,
 	// one op
 	ICALL,
 	IPUSH,

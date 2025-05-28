@@ -483,6 +483,10 @@ const struct Cmnd cmnds[] = {
 	{ITEST, {0xa9}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
 	{ITEST, {0xf6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
 	{ITEST, {0xf7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
+	// xchg
+	{IXCHG, {0x86}, 1, REG_FIELD, 0, R_8__RM_8},
+	{IXCHG, {0x87}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
+	{IXCHG, {0x90}, 1, PLUS_REGF, 0, R_16_32_64__RAX},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
@@ -535,6 +539,18 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		if (is_reg(l) && is_rm(r) && !is_8(l)) {
 			warn_change_to_eq_size_lr(in, l, r);
 			code = R_16_32_64__RM_16_32_64;
+		}
+		break;
+	case IXCHG:
+		if (is_reg(l)) {
+			if (is_rA(r)) {
+				if (l->sz != r->sz)
+					eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
+				code = R_16_32_64__RAX;
+			} else if (is_rm(r)) {
+				change_m_sz(in, l, r);
+				code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
+			}
 		}
 		break;
 	case IADD:
