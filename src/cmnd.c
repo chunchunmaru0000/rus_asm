@@ -306,6 +306,7 @@ int is_imm_r(enum OpsCode c) {
 const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IRET, {0xc3}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IRETF, {0x48, 0xcb}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{ILOCK, {0xf0}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISYSCALL, {0x0f, 0x05}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{IINSB, {0x6c}, 1, NOT_FIELD, 0, OPC_INVALID},
@@ -348,6 +349,8 @@ const struct Cmnd cmnds[] = {
 	{ISCASQ, {0x48, 0xaf}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{IINT3, {0xcc}, 1, NOT_FIELD, 0, OPC_INVALID},
 
+	{IRET, {0xc2}, 1, NOT_FIELD, 0, __IMM_16},
+	{IRETF, {0x48, 0xca}, 2, NOT_FIELD, 0, __IMM_16},
 	{IINT, {0xcd}, 1, NOT_FIELD, 0, __IMM_8},
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
 	{IJNO, {0x71}, 1, NOT_FIELD, 0, __REL_8},
@@ -801,9 +804,16 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	struct Oper *o = get_first_o(in);
 	switch (in->code) {
 	case IINT:
-		if (is_imm(o)){
+		if (is_imm(o)) {
 			o->sz = BYTE;
 			code = __IMM_8;
+		}
+		break;
+	case IRET:
+	case IRETF:
+		if (is_imm(o)) {
+			o->sz = WORD;
+			code = __IMM_16;
 		}
 		break;
 	case IJO:
@@ -892,7 +902,7 @@ void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// TODO: check if its possible for r to be 16-bit
-	if (!is_seg(o) && is_16(o))
+	if (!is_seg(o) && is_16(o) && !(i->in->code == IRET || i->in->code == IRETF))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;

@@ -28,6 +28,7 @@ enum OpsCode {
 	__REL_8, // rel is just a number
 	__REL_32,
 	__IMM_8,
+	__IMM_16,
 	__IMM_32,
 	__R_16_64, // 50+r, 58+r
 	__RM_16_64,
