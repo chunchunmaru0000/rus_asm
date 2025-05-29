@@ -903,7 +903,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	case ISHR1:
 	case ISAR1:
 		if (is_rm(o))
-			code = is_8(o) ? RM_8__IMM_8 : RM_16_32_64__IMM_8;
+			code = is_8(o) ? __RM_8 : __RM_16_32_64;
 		break;
 	case IJO:
 	case IJNO:
