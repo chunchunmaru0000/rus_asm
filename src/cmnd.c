@@ -313,7 +313,6 @@ const struct Cmnd cmnds[] = {
 	{IOUTSB, {0x6e}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IOUTSW, {0x66, 0x6f}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{IOUTSD, {0x6f}, 1, NOT_FIELD, 0, OPC_INVALID},
-
 	{IPAUSE, {0xf3, 0x90}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{IWAIT, {0x9b}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ICBW, {0x66, 0x98}, 2, NOT_FIELD, 0, OPC_INVALID},
@@ -322,6 +321,9 @@ const struct Cmnd cmnds[] = {
 	{ICWD, {0x66, 0x99}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{ICDQ, {0x99}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ICQO, {0x48, 0x99}, 2, NOT_FIELD, 0, OPC_INVALID},
+
+	{IPUSHF, {0x9c}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IPOPF, {0x9d}, 1, NOT_FIELD, 0, OPC_INVALID},
 
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
 	{IJNO, {0x71}, 1, NOT_FIELD, 0, __REL_8},

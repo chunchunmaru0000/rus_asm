@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 file="$1"
 dict=(
     "executable исп"
@@ -21,11 +20,13 @@ dict=(
     "fwait ожид"
     "entry вход"
     "callf зовф"
+    "pushf токлф"
     "flags флаги"
     "word дбайт"
     "cwde передч"
     "cdqe перечв"
 	"insb ввб"
+	"popf вытф"
 	"insw ввд"
 	"insd ввч"
 	"xchg обмн"

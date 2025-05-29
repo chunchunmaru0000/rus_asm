@@ -101,25 +101,17 @@ const char *STR_WORD = "дбайт";
 const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
-// TODO: implement all opcodes from 00 - D7 and E0 - FF inclusive
+// TODO: implement all opcodes from 9C - D7 and E0 - FF inclusive
 // instruction words
 const struct Word VAR_OPS_WORDS[] = {
-	{"возд", IRET},
-	{"воздф", IRETF},
-	{"зумн", IIMUL},
-	{"пауза", IPAUSE},
-	{"ожид", IWAIT},
-	{"перебд", ICBW},
-	{"передч", ICWDE},
-	{"перечв", ICDQE},
-	{"превдч", ICWD},
-	{"превчв", ICDQ},
-	{"преввш", ICQO},
+	{"возд", IRET},	  {"воздф", IRETF}, {"зумн", IIMUL},   {"пауза", IPAUSE},
+	{"ожид", IWAIT},  {"перебд", ICBW}, {"передч", ICWDE}, {"перечв", ICDQE},
+	{"превдч", ICWD}, {"превчв", ICDQ}, {"преввш", ICQO},
 };
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"атом", ILOCK}, {"ыыы", INOP},
 	{"ввб", IINSB},		{"ввд", IINSW},	  {"ввч", IINSD},  {"вывб", IOUTSB},
-	{"вывд", IOUTSW},	{"вывч", IOUTSD},
+	{"вывд", IOUTSW},	{"вывч", IOUTSD}, {"толкф", IPUSHF}, {"вытф", IPOPF}
 };
 // not			н 	не
 // overflow 	и	избыток
