@@ -165,7 +165,6 @@ enum ICode {
 	IDEC,
 	ICALLF, // just
 	IJMPF,	// for them to be
-
 	IJMP,
 	IJO,
 	IJNO,
@@ -188,6 +187,9 @@ enum ICode {
 	INOP,
 	IRET,
 	IRETF,
+	IRETFQ,
+	ILEAVE,
+	IENTER,
 	ISYSRET,
 	ILOCK,
 	IINSB,

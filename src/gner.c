@@ -198,6 +198,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case INOP:
 		case IRET:
 		case IRETF:
+		case IRETFQ:
 		case ISYSCALL:
 		case ILOCK:
 		case IADD:
@@ -263,6 +264,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ISTOSW:
 		case ISTOSD:
 		case ISTOSQ:
+		case ILEAVE:
+		case IENTER:
 		// TODO: near jmp
 		case IJMP:
 		case IJO:

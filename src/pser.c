@@ -126,7 +126,7 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"осмсв", ISCASQ},	{"выгсб", ILODSB},	{"выгсд", ILODSW},
 	{"выгсч", ILODSD},	{"выгсв", ILODSQ},	{"загсб", ISTOSB},
 	{"загсд", ISTOSW},	{"загсч", ISTOSD},	{"загсв", ISTOSQ},
-	{"прер3", IINT3},
+	{"прер3", IINT3},	{"воздфв", IRETFQ}, {"выйти", ILEAVE},
 };
 // not			н 	не
 // overflow 	и	избыток
@@ -153,9 +153,10 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
 	{"идб", IJG},	 {"дел", IDIV},	   {"здел", IIDIV},	 {"умн", IMUL}};
 const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},	 {"плюс", IADD},  {"минс", ISUB},  {"проб", ITEST},
-	{"срав", ICMP},	 {"или", IOR},	  {"и", IAND},	   {"искл", IXOR},
-	{"плюсс", IADC}, {"минсп", ISBB}, {"обмн", IXCHG}, {"задр", ILEA},
+	{"быть", IMOV},	   {"плюс", IADD},	{"минс", ISUB},	 {"проб", ITEST},
+	{"срав", ICMP},	   {"или", IOR},	{"и", IAND},	 {"искл", IXOR},
+	{"плюсс", IADC},   {"минсп", ISBB}, {"обмн", IXCHG}, {"задр", ILEA},
+	{"войти", IENTER},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},

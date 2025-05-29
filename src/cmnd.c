@@ -185,6 +185,8 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	// o Register/ Opcode Field
 	if (c->o == NOT_FIELD) {
 		//   0. NOT_FIELD just op code
+		if(i->in->code == IENTER)
+			add_imm_data(i, l);
 		if (is_imm(r) || is_moffs(r))
 			add_imm_data(i, r);
 		else if (is_moffs(l))
@@ -348,6 +350,8 @@ const struct Cmnd cmnds[] = {
 	{ISCASD, {0xaf}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISCASQ, {0x48, 0xaf}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{IINT3, {0xcc}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{ILEAVE, {0xc9}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IRETFQ, {0x48, 0xcf}, 2, NOT_FIELD, 0, OPC_INVALID},
 
 	{IRET, {0xc2}, 1, NOT_FIELD, 0, __IMM_16},
 	{IRETF, {0x48, 0xca}, 2, NOT_FIELD, 0, __IMM_16},
@@ -521,12 +525,12 @@ const struct Cmnd cmnds[] = {
 	{ITEST, {0xa9}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
 	{ITEST, {0xf6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
 	{ITEST, {0xf7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
-	// xchg
+	// some
 	{IXCHG, {0x86}, 1, REG_FIELD, 0, R_8__RM_8},
 	{IXCHG, {0x87}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
 	{IXCHG, {0x90}, 1, PLUS_REGF, 0, R_16_32_64__RAX},
-	// lea
 	{ILEA, {0x8d}, 1, REG_FIELD, 0, R_16_32_64__M},
+	{IENTER, {0xc8}, 1, NOT_FIELD, 0, IMM_16__IMM_8},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
@@ -568,6 +572,11 @@ int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 	}
 	return 0;
 }
+void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
+	if (o->forsed_sz)
+		pwi(WARN_CHANGE_IMM_SIZE, in);
+	o->sz = sz;
+}
 
 enum OpsCode get_two_opscode(struct Inst *in) {
 	struct Oper *l, *r;
@@ -597,6 +606,13 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		if (is_reg(l) && !is_8(l) && is_mem(r)) {
 			change_m_sz(in, l, r);
 			code = R_16_32_64__M;
+		}
+		break;
+	case IENTER:
+		if (is_imm(l) && is_imm(r)) {
+			change_imm_size(in, l, WORD);
+			change_imm_size(in, r, BYTE);
+			code = IMM_16__IMM_8;
 		}
 		break;
 	case IADD:
@@ -721,7 +737,8 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// mov M_16__SREG dont need cuz its always 16-bit
 	// TODO: check if its possible for r to be 16-bit
-	if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)))
+	if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
+		!(code == IMM_16__IMM_8))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;
@@ -805,14 +822,14 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	switch (in->code) {
 	case IINT:
 		if (is_imm(o)) {
-			o->sz = BYTE;
+			change_imm_size(in, o, BYTE);
 			code = __IMM_8;
 		}
 		break;
 	case IRET:
 	case IRETF:
 		if (is_imm(o)) {
-			o->sz = WORD;
+			change_imm_size(in, o, WORD);
 			code = __IMM_16;
 		}
 		break;
@@ -902,7 +919,8 @@ void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// TODO: check if its possible for r to be 16-bit
-	if (!is_seg(o) && is_16(o) && !(i->in->code == IRET || i->in->code == IRETF))
+	if (!is_seg(o) && is_16(o) &&
+		!(i->in->code == IRET || i->in->code == IRETF))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;
