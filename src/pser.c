@@ -111,7 +111,8 @@ const struct Word VAR_OPS_WORDS[] = {
 const struct Word ZERO_OPS_WORDS[] = {
 	{"сзов", ISYSCALL}, {"воздф", IRETF}, {"атом", ILOCK}, {"ыыы", INOP},
 	{"ввб", IINSB},		{"ввд", IINSW},	  {"ввч", IINSD},  {"вывб", IOUTSB},
-	{"вывд", IOUTSW},	{"вывч", IOUTSD}, {"толкф", IPUSHF}, {"вытф", IPOPF}
+	{"вывд", IOUTSW},	{"вывч", IOUTSD}, {"толкф", IPUSHF}, {"вытф", IPOPF},
+	{"загахф", ISAHF}, {"выгахф", ILAHF},
 };
 // not			н 	не
 // overflow 	и	избыток

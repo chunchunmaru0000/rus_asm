@@ -210,6 +210,8 @@ enum ICode {
 
 	IPUSHF,
 	IPOPF,
+	ISAHF,
+	ILAHF,
 };
 
 struct Reg {

@@ -324,6 +324,8 @@ const struct Cmnd cmnds[] = {
 
 	{IPUSHF, {0x9c}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IPOPF, {0x9d}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{ISAHF, {0x9e}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{ILAHF, {0x9f}, 1, NOT_FIELD, 0, OPC_INVALID},
 
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
 	{IJNO, {0x71}, 1, NOT_FIELD, 0, __REL_8},

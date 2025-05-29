@@ -27,6 +27,8 @@ dict=(
     "cdqe перечв"
 	"insb ввб"
 	"popf вытф"
+	"sahf загахф"
+	"lahf выгахф"
 	"insw ввд"
 	"insd ввч"
 	"xchg обмн"
