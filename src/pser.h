@@ -208,6 +208,10 @@ enum ICode {
 	IPOPF,
 	ISAHF,
 	ILAHF,
+	IMOVSB,
+	IMOVSW,
+	IMOVSD,
+	IMOVSQ,
 };
 
 struct Reg {

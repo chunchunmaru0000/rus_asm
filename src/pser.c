@@ -109,10 +109,12 @@ const struct Word VAR_OPS_WORDS[] = {
 	{"превдч", ICWD}, {"превчв", ICDQ}, {"преввш", ICQO},
 };
 const struct Word ZERO_OPS_WORDS[] = {
-	{"сзов", ISYSCALL}, {"воздф", IRETF},  {"атом", ILOCK},	  {"ыыы", INOP},
-	{"ввб", IINSB},		{"ввд", IINSW},	   {"ввч", IINSD},	  {"вывб", IOUTSB},
-	{"вывд", IOUTSW},	{"вывч", IOUTSD},  {"толкф", IPUSHF}, {"вытф", IPOPF},
-	{"загахф", ISAHF},	{"выгахф", ILAHF},
+	{"сзов", ISYSCALL}, {"воздф", IRETF},	{"атом", ILOCK},
+	{"ыыы", INOP},		{"ввб", IINSB},		{"ввд", IINSW},
+	{"ввч", IINSD},		{"вывб", IOUTSB},	{"вывд", IOUTSW},
+	{"вывч", IOUTSD},	{"толкф", IPUSHF},	{"вытф", IPOPF},
+	{"загахф", ISAHF},	{"выгахф", ILAHF},	{"бытьсб", IMOVSB},
+	{"бытьсд", IMOVSW}, {"бытьсч", IMOVSD}, {"бытьсв", IMOVSQ},
 };
 // not			н 	не
 // overflow 	и	избыток
