@@ -213,6 +213,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case IJMPF:
 		case ICALL:
 		case IINT:
+		case IINT3:
 		case ICALLF:
 		case IPUSH:
 		case IPOP:

@@ -50,6 +50,7 @@ dict=(
 	"sahf загахф"
 	"lahf выгахф"
 	"insw ввд"
+	"int3 прер3"
 	"insd ввч"
 	"xchg обмн"
     "wait ожид"

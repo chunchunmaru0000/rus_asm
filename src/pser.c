@@ -107,23 +107,26 @@ const char *STR_ADDR = "адр";
 // store - заг рузить
 // scan - осм отреть
 const struct Word VAR_OPS_WORDS[] = {
-	{"возд", IRET},	  {"воздф", IRETF}, {"зумн", IIMUL},   {"пауза", IPAUSE},
-	{"ожид", IWAIT},  {"перебд", ICBW}, {"передч", ICWDE}, {"перечв", ICDQE},
-	{"превдч", ICWD}, {"превчв", ICDQ}, {"преввш", ICQO},
+	{"возд", IRET},
+	{"воздф", IRETF},
+	{"зумн", IIMUL},
 };
 const struct Word ZERO_OPS_WORDS[] = {
-	{"сзов", ISYSCALL}, {"воздф", IRETF},	{"атом", ILOCK},
-	{"ыыы", INOP},		{"ввб", IINSB},		{"ввд", IINSW},
-	{"ввч", IINSD},		{"вывб", IOUTSB},	{"вывд", IOUTSW},
-	{"вывч", IOUTSD},	{"толкф", IPUSHF},	{"вытф", IPOPF},
-	{"загахф", ISAHF},	{"выгахф", ILAHF},	{"бытьсб", IMOVSB},
-	{"бытьсд", IMOVSW}, {"бытьсч", IMOVSD}, {"бытьсв", IMOVSQ},
-	{"сравсб", ICMPSB}, {"сравсд", ICMPSW}, {"сравсч", ICMPSD},
-	{"сравсв", ICMPSQ}, {"осмсб", ISCASB},	{"осмсд", ISCASW},
-	{"осмсч", ISCASD},	{"осмсв", ISCASQ},	{"выгсб", ILODSB},
-	{"выгсд", ILODSW},	{"выгсч", ILODSD},	{"выгсв", ILODSQ},
-	{"загсб", ISTOSB},	{"загсд", ISTOSW},	{"загсч", ISTOSD},
-	{"загсв", ISTOSQ},
+	{"перебд", ICBW},	{"передч", ICWDE},	{"перечв", ICDQE},
+	{"превдч", ICWD},	{"превчв", ICDQ},	{"преввш", ICQO},
+	{"пауза", IPAUSE},	{"ожид", IWAIT},	{"сзов", ISYSCALL},
+	{"воздф", IRETF},	{"атом", ILOCK},	{"ыыы", INOP},
+	{"ввб", IINSB},		{"ввд", IINSW},		{"ввч", IINSD},
+	{"вывб", IOUTSB},	{"вывд", IOUTSW},	{"вывч", IOUTSD},
+	{"толкф", IPUSHF},	{"вытф", IPOPF},	{"загахф", ISAHF},
+	{"выгахф", ILAHF},	{"бытьсб", IMOVSB}, {"бытьсд", IMOVSW},
+	{"бытьсч", IMOVSD}, {"бытьсв", IMOVSQ}, {"сравсб", ICMPSB},
+	{"сравсд", ICMPSW}, {"сравсч", ICMPSD}, {"сравсв", ICMPSQ},
+	{"осмсб", ISCASB},	{"осмсд", ISCASW},	{"осмсч", ISCASD},
+	{"осмсв", ISCASQ},	{"выгсб", ILODSB},	{"выгсд", ILODSW},
+	{"выгсч", ILODSD},	{"выгсв", ILODSQ},	{"загсб", ISTOSB},
+	{"загсд", ISTOSW},	{"загсч", ISTOSD},	{"загсв", ISTOSQ},
+	{"прер3", IINT3},
 };
 // not			н 	не
 // overflow 	и	избыток

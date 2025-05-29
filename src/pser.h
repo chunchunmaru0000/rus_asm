@@ -160,6 +160,7 @@ enum ICode {
 	IPUSH,
 	IPOP,
 	IINT,
+	IINT3,
 	IINC,
 	IDEC,
 	ICALLF, // just

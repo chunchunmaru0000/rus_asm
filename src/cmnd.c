@@ -322,7 +322,6 @@ const struct Cmnd cmnds[] = {
 	{ICWD, {0x66, 0x99}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{ICDQ, {0x99}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ICQO, {0x48, 0x99}, 2, NOT_FIELD, 0, OPC_INVALID},
-
 	{IPUSHF, {0x9c}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IPOPF, {0x9d}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISAHF, {0x9e}, 1, NOT_FIELD, 0, OPC_INVALID},
@@ -347,7 +346,9 @@ const struct Cmnd cmnds[] = {
 	{ISCASW, {0x66, 0xaf}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{ISCASD, {0xaf}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISCASQ, {0x48, 0xaf}, 2, NOT_FIELD, 0, OPC_INVALID},
+	{IINT3, {0xcc}, 1, NOT_FIELD, 0, OPC_INVALID},
 
+	{IINT, {0xcd}, 1, NOT_FIELD, 0, __IMM_8},
 	{IJO, {0x70}, 1, NOT_FIELD, 0, __REL_8},
 	{IJNO, {0x71}, 1, NOT_FIELD, 0, __REL_8},
 	{IJB, {0x72}, 1, NOT_FIELD, 0, __REL_8},
@@ -799,6 +800,12 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	enum OpsCode code = OPC_INVALID;
 	struct Oper *o = get_first_o(in);
 	switch (in->code) {
+	case IINT:
+		if (is_imm(o)){
+			o->sz = BYTE;
+			code = __IMM_8;
+		}
+		break;
 	case IJO:
 	case IJNO:
 	case IJB:
@@ -816,7 +823,6 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	case IJLE:
 	case IJG:
 	case IJMP:
-	case IINT:
 	case ICALL:
 		if (is_imm(o)) {
 			if (in->code == ICALL) {
