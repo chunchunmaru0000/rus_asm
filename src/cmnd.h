@@ -57,12 +57,11 @@ enum OpsCode {
 
 	R_8__IMM_8,
 	R_16_32_64__IMM_16_32_64,
-	// M_8__M_8, // they are not exists movs odes via rep movsq or just movsq
-	// M_16_32_64__M_16_32_64, // it doesn have operands
 	R_16_32_64__RM_16_32_64__IMM_16_32,
 	R_16_32_64__RM_16_32_64__IMM_8,
 	R_64__RM_32,
 	R_16_32_64__RAX,
+	R_16_32_64__M,
 };
 
 #define NOT_FIELD 0
@@ -119,5 +118,5 @@ void get_ops_code(struct Ipcd *);
 	((c) == R_8__RM_8 || (c) == R_16_32_64__RM_16_32_64 ||                     \
 	 (c) == R_16_32_64__RM_16_32_64__IMM_16_32 ||                              \
 	 (c) == R_16_32_64__RM_16_32_64__IMM_8 || (c) == R_64__RM_32 ||            \
-	 (c) == SREG__RM_16)
+	 (c) == SREG__RM_16 || (c) == R_16_32_64__M)
 #define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)

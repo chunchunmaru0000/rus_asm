@@ -148,14 +148,13 @@ enum ICode {
 	IXOR,
 	ICMP,
 	ITEST,
-	// two ops other
-	IMOV,
+	IMOV, // IMOVSXD, its just mov here
 	IMUL,
 	IIMUL,
 	IDIV,
 	IIDIV,
-	// IMOVSXD, its just mov here
 	IXCHG,
+	ILEA,
 	// one op
 	ICALL,
 	IPUSH,
@@ -172,9 +171,7 @@ enum ICode {
 	IJB,
 	IJNB,
 	IJE,
-
 	IJNE,
-
 	IJBE,
 	IJA,
 	IJS,
@@ -192,7 +189,6 @@ enum ICode {
 	IRETF,
 	ISYSRET,
 	ILOCK,
-
 	IINSB,
 	IINSW,
 	IINSD,

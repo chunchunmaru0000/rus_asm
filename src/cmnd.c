@@ -254,6 +254,7 @@ const enum OpsCode RM_R[] = {
 	R_16_32_64__RM_16_32_64__IMM_8,
 	R_16_32_64__RM_16_32_64__IMM_16_32,
 	R_64__RM_32,
+	R_16_32_64__M,
 };
 const enum OpsCode IMM_R[] = {AL__IMM_8,
 							  RAX__IMM_16_32,
@@ -500,6 +501,8 @@ const struct Cmnd cmnds[] = {
 	{IXCHG, {0x86}, 1, REG_FIELD, 0, R_8__RM_8},
 	{IXCHG, {0x87}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
 	{IXCHG, {0x90}, 1, PLUS_REGF, 0, R_16_32_64__RAX},
+	// lea
+	{ILEA, {0x8d}, 1, REG_FIELD, 0, R_16_32_64__M},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
@@ -564,6 +567,12 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				change_m_sz(in, l, r);
 				code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 			}
+		}
+		break;
+	case ILEA:
+		if (is_reg(l) && !is_8(l) && is_mem(r)) {
+			change_m_sz(in, l, r);
+			code = R_16_32_64__M;
 		}
 		break;
 	case IADD:
@@ -726,7 +735,7 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 }
 
 const char *const WRONG_INST_OPS =
-	"Для данной инструкции и выражений не мыбо найдено подходящего кода, "
+	"Для данной инструкции и выражений не было найдено подходящего кода, "
 	"возможно выражения были неверные.";
 
 const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
