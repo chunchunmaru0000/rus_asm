@@ -212,6 +212,10 @@ enum ICode {
 	IMOVSW,
 	IMOVSD,
 	IMOVSQ,
+	ICMPSB,
+	ICMPSW,
+	ICMPSD,
+	ICMPSQ,
 };
 
 struct Reg {
