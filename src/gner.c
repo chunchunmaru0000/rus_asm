@@ -266,6 +266,20 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ISTOSQ:
 		case ILEAVE:
 		case IENTER:
+		case IROL:
+		case IROR:
+		case IRCL:
+		case IRCR:
+		case ISHL:
+		case ISHR:
+		case ISAR:
+		case IROL1:
+		case IROR1:
+		case IRCL1:
+		case IRCR1:
+		case ISHL1:
+		case ISHR1:
+		case ISAR1:
 		// TODO: near jmp
 		case IJMP:
 		case IJO:

@@ -185,7 +185,7 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	// o Register/ Opcode Field
 	if (c->o == NOT_FIELD) {
 		//   0. NOT_FIELD just op code
-		if(i->in->code == IENTER)
+		if (i->in->code == IENTER)
 			add_imm_data(i, l);
 		if (is_imm(r) || is_moffs(r))
 			add_imm_data(i, r);
@@ -525,6 +525,49 @@ const struct Cmnd cmnds[] = {
 	{ITEST, {0xa9}, 1, NOT_FIELD, 0, RAX__IMM_16_32},
 	{ITEST, {0xf6}, 1, NUM_FIELD, 0, RM_8__IMM_8},
 	{ITEST, {0xf7}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_16_32},
+	// shift rotate
+	{IROL, {0xc0}, 1, NUM_FIELD, 0, RM_8__IMM_8},
+	{IROR, {0xc0}, 1, NUM_FIELD, 1, RM_8__IMM_8},
+	{IRCL, {0xc0}, 1, NUM_FIELD, 2, RM_8__IMM_8},
+	{IRCR, {0xc0}, 1, NUM_FIELD, 3, RM_8__IMM_8},
+	{ISHL, {0xc0}, 1, NUM_FIELD, 4, RM_8__IMM_8},
+	{ISHR, {0xc0}, 1, NUM_FIELD, 5, RM_8__IMM_8},
+	{ISAR, {0xc0}, 1, NUM_FIELD, 7, RM_8__IMM_8},
+	{IROL, {0xc1}, 1, NUM_FIELD, 0, RM_16_32_64__IMM_8},
+	{IROR, {0xc1}, 1, NUM_FIELD, 1, RM_16_32_64__IMM_8},
+	{IRCL, {0xc1}, 1, NUM_FIELD, 2, RM_16_32_64__IMM_8},
+	{IRCR, {0xc1}, 1, NUM_FIELD, 3, RM_16_32_64__IMM_8},
+	{ISHL, {0xc1}, 1, NUM_FIELD, 4, RM_16_32_64__IMM_8},
+	{ISHR, {0xc1}, 1, NUM_FIELD, 5, RM_16_32_64__IMM_8},
+	{ISAR, {0xc1}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_8},
+	{IROL1, {0xd0}, 1, NUM_FIELD, 0, __RM_8},
+	{IROR1, {0xd0}, 1, NUM_FIELD, 1, __RM_8},
+	{IRCL1, {0xd0}, 1, NUM_FIELD, 2, __RM_8},
+	{IRCR1, {0xd0}, 1, NUM_FIELD, 3, __RM_8},
+	{ISHL1, {0xd0}, 1, NUM_FIELD, 4, __RM_8},
+	{ISHR1, {0xd0}, 1, NUM_FIELD, 5, __RM_8},
+	{ISAR1, {0xd0}, 1, NUM_FIELD, 7, __RM_8},
+	{IROL1, {0xd1}, 1, NUM_FIELD, 0, __RM_16_32_64},
+	{IROR1, {0xd1}, 1, NUM_FIELD, 1, __RM_16_32_64},
+	{IRCL1, {0xd1}, 1, NUM_FIELD, 2, __RM_16_32_64},
+	{IRCR1, {0xd1}, 1, NUM_FIELD, 3, __RM_16_32_64},
+	{ISHL1, {0xd1}, 1, NUM_FIELD, 4, __RM_16_32_64},
+	{ISHR1, {0xd1}, 1, NUM_FIELD, 5, __RM_16_32_64},
+	{ISAR1, {0xd1}, 1, NUM_FIELD, 7, __RM_16_32_64},
+	{IROL, {0xd2}, 1, NUM_FIELD, 0, __RM_8},
+	{IROR, {0xd2}, 1, NUM_FIELD, 1, __RM_8},
+	{IRCL, {0xd2}, 1, NUM_FIELD, 2, __RM_8},
+	{IRCR, {0xd2}, 1, NUM_FIELD, 3, __RM_8},
+	{ISHL, {0xd2}, 1, NUM_FIELD, 4, __RM_8},
+	{ISHR, {0xd2}, 1, NUM_FIELD, 5, __RM_8},
+	{ISAR, {0xd2}, 1, NUM_FIELD, 7, __RM_8},
+	{IROL, {0xd3}, 1, NUM_FIELD, 0, __RM_16_32_64},
+	{IROR, {0xd3}, 1, NUM_FIELD, 1, __RM_16_32_64},
+	{IRCL, {0xd3}, 1, NUM_FIELD, 2, __RM_16_32_64},
+	{IRCR, {0xd3}, 1, NUM_FIELD, 3, __RM_16_32_64},
+	{ISHL, {0xd3}, 1, NUM_FIELD, 4, __RM_16_32_64},
+	{ISHR, {0xd3}, 1, NUM_FIELD, 5, __RM_16_32_64},
+	{ISAR, {0xd3}, 1, NUM_FIELD, 7, __RM_16_32_64},
 	// some
 	{IXCHG, {0x86}, 1, REG_FIELD, 0, R_8__RM_8},
 	{IXCHG, {0x87}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
@@ -613,6 +656,18 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			change_imm_size(in, l, WORD);
 			change_imm_size(in, r, BYTE);
 			code = IMM_16__IMM_8;
+		}
+		break;
+	case IROL:
+	case IROR:
+	case IRCL:
+	case IRCR:
+	case ISHL:
+	case ISHR:
+	case ISAR:
+		if (is_rm(l) && is_imm(r)) {
+			change_imm_size(in, r, BYTE);
+			code = is_8(l) ? RM_8__IMM_8 : RM_16_32_64__IMM_8;
 		}
 		break;
 	case IADD:
@@ -832,6 +887,23 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			change_imm_size(in, o, WORD);
 			code = __IMM_16;
 		}
+		break;
+	case IROL:
+	case IROR:
+	case IRCL:
+	case IRCR:
+	case ISHL:
+	case ISHR:
+	case ISAR:
+	case IROL1:
+	case IROR1:
+	case IRCL1:
+	case IRCR1:
+	case ISHL1:
+	case ISHR1:
+	case ISAR1:
+		if (is_rm(o))
+			code = is_8(o) ? RM_8__IMM_8 : RM_16_32_64__IMM_8;
 		break;
 	case IJO:
 	case IJNO:

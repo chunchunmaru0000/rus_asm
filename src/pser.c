@@ -107,9 +107,9 @@ const char *STR_ADDR = "адр";
 // store - заг рузить
 // scan - осм отреть
 const struct Word VAR_OPS_WORDS[] = {
-	{"возд", IRET},
-	{"воздф", IRETF},
-	{"зумн", IIMUL},
+	{"возд", IRET}, {"воздф", IRETF}, {"зумн", IIMUL}, {"врщл", IROL},
+	{"врщп", IROR}, {"врсл", IRCL},	  {"врсп", IRCR},  {"сдвл", ISHL},
+	{"сдал", ISHL}, {"сдвп", ISHR},	  {"сдап", ISAR},
 };
 const struct Word ZERO_OPS_WORDS[] = {
 	{"перебд", ICBW},	{"передч", ICWDE},	{"перечв", ICDQE},
@@ -141,17 +141,20 @@ const struct Word ZERO_OPS_WORDS[] = {
 // less			м 	меньше
 // greater		б	больше
 const struct Word ONE_OPS_WORDS[] = {
-	{"зов", ICALL},	 {"идти", IJMP},   {"прер", IINT},	 {"выт", IPOP},
-	{"толк", IPUSH}, {"идтиф", IJMPF}, {"зовф", ICALLF}, {"увлч", IINC},
-	{"умнш", IDEC},	 {"воздф", IRETF}, {"возд", IRET},	 {"иди", IJO},
-	{"идни", IJNO},	 {"идп", IJB},	   {"иднвр", IJB},	 {"идс", IJB},
-	{"иднп", IJNB},	 {"идвр", IJNB},   {"иднс", IJNB},	 {"ид0", IJE},
-	{"идр", IJE},	 {"идн0", IJNE},   {"иднр", IJNE},	 {"идпр", IJBE},
-	{"иднв", IJBE},	 {"иднпр", IJA},   {"идв", IJA},	 {"идз", IJS},
-	{"иднз", IJNS},	 {"идч", IJP},	   {"идчр", IJP},	 {"иднч", IJNP},
-	{"иднч", IJNP},	 {"идмр", IJL},	   {"иднбр", IJL},	 {"иднм", IJNL},
-	{"идбр", IJNL},	 {"идмр", IJLE},   {"иднб", IJLE},	 {"иднмр", IJG},
-	{"идб", IJG},	 {"дел", IDIV},	   {"здел", IIDIV},	 {"умн", IMUL}};
+	{"зов", ICALL},	  {"идти", IJMP},	{"прер", IINT},	  {"выт", IPOP},
+	{"толк", IPUSH},  {"идтиф", IJMPF}, {"зовф", ICALLF}, {"увлч", IINC},
+	{"умнш", IDEC},	  {"воздф", IRETF}, {"возд", IRET},	  {"иди", IJO},
+	{"идни", IJNO},	  {"идп", IJB},		{"иднвр", IJB},	  {"идс", IJB},
+	{"иднп", IJNB},	  {"идвр", IJNB},	{"иднс", IJNB},	  {"ид0", IJE},
+	{"идр", IJE},	  {"идн0", IJNE},	{"иднр", IJNE},	  {"идпр", IJBE},
+	{"иднв", IJBE},	  {"иднпр", IJA},	{"идв", IJA},	  {"идз", IJS},
+	{"иднз", IJNS},	  {"идч", IJP},		{"идчр", IJP},	  {"иднч", IJNP},
+	{"иднч", IJNP},	  {"идмр", IJL},	{"иднбр", IJL},	  {"иднм", IJNL},
+	{"идбр", IJNL},	  {"идмр", IJLE},	{"иднб", IJLE},	  {"иднмр", IJG},
+	{"идб", IJG},	  {"дел", IDIV},	{"здел", IIDIV},  {"умн", IMUL},
+	{"врщл1", IROL1}, {"врщп1", IROR1}, {"врсл1", IRCL1}, {"врсп1", IRCR1},
+	{"сдвл1", ISHL1}, {"сдал1", ISHL1}, {"сдвп1", ISHR1}, {"сдап1", ISAR1},
+};
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	   {"плюс", IADD},	{"минс", ISUB},	 {"проб", ITEST},
 	{"срав", ICMP},	   {"или", IOR},	{"и", IAND},	 {"искл", IXOR},

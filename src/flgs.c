@@ -33,7 +33,9 @@ struct Flags *get_flags(int argc, char **args) {
 	f->filename = args[1];
 	f->outname = args[2];
 	f->tr = Linux_ELF_86_64; // also need to be in args later
-	f->debug = 0b01;		 // 0b10 prints cmnds by bytes
+	// 0b01 prints adresses and sizes of vars and labels
+	// 0b10 prints cmnds by bytes
+	f->debug = 0;
 
 	struct Flag flag;
 	int i, j, flen = (int)lenofarr(flags);
