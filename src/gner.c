@@ -250,6 +250,18 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ICMPSW:
 		case ICMPSD:
 		case ICMPSQ:
+		case ISCASB:
+		case ISCASW:
+		case ISCASD:
+		case ISCASQ:
+		case ILODSB:
+		case ILODSW:
+		case ILODSD:
+		case ILODSQ:
+		case ISTOSB:
+		case ISTOSW:
+		case ISTOSD:
+		case ISTOSQ:
 		// TODO: near jmp
 		case IJMP:
 		case IJO:

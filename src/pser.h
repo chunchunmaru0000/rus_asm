@@ -203,7 +203,6 @@ enum ICode {
 	ICWD,
 	ICDQ,
 	ICQO,
-
 	IPUSHF,
 	IPOPF,
 	ISAHF,
@@ -216,6 +215,18 @@ enum ICode {
 	ICMPSW,
 	ICMPSD,
 	ICMPSQ,
+	ISCASB,
+	ISCASW,
+	ISCASD,
+	ISCASQ,
+	ILODSB,
+	ILODSW,
+	ILODSD,
+	ILODSQ,
+	ISTOSB,
+	ISTOSW,
+	ISTOSD,
+	ISTOSQ,
 };
 
 struct Reg {

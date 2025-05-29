@@ -103,6 +103,9 @@ const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // TODO: implement all opcodes from 9C - D7 and E0 - FF inclusive
 // instruction words
+// load - выг рузить
+// store - заг рузить
+// scan - осм отреть
 const struct Word VAR_OPS_WORDS[] = {
 	{"возд", IRET},	  {"воздф", IRETF}, {"зумн", IIMUL},   {"пауза", IPAUSE},
 	{"ожид", IWAIT},  {"перебд", ICBW}, {"передч", ICWDE}, {"перечв", ICDQE},
@@ -116,7 +119,11 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"загахф", ISAHF},	{"выгахф", ILAHF},	{"бытьсб", IMOVSB},
 	{"бытьсд", IMOVSW}, {"бытьсч", IMOVSD}, {"бытьсв", IMOVSQ},
 	{"сравсб", ICMPSB}, {"сравсд", ICMPSW}, {"сравсч", ICMPSD},
-	{"сравсв", ICMPSQ},
+	{"сравсв", ICMPSQ}, {"осмсб", ISCASB},	{"осмсд", ISCASW},
+	{"осмсч", ISCASD},	{"осмсв", ISCASQ},	{"выгсб", ILODSB},
+	{"выгсд", ILODSW},	{"выгсч", ILODSD},	{"выгсв", ILODSQ},
+	{"загсб", ISTOSB},	{"загсд", ISTOSW},	{"загсч", ISTOSD},
+	{"загсв", ISTOSQ},
 };
 // not			н 	не
 // overflow 	и	избыток
