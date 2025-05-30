@@ -163,7 +163,11 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	return 0;
 }
 
+const char *const TOO_BIG_TO_BE_REL_8 =
+	"Значение было слишком большим чтобы уместиться в 1 байт.";
+
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
+	// TODO: error if do instructions before first segment
 	long i, j, last_text_sz;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
@@ -280,6 +284,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		case ISHL1:
 		case ISHR1:
 		case ISAR1:
+		case ILOOPNZ:
+		case ILOOPZ:
+		case ILOOP:
+		case IJECXZ:
+		case IJRCXZ:
 		// TODO: near jmp
 		case IJMP:
 		case IJO:
@@ -308,6 +317,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 				usage->hc = phs_counter;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
+				// from here need to optimize rel32 to rel8
+				// mov [rax + 0x00000001], 0x67453412
+				// {01 00 00 00} {12 34 45 67}
+				// if {01 00 00 00} can be BYTE cuz label->declared
 
 				ph = plist_get(g->phs, phs_counter - 1);
 				uint64_t ph_start = ph->offset - all_h_sz * (phs_counter > 1);
@@ -416,11 +429,23 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				uc *usage_place = g->text->st + usage->place;
 
 				if (usage->type == ADDR) {
-					memcpy(usage_place, &l->addr, REL_SIZE);
-				} else if (usage->type == REL_ADDR) {
+					memcpy(usage_place, &l->addr, DWORD);
+				} else {
 					ph = plist_get(g->phs, usage->hc - 1);
-					uint64_t rel_addr = l->addr - (ph->vaddr + usage->cmd_end);
-					memcpy(usage_place, &rel_addr, REL_SIZE); // TODO: rel8
+					int64_t rel_addr =
+						l->addr - (ph->vaddr + usage->cmd_end +
+								   all_h_sz * ((usage->hc - 1) == 0));
+
+					if (usage->type == REL_ADDR)
+						memcpy(usage_place, &rel_addr, DWORD);
+					else { // REL_ADDR_8
+						if (rel_addr > 127 || rel_addr < -128) {
+							if (g->debug)
+								printf("было то %ld; \n", rel_addr);
+							eeg(TOO_BIG_TO_BE_REL_8, in);
+						}
+						memcpy(usage_place, &rel_addr, BYTE);
+					}
 				}
 			}
 		} else if (in->code == IENTRY) {

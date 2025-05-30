@@ -133,6 +133,8 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 void add_imm_data(struct Ipcd *i, struct Oper *o) {
 	if (o->code == OREL) {
 		enum UT ut = is_rel(i->c->opsc) ? REL_ADDR : ADDR;
+		if (ut == REL_ADDR && o->sz == BYTE)
+			ut = REL_ADDR_8;
 		struct Defn *np = new_not_plov(o->t->view, i->data->size, ut);
 		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
@@ -407,6 +409,11 @@ const struct Cmnd cmnds[] = {
 	{IPOP, {0x0f, 0xa2}, 2, NOT_FIELD, 0, __GS},
 	{IPUSH, {0x0f, 0xa8}, 2, NOT_FIELD, 0, __FS},
 	{IPOP, {0x0f, 0xa9}, 2, NOT_FIELD, 0, __FS},
+	{ILOOPNZ, {0xe0}, 1, NOT_FIELD, 0, __REL_8},
+	{ILOOPZ, {0xe1}, 1, NOT_FIELD, 0, __REL_8},
+	{ILOOP, {0xe2}, 1, NOT_FIELD, 0, __REL_8},
+	{IJECXZ, {0x67, 0xe3}, 2, NOT_FIELD, 0, __REL_8},
+	{IJRCXZ, {0xe3}, 1, NOT_FIELD, 0, __REL_8},
 	// mul imul div idiv
 	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
 	{IIMUL, {0x6b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_8},
@@ -875,10 +882,18 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	enum OpsCode code = OPC_INVALID;
 	struct Oper *o = get_first_o(in);
 	switch (in->code) {
+	case ILOOPNZ:
+	case ILOOPZ:
+	case ILOOP:
+	case IJECXZ:
+	case IJRCXZ:
 	case IINT:
 		if (is_imm(o)) {
 			change_imm_size(in, o, BYTE);
-			code = __IMM_8;
+			if (in->code == IINT)
+				code = __IMM_8;
+			else
+				code = __REL_8;
 		}
 		break;
 	case IRET:

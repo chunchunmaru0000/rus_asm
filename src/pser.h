@@ -14,7 +14,6 @@
 #define REX_X 0b0010
 #define REX_R 0b0100
 #define REX_W 0b1000
-#define REL_SIZE 4
 extern uc NEED_WARN;
 
 struct Pser {
@@ -174,7 +173,6 @@ enum ICode {
 	IPUSH,
 	IPOP,
 	IINT,
-	IINT3,
 	IINC,
 	IDEC,
 	ICALLF, // just
@@ -196,7 +194,13 @@ enum ICode {
 	IJNL,
 	IJLE,
 	IJG,
+	ILOOPNZ,
+	ILOOPZ,
+	ILOOP,
+	IJECXZ,
+	IJRCXZ,
 	// zero ops
+	IINT3,
 	ISYSCALL,
 	INOP,
 	IRET,
