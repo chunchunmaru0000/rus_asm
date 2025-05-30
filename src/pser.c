@@ -101,7 +101,7 @@ const char *STR_WORD = "дбайт";
 const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
-// TODO: implement all opcodes from 9C - D7 and E0 - FF inclusive
+// TODO: implement all opcodes fro E0 - FF inclusive
 // instruction words
 // load - выг рузить
 // store - заг рузить
