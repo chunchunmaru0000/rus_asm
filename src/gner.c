@@ -316,6 +316,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				usage = not_plov->value;
 
 				usage->hc = phs_counter;
+				usage->ic = g->pos;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
 				// from here need to optimize rel32 to rel8
 				// mov [rax + 0x00000001], 0x67453412
@@ -418,7 +419,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	phs_counter = 0;
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
-
 		if (in->code == ILABEL || in->code == ILET) {
 			// in both cases name is first opperand
 			tok = plist_get(in->os, 0);
@@ -442,7 +442,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 						if (rel_addr > 127 || rel_addr < -128) {
 							if (g->debug)
 								printf("было то %ld; \n", rel_addr);
-							eeg(TOO_BIG_TO_BE_REL_8, in);
+							eeg(TOO_BIG_TO_BE_REL_8,
+								plist_get(g->is, usage->ic));
 						}
 						memcpy(usage_place, &rel_addr, BYTE);
 					}
