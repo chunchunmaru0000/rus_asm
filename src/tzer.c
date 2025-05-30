@@ -502,7 +502,7 @@ struct Token *new_token(struct Tzer *t) {
 	while (char_in_str(cur(t), white_space))
 		next(t);
 
-	uc c = cur(t), n = get(t, 1);
+	uc c = cur(t);
 	enum TCode code;
 	struct Token *token = malloc(sizeof(struct Token));
 	token->line = t->line;
@@ -516,7 +516,7 @@ struct Token *new_token(struct Tzer *t) {
 	else if (c == '\n')
 		code = next_line(t, token);
 	else if ((c >= '0' && c <= '9') ||
-			 ((c == '-' || c == '+') && (n >= '0' && n <= '9')))
+			 ((c == '-' || c == '+') && (get(t, 1) >= '0' && get(t, 1) <= '9')))
 		code = num_token(t, token);
 	else if (c == '"')
 		code = str_token(t, token);

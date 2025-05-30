@@ -706,7 +706,6 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 					pwi(WARN_CHANGE_IMM_SIZE, in);
 				r->sz = BYTE;
 			}
-			// TODO: check this out more
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)) &&
 				!(!is_8(l) && is_8(r)))
 				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
@@ -798,7 +797,6 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// mov M_16__SREG dont need cuz its always 16-bit
-	// TODO: check if its possible for r to be 16-bit
 	if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
 		!(code == IMM_16__IMM_8))
 		blist_add(i->cmd, 0x66);
@@ -1005,13 +1003,11 @@ void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 	if (is_addr32(o))
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
-	// TODO: check if its possible for r to be 16-bit
 	if (!is_seg(o) && is_16(o) &&
 		!(i->in->code == IRET || i->in->code == IRETF))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;
-	// TODO: better and check if there is others that require REX_W thing
 	if (ops == __RM_16_32_64 && is_64(o))
 		rex |= REX_W;
 	if (is_mem(o))

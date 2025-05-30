@@ -32,7 +32,6 @@ void gen(struct Gner *g) {
 		gen_Linux_ELF_86_64_prolog(g);
 		gen_Linux_ELF_86_64_text(g);
 
-		// is it should be here or do separate function like bze_prolog
 		blat(g->prol, (uc *)g->elfh, sizeof(struct ELFH));
 		for (int i = 0; i < g->phs->size; i++)
 			blat(g->prol, plist_get(g->phs, i), sizeof(struct ELFPH));
@@ -165,9 +164,16 @@ struct Plov *find_label(struct Gner *g, char *s) {
 
 const char *const TOO_BIG_TO_BE_REL_8 =
 	"Значение было слишком большим чтобы уместиться в 1 байт.";
+const char *const ERR_ZERO_SEGMENTS =
+	"На Линуксе для правильного исполнимого файла в данном ассембелере "
+	"требуется хотя бы один участок.";
+
+void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
+	if (g->phs->size == 0)
+		eeg(ERR_ZERO_SEGMENTS, in);
+}
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	// TODO: error if do instructions before first segment
 	long i, j, last_text_sz;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
@@ -323,6 +329,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				// {01 00 00 00} {12 34 45 67}
 				// if {01 00 00 00} can be BYTE cuz label->declared
 
+				assert_phs_not_zero(g, in);
 				ph = plist_get(g->phs, phs_counter - 1);
 				uint64_t ph_start = ph->offset - all_h_sz * (phs_counter > 1);
 				// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
@@ -338,6 +345,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
 
+			assert_phs_not_zero(g, in);
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
@@ -352,6 +360,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
 
+			assert_phs_not_zero(g, in);
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
@@ -397,6 +406,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			last_text_sz = g->text->size;
 			break;
 		case IEOI:
+			assert_phs_not_zero(g, in);
 			phl = g->phs->st[phs_counter - 1];
 			phl->memsz = g->phs->size == 1 ? (int64_t)phl->memsz + g->text->size
 										   : g->text->size - last_text_sz;
