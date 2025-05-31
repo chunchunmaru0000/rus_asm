@@ -127,6 +127,9 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"выгсч", ILODSD},	{"выгсв", ILODSQ},	{"загсб", ISTOSB},
 	{"загсд", ISTOSW},	{"загсч", ISTOSD},	{"загсв", ISTOSQ},
 	{"прер3", IINT3},	{"воздфв", IRETFQ}, {"выйти", ILEAVE},
+	{"прер1", IINT1},	{"ост", IHLT},		{"нсф", ICMC},
+	{"осф", ICLC},		{"усф", ISTC},		{"опрерф", ICLI},
+	{"упрерф", ISTI},	{"орф", ICLD},		{"урф", ISTD},
 };
 // not			н 	не
 // overflow 	и	избыток
