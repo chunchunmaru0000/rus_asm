@@ -289,7 +289,8 @@ int is_imm_r(enum OpsCode c) {
 // http://ref.x86asm.net/coder64.html
 
 // add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
-// lock fs repne scas word [edi] -> f0 64f2 6766 af
+// lock fs    repne  scas  word  [edi] -> f0 64f2 6766 af
+// атом испфс повтнр осмсд       (еди)
 // mov word[r8d], 255 -> 67 6641 c700 ff00
 
 // F0 lock
@@ -363,6 +364,10 @@ const struct Cmnd cmnds[] = {
 	{ISTI, {0xfb}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ICLD, {0xfc}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISTD, {0xfd}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IUSEFS, {0x64}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IUSEGS, {0x65}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IREPNZ, {0xf2}, 1, NOT_FIELD, 0, OPC_INVALID},
+	{IREP, {0xf3}, 1, NOT_FIELD, 0, OPC_INVALID},
 
 	{INOT, {0xf6}, 1, NUM_FIELD, 2, __RM_8},
 	{INEG, {0xf6}, 1, NUM_FIELD, 3, __RM_8},

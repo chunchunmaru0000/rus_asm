@@ -119,6 +119,7 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"ввсб", IINSB},	{"ввсд", IINSW},	{"ввсч", IINSD},
 	{"вывсб", IOUTSB},	{"вывсд", IOUTSW},	{"вывсч", IOUTSD},
 	{"толкф", IPUSHF},	{"вытф", IPOPF},	{"загахф", ISAHF},
+	// TODO: make string operations ops how
 	{"выгахф", ILAHF},	{"бытьсб", IMOVSB}, {"бытьсд", IMOVSW},
 	{"бытьсч", IMOVSD}, {"бытьсв", IMOVSQ}, {"сравсб", ICMPSB},
 	{"сравсд", ICMPSW}, {"сравсч", ICMPSD}, {"сравсв", ICMPSQ},
@@ -130,6 +131,8 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"прер1", IINT1},	{"ост", IHLT},		{"нсф", ICMC},
 	{"осф", ICLC},		{"усф", ISTC},		{"опрерф", ICLI},
 	{"упрерф", ISTI},	{"орф", ICLD},		{"урф", ISTD},
+	{"испфс", IUSEFS},	{"испгс", IUSEGS},	{"повтн0", IREPNZ},
+	{"повтнр", IREPNZ}, {"повт", IREP},
 };
 // not			н 	не
 // overflow 	и	избыток

@@ -204,6 +204,10 @@ enum ICode {
 	INEG,
 	INOT,
 	// zero ops
+	IUSEFS,
+	IUSEGS,
+	IREPNZ,
+	IREP,
 	ICLC,
 	ISTC,
 	ICLI,
