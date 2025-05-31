@@ -64,6 +64,14 @@ enum OpsCode {
 	R_16_32_64__RAX,
 	R_16_32_64__M,
 	IMM_16__IMM_8,
+
+	EAX__IMM_8,
+	IMM_8__AL,
+	IMM_8__EAX,
+	AL__DX,
+	EAX__DX,
+	DX__AL,
+	DX__EAX,
 };
 
 #define NOT_FIELD 0

@@ -191,7 +191,7 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 			add_imm_data(i, l);
 		if (is_imm(r) || is_moffs(r))
 			add_imm_data(i, r);
-		else if (is_moffs(l))
+		else if (is_imm(l) || is_moffs(l))
 			add_imm_data(i, l);
 	} else if (c->o == NUM_FIELD) {
 		//   1. NUM_FIELD The value of the opcode extension values from 0
@@ -581,6 +581,14 @@ const struct Cmnd cmnds[] = {
 	{IXCHG, {0x90}, 1, PLUS_REGF, 0, R_16_32_64__RAX},
 	{ILEA, {0x8d}, 1, REG_FIELD, 0, R_16_32_64__M},
 	{IENTER, {0xc8}, 1, NOT_FIELD, 0, IMM_16__IMM_8},
+	{IINPUT, {0xe4}, 1, NOT_FIELD, 0, AL__IMM_8},
+	{IINPUT, {0xe5}, 1, NOT_FIELD, 0, EAX__IMM_8},
+	{IOUTPUT, {0xe6}, 1, NOT_FIELD, 0, IMM_8__AL},
+	{IOUTPUT, {0xe7}, 1, NOT_FIELD, 0, IMM_8__EAX},
+	{IINPUT, {0xec}, 1, NOT_FIELD, 0, AL__DX},
+	{IINPUT, {0xed}, 1, NOT_FIELD, 0, EAX__DX},
+	{IOUTPUT, {0xee}, 1, NOT_FIELD, 0, DX__AL},
+	{IOUTPUT, {0xef}, 1, NOT_FIELD, 0, DX__EAX},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
@@ -675,6 +683,24 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		if (is_rm(l) && is_imm(r)) {
 			change_imm_size(in, r, BYTE);
 			code = is_8(l) ? RM_8__IMM_8 : RM_16_32_64__IMM_8;
+		}
+		break;
+	case IOUTPUT:
+		if ((is_imm(l) || is_dx(l)) && (is_al(r) || is_eA(r))) {
+			if (is_imm(l)) {
+				change_imm_size(in, l, BYTE);
+				code = is_8(r) ? IMM_8__AL : IMM_8__EAX;
+			} else
+				code = is_8(r) ? DX__AL : DX__EAX;
+		}
+		break;
+	case IINPUT:
+		if ((is_al(l) || is_eA(l)) && (is_imm(r) || is_dx(r))) {
+			if (is_imm(r)) {
+				change_imm_size(in, r, BYTE);
+				code = is_8(l) ? AL__IMM_8 : EAX__IMM_8;
+			} else
+				code = is_8(l) ? AL__DX : EAX__DX;
 		}
 		break;
 	case IADD:
@@ -797,8 +823,12 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 		blist_add(i->cmd, 0x67);
 	// 66 16-bit Operand-size OVERRIRE prefix
 	// mov M_16__SREG dont need cuz its always 16-bit
-	if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
-		!(code == IMM_16__IMM_8))
+	if ((code == EAX__IMM_8 || code == EAX__DX) && is_16(l))
+		blist_add(i->cmd, 0x66);
+	else if ((code == IMM_8__EAX || code == DX__EAX) && is_16(r))
+		blist_add(i->cmd, 0x66);
+	else if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
+			 !(code == IMM_16__IMM_8 || code == DX__EAX))
 		blist_add(i->cmd, 0x66);
 	// REX prefixes
 	uc rex = 0b01000000;

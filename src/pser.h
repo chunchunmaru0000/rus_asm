@@ -161,6 +161,8 @@ enum ICode {
 	ISHL,
 	ISHR,
 	ISAR,
+	IINPUT,
+	IOUTPUT,
 	// one op
 	IROL1,
 	IROR1,
@@ -339,6 +341,8 @@ void pwi(const char *, struct Inst *);
 #define is_rA(o)                                                               \
 	((o)->code == OREG &&                                                      \
 	 ((o)->rm == R_AX || (o)->rm == R_EAX || (o)->rm == R_RAX))
+#define is_eA(o) ((o)->code == OREG && ((o)->rm == R_AX || (o)->rm == R_EAX))
+#define is_dx(o) ((o)->code == OREG && (o)->rm == R_DX)
 #define is_moffs(o) ((o)->code == OMOFFS)
 // opcode reg field, meaningless name
 #define is_sib(o) ((o)->rm == R_RSI)
