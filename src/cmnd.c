@@ -364,6 +364,10 @@ const struct Cmnd cmnds[] = {
 	{ICLD, {0xfc}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{ISTD, {0xfd}, 1, NOT_FIELD, 0, OPC_INVALID},
 
+	{INOT, {0xf6}, 1, NUM_FIELD, 2, __RM_8},
+	{INEG, {0xf6}, 1, NUM_FIELD, 3, __RM_8},
+	{INOT, {0xf7}, 1, NUM_FIELD, 2, __RM_16_32_64},
+	{INEG, {0xf7}, 1, NUM_FIELD, 3, __RM_16_32_64},
 	{IRET, {0xc2}, 1, NOT_FIELD, 0, __IMM_16},
 	{IRETF, {0x48, 0xca}, 2, NOT_FIELD, 0, __IMM_16},
 	{IINT, {0xcd}, 1, NOT_FIELD, 0, __IMM_8},
@@ -954,6 +958,14 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 	case ISHL1:
 	case ISHR1:
 	case ISAR1:
+	case INOT:
+	case INEG:
+	case IINC:
+	case IDEC:
+	case IMUL:
+	case IIMUL:
+	case IDIV:
+	case IIDIV:
 		if (is_rm(o))
 			code = is_8(o) ? __RM_8 : __RM_16_32_64;
 		break;
@@ -1018,15 +1030,6 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 				code = __IMM_32;
 			}
 		}
-		break;
-	case IINC:
-	case IDEC:
-	case IMUL:
-	case IIMUL:
-	case IDIV:
-	case IIDIV:
-		if (is_rm(o))
-			code = is_8(o) ? __RM_8 : __RM_16_32_64;
 		break;
 	default:
 		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);

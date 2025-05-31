@@ -163,7 +163,8 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"сдвл1", ISHL1},	{"сдал1", ISHL1},	{"сдвп1", ISHR1},
 	{"сдап1", ISAR1},	{"цклн0", ILOOPNZ}, {"цклнр", ILOOPNZ},
 	{"цкл0", ILOOPZ},	{"цклр", ILOOPZ},	{"цкл", ILOOP},
-	{"идесх0", IJECXZ}, {"идрсх0", IJRCXZ},
+	{"идесх0", IJECXZ}, {"идрсх0", IJRCXZ}, {"не", INOT},
+	{"нег", INEG},
 };
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},	   {"плюс", IADD},	{"минс", ISUB},	   {"проб", ITEST},

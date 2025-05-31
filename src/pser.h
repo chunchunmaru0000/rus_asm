@@ -201,6 +201,8 @@ enum ICode {
 	ILOOP,
 	IJECXZ,
 	IJRCXZ,
+	INEG,
+	INOT,
 	// zero ops
 	ICLC,
 	ISTC,
