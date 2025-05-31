@@ -204,119 +204,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		blist_clear(data);
 
 		ipcd->in = in;
-		switch (code) {
-		case INOP:
-		case IRET:
-		case IRETF:
-		case IRETFQ:
-		case ISYSCALL:
-		case ILOCK:
-		case IADD:
-		case IOR:
-		case IADC:
-		case ISBB:
-		case IAND:
-		case ISUB:
-		case IXOR:
-		case ICMP:
-		case ITEST:
-		case IMOV:
-		case IJMPF:
-		case ICALL:
-		case IINT:
-		case IINT3:
-		case ICALLF:
-		case IPUSH:
-		case IPOP:
-		case IINC:
-		case IDEC:
-		case IDIV:
-		case IIDIV:
-		case IMUL:
-		case IIMUL:
-		case IINSB:
-		case IINSW:
-		case IINSD:
-		case IOUTSB:
-		case IOUTSW:
-		case IOUTSD:
-		case IXCHG:
-		case IPAUSE:
-		case IWAIT:
-		case ICBW:
-		case ICWDE:
-		case ICDQE:
-		case ICWD:
-		case ICDQ:
-		case ICQO:
-		case IPUSHF:
-		case IPOPF:
-		case ISAHF:
-		case ILAHF:
-		case ILEA:
-		case IMOVSB:
-		case IMOVSW:
-		case IMOVSD:
-		case IMOVSQ:
-		case ICMPSB:
-		case ICMPSW:
-		case ICMPSD:
-		case ICMPSQ:
-		case ISCASB:
-		case ISCASW:
-		case ISCASD:
-		case ISCASQ:
-		case ILODSB:
-		case ILODSW:
-		case ILODSD:
-		case ILODSQ:
-		case ISTOSB:
-		case ISTOSW:
-		case ISTOSD:
-		case ISTOSQ:
-		case ILEAVE:
-		case IENTER:
-		case IROL:
-		case IROR:
-		case IRCL:
-		case IRCR:
-		case ISHL:
-		case ISHR:
-		case ISAR:
-		case IROL1:
-		case IROR1:
-		case IRCL1:
-		case IRCR1:
-		case ISHL1:
-		case ISHR1:
-		case ISAR1:
-		case ILOOPNZ:
-		case ILOOPZ:
-		case ILOOP:
-		case IJECXZ:
-		case IJRCXZ:
-		// TODO: near jmp
-		case IJMP:
-		case IJO:
-		case IJNO:
-		case IJB:
-		case IJNB:
-		case IJE:
-		case IJNE:
-		case IJBE:
-		case IJA:
-		case IJS:
-		case IJNS:
-		case IJP:
-		case IJNP:
-		case IJL:
-		case IJNL:
-		case IJLE:
-		case IJG:
+		if (code > IDATA) {
+			// TODO: near jmp
 			get_ops_code(ipcd);
 			// so here is has a list of denfs with usages relative to data size
 			if (ipcd->not_plovs->size == 0)
-				break;
+				goto gen_Linux_ELF_86_64_text_first_loop_end;
 			for (j = 0; j < ipcd->not_plovs->size; j++) {
 				not_plov = plist_get(ipcd->not_plovs, j);
 				usage = not_plov->value;
@@ -340,7 +233,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				plist_add(l->us, usage);
 			}
 			plist_clear_items_free(ipcd->not_plovs);
-			break;
+			goto gen_Linux_ELF_86_64_text_first_loop_end;
+		}
+		switch (code) {
 		case ILABEL:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
@@ -391,14 +286,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				// because for first its size of all data that is only first
 				// data for the moment
 				if (phs_counter == 1)
-					phl->memsz += g->text->size; // 0 size
+					// 0 size = all p h + elf h + segment size
+					phl->memsz += g->text->size;
 				else
-					phl->memsz = g->text->size - last_text_sz; // i size
+					// i size = segment size
+					phl->memsz = g->text->size - last_text_sz;
 				phl->filesz = phl->memsz;
 
-				ph->offset = phl->memsz + phl->offset; // i offset
-				ph->vaddr =
-					ph->offset + ph->align * (phs_counter) + g->pie; // i addr
+				// i offset = last segment size + last segment offset
+				ph->offset = phl->memsz + phl->offset;
+				// i addr = offset + align * (i - 1) + pie
+				ph->vaddr = ph->offset + ph->align * (phs_counter) + g->pie;
 			}
 			ph->filesz = ph->memsz;
 			ph->paddr = ph->vaddr;
@@ -418,6 +316,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			printf("%d ", in->code);
 			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
 		}
+	gen_Linux_ELF_86_64_text_first_loop_end:
 		if (cmd->size + data->size) {
 			blat(g->text, cmd->st, cmd->size);
 			blat(g->text, data->st, data->size);
