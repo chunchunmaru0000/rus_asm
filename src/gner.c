@@ -327,6 +327,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 	phs_counter = 0;
 	for (i = 0; i < g->is->size; i++) {
+		g->pos = i;
 		in = plist_get(g->is, i);
 		if (in->code == ILABEL || in->code == ILET) {
 			// in both cases name is first opperand

@@ -3,11 +3,7 @@
 	xxd тест
 	chmod +x тест
 	./тест
-
-ч: асм
-	./асм чето.асм чето -о 0
-	xxd чето
-
+	
 асм:
 	gcc main.c flgs.c gner.c cmnd.c lbel.c pser.c lsts.c tzer.c -o асм
 

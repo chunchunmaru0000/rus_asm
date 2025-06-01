@@ -101,7 +101,6 @@ const char *STR_WORD = "дбайт";
 const char *STR_DWORD = "чбайт";
 const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
-// TODO: implement all opcodes from E0 - FF inclusive
 // instruction words
 // load - выг рузить
 // store - заг рузить
@@ -119,7 +118,6 @@ const struct Word ZERO_OPS_WORDS[] = {
 	{"ввсб", IINSB},	{"ввсд", IINSW},	{"ввсч", IINSD},
 	{"вывсб", IOUTSB},	{"вывсд", IOUTSW},	{"вывсч", IOUTSD},
 	{"толкф", IPUSHF},	{"вытф", IPOPF},	{"загахф", ISAHF},
-	// TODO: make string operations ops how
 	{"выгахф", ILAHF},	{"бытьсб", IMOVSB}, {"бытьсд", IMOVSW},
 	{"бытьсч", IMOVSD}, {"бытьсв", IMOVSQ}, {"сравсб", ICMPSB},
 	{"сравсд", ICMPSW}, {"сравсч", ICMPSD}, {"сравсв", ICMPSQ},
@@ -146,6 +144,8 @@ const struct Word ZERO_OPS_WORDS[] = {
 // parity_odd 	нч 	не чет
 // less			м 	меньше
 // greater		б	больше
+
+// TODO: make string ops with 32-bit addressation
 const struct Word ONE_OPS_WORDS[] = {
 	{"зов", ICALL},		{"идти", IJMP},		{"прер", IINT},
 	{"выт", IPOP},		{"толк", IPUSH},	{"идтиф", IJMPF},

@@ -461,19 +461,32 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 	return code;
 }
 
-enum TCode com_token(struct Tzer *t, struct Token *token) {
+enum TCode com_token(struct Tzer *t, struct Token *token, uc is_long) {
 	long start_pos = t->pos, com_len = 1;
 	next(t);
 	char *com_view;
-	while (cur(t) != '\n' && cur(t) != '\0') {
+
+	printf("is_long %d, line %ld \t", is_long, t->line);
+	if (is_long) {
+		next(t);
+		while ((cur(t) != ';' || get(t, 1) != ';') && cur(t) != '\0') {
+			next(t);
+			com_len++;
+		}
 		next(t);
 		com_len++;
-	}
+		next(t);
+	} else
+		while (cur(t) != '\n' && cur(t) != '\0') {
+			next(t);
+			com_len++;
+		}
 
 	com_view = malloc(com_len + 1);
 	com_view[com_len] = 0;
 	strncpy(com_view, &t->code[start_pos], com_len);
 
+	printf("%s|\n", com_view);
 	token->view = com_view;
 	return COM;
 }
@@ -511,9 +524,12 @@ struct Token *new_token(struct Tzer *t) {
 	// every of funcs that takes token shall assign view to token
 	if (c == '\0')
 		code = EF;
-	else if (c == ';')
-		code = com_token(t, token);
-	else if (c == '\n')
+	else if (c == ';') {
+		if (get(t, 1) == ';')
+			code = com_token(t, token, 1);
+		else
+			code = com_token(t, token, 0);
+	} else if (c == '\n')
 		code = next_line(t, token);
 	else if ((c >= '0' && c <= '9') ||
 			 ((c == '-' || c == '+') && (get(t, 1) >= '0' && get(t, 1) <= '9')))

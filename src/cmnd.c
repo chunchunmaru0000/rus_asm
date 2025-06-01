@@ -295,7 +295,6 @@ int is_imm_r(enum OpsCode c) {
 
 // F0 lock
 // 64 65 FS GS Segment Override
-// TODO: when do scas or other do something like FS_M_16__AX
 // F2 Repeat String Operation Prefix | Scalar Double-precision Prefix
 // F3 Repeat String Operation Prefix | Scalar Single-precision Prefix
 // 			2E 36 3E 26 Null Prefix in 64-bit Mode
