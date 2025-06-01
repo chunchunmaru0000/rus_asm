@@ -466,7 +466,6 @@ enum TCode com_token(struct Tzer *t, struct Token *token, uc is_long) {
 	next(t);
 	char *com_view;
 
-	printf("is_long %d, line %ld \t", is_long, t->line);
 	if (is_long) {
 		next(t);
 		while ((cur(t) != ';' || get(t, 1) != ';') && cur(t) != '\0') {
@@ -486,7 +485,6 @@ enum TCode com_token(struct Tzer *t, struct Token *token, uc is_long) {
 	com_view[com_len] = 0;
 	strncpy(com_view, &t->code[start_pos], com_len);
 
-	printf("%s|\n", com_view);
 	token->view = com_view;
 	return COM;
 }

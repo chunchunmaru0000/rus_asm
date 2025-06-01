@@ -11,8 +11,6 @@ enum TCode {
 	ID, // identifier
 	// OTHER
 	SLASHN, // \n
-	SEMI,	// ;
-	SSEMI,	// ;;
 	COLO,	// :
 	COM,	// comment
 	SLASH,	// \ slash

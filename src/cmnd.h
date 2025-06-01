@@ -18,9 +18,9 @@ struct Plov {		   // Pointer Label Of Value
 	char *label;	   // label
 	uint64_t addr;	   // adress
 	uint64_t rel_addr; // relative adress in executable file from file start
-	int si;			   //  segment place
+	int si;			   // segment place
 	struct PList *us;  // usages
-					   // uint64_t size; // like for db dd dw dq
+	uc declared;
 };
 
 enum OpsCode {

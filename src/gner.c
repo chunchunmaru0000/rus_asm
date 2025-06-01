@@ -121,6 +121,7 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	p->si = segment_place;
 	p->us = new_plist(4);
 	// p->a = g->pie; // + first ph memsz;
+	p->declared = 0;
 
 	return p;
 }
@@ -194,7 +195,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	ipcd->not_plovs = new_plist(2);
 	ipcd->debug = g->debug;
 
-	uint64_t phs_counter = 0, phs_cur_sz;
+	int phs_counter = 0;
+	uint64_t phs_cur_sz;
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
@@ -211,8 +213,23 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			if (ipcd->not_plovs->size == 0)
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
 			for (j = 0; j < ipcd->not_plovs->size; j++) {
+				assert_phs_not_zero(g, in);
+
 				not_plov = plist_get(ipcd->not_plovs, j);
 				usage = not_plov->value;
+				l = find_label(g, not_plov->view);
+
+				if (usage->type == REL_ADDR && l->declared &&
+					l->si == phs_counter - 1) {
+
+					ph = plist_get(g->phs, phs_counter - 1);
+					int rel_addr = l->addr - (ph->vaddr + usage->cmd_end +
+											  all_h_sz * (l->si == 1));
+
+					if (rel_addr <= 127 && rel_addr >= -128) {
+						// TODO:
+					}
+				}
 
 				usage->hc = phs_counter;
 				usage->ic = g->pos;
@@ -222,14 +239,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				// {01 00 00 00} {12 34 45 67}
 				// if {01 00 00 00} can be BYTE cuz label->declared
 
-				assert_phs_not_zero(g, in);
 				ph = plist_get(g->phs, phs_counter - 1);
 				uint64_t ph_start = ph->offset - all_h_sz * (phs_counter > 1);
 				// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
 				usage->cmd_end =
 					(g->text->size - ph_start) + cmd->size + data->size;
 
-				l = find_label(g, not_plov->view);
 				plist_add(l->us, usage);
 			}
 			plist_clear_items_free(ipcd->not_plovs);
@@ -244,6 +259,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
+			l->declared = 1;
 			if (g->debug & 1)
 				printf("метка[%s]\t[0x%08lx]\n", l->label, l->addr);
 			break;
@@ -259,6 +275,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			ph = plist_get(g->phs, phs_counter - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
+			l->declared = 1;
 			if (g->debug & 1)
 				printf("перем[%s]\t[0x%08lx]\n", l->label, l->addr);
 
@@ -342,7 +359,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					memcpy(usage_place, &l->addr, DWORD);
 				} else {
 					ph = plist_get(g->phs, usage->hc - 1);
-					int64_t rel_addr =
+					int rel_addr =
 						l->addr - (ph->vaddr + usage->cmd_end +
 								   all_h_sz * ((usage->hc - 1) == 0));
 
@@ -351,7 +368,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					else { // REL_ADDR_8
 						if (rel_addr > 127 || rel_addr < -128) {
 							if (g->debug)
-								printf("было то %ld; \n", rel_addr);
+								printf("было то %d; \n", rel_addr);
 							eeg(TOO_BIG_TO_BE_REL_8,
 								plist_get(g->is, usage->ic));
 						}
