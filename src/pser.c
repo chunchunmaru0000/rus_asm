@@ -878,6 +878,10 @@ struct Inst *get_inst(struct Pser *p) {
 			code = let_i(p, os);
 		else if (sc(cv, STR_DEFINE))
 			code = define_pd(p);
+		// TODO: include statement will be parser derective and also
+		// need TODO: file name pointer in every instruction for diagnostics
+		// argument for the statement is string with path to an include file
+		// isntructions of an include instruction will be in in->os
 		else if (sc(cv, STR_SEG))
 			code = seg_i(p, os);
 		else if (sc(cv, STR_ENTRY))
@@ -901,6 +905,8 @@ struct PList *pse(struct Pser *p) {
 	while (i->code != IEOI) {
 		if (i->code != INONE)
 			plist_add(is, i);
+		// and here TODO: if include statemnet then add all its instructions
+		// from i->os to is
 		i = get_inst(p);
 	}
 	plist_add(is, i);
