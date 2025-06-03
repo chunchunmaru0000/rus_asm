@@ -53,7 +53,7 @@ void (*gets[])(struct Ipcd *) = {
 
 void get_ops_code(struct Ipcd *i) {
 	if (i->in->os->size >= (long)lenofarr(gets))
-		eeg(OPS_SIZE_WRONG, i->in);
+		ee(i->in->f, i->in->p, OPS_SIZE_WRONG);
 	(gets[i->in->os->size])(i);
 
 	if (0b10 & i->debug) {
@@ -148,7 +148,7 @@ void add_imm_data(struct Ipcd *i, struct Oper *o) {
 		} else if (o->sz == QWORD)
 			blat(i->data, (uc *)&o->t->fpn, QWORD);
 		else
-			eeg(WRONG_FPN_SZ, i->in);
+			ee(i->in->f, i->in->p, WRONG_FPN_SZ);
 	} else if (o->code == OMOFFS)
 		blat(i->data, (uc *)&o->t->number, o->mem_sz);
 }
@@ -211,7 +211,7 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 				add_mem(i, l);
 			add_imm_data(i, r);
 		} else
-			eeg("только числа пока", i->in);
+			ee(i->in->f, i->in->p, "только числа пока");
 	} else if (c->o == REG_FIELD) {
 		//   2. REG_FIELD r indicates that the ModR/M byte contains a register
 		//   - operand and an r/m operand. 00 ADD
@@ -234,7 +234,7 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 			if (is_mem(r))
 				add_mem(i, r);
 		} else
-			eeg("только р__рм и рм__р пока", i->in);
+			ee(i->in->f, i->in->p, "только р__рм и рм__р пока");
 	} else if (c->o == PLUS_REGF) {
 		//   3. PLUS_REGF When just op code + reg code
 		//   - BSWAP, PUSH r64/16, POP r64/16, XCHG r16/32/64 rAX
@@ -243,7 +243,7 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 		if (i->in->code == IMOV)
 			add_imm_data(i, r);
 	} else
-		eeg("че не так то", i->in);
+		ee(i->in->f, i->in->p, "че не так то");
 }
 
 const enum OpsCode RM_L[] = {
@@ -625,16 +625,16 @@ const char *const ERR_WRONG_BYTE_REG =
 
 void change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 	if (r->forsed_sz)
-		pwi(WARN_CHANGE_IMM_SIZE, in);
+		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 	r->sz = l->sz;
 }
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
 	if (is_mem(rm) && rm->sz != r->sz) {
 		if (rm->forsed_sz)
-			pwi(WARN_CHANGE_MEM_SIZE, in);
+			pw(in->f, in->p, WARN_CHANGE_MEM_SIZE);
 		rm->sz = r->sz;
 	} else if (rm->sz != r->sz)
-		eeg(REGS_SIZES_NOT_MATCH, in);
+		ee(in->f, in->p, REGS_SIZES_NOT_MATCH);
 }
 void warn_change_to_eq_size_lr(struct Inst *i, struct Oper *l, struct Oper *r) {
 	if (l->sz != r->sz)
@@ -649,7 +649,7 @@ int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 }
 void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
 	if (o->forsed_sz)
-		pwi(WARN_CHANGE_IMM_SIZE, in);
+		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 	o->sz = sz;
 }
 
@@ -669,7 +669,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		if (is_reg(l)) {
 			if (is_rA(r)) {
 				if (l->sz != r->sz)
-					eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
+					ee(in->f, in->p, REG_MEM_IMM_SIZES_NOT_MATCH);
 				code = R_16_32_64__RAX;
 			} else if (is_rm(r)) {
 				change_m_sz(in, l, r);
@@ -737,7 +737,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_rm(l) && is_imm(r)) {
 			if (r->sz == QWORD)
-				pwi(WARN_IMM_SIZE_WILL_BE_CHANGED, in);
+				pw(in->f, in->p, WARN_IMM_SIZE_WILL_BE_CHANGED);
 
 			if (warn_change_size_lr(in, l, r))
 				;
@@ -746,12 +746,12 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 
 			if (is_imm_can_be_a_byte(r) && !(is_al(l) || is_rA(l))) {
 				if (r->forsed_sz)
-					pwi(WARN_CHANGE_IMM_SIZE, in);
+					pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 				r->sz = BYTE;
 			}
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)) &&
 				!(!is_8(l) && is_8(r)))
-				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
+				ee(in->f, in->p, REG_MEM_IMM_SIZES_NOT_MATCH);
 			if (is_al(l))
 				code = AL__IMM_8;
 			else if (is_rA(l))
@@ -798,7 +798,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			warn_change_size_lr(in, l, r);
 
 			if (l->sz != r->sz && !(is_64(l) && is_32(r)))
-				eeg(REG_MEM_IMM_SIZES_NOT_MATCH, in);
+				ee(in->f, in->p, REG_MEM_IMM_SIZES_NOT_MATCH);
 
 			if (is_reg(l)) {
 				if (is_8(l))
@@ -811,7 +811,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				}
 			} else if (is_mem(l)) {
 				if (is_64(l) && is_64(r))
-					eeg(MEM_IMM_SIZE_QWORD, in);
+					ee(in->f, in->p, MEM_IMM_SIZE_QWORD);
 
 				if (is_8(l))
 					code = RM_8__IMM_8;
@@ -821,10 +821,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		}
 		break;
 	default:
-		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);
+		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}
 	if (code == OPC_INVALID)
-		eeg(OPS_CODE_INVALID, in);
+		ee(in->f, in->p, OPS_CODE_INVALID);
 	return code;
 }
 
@@ -898,7 +898,7 @@ const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
 	if (c == 0) {
 		if (i->debug)
 			printf("### инструкция %d, типы операндов %d\n", i->in->code, code);
-		eeg(WRONG_INST_OPS, i->in);
+		ee(i->in->f, i->in->p, WRONG_INST_OPS);
 	}
 	return c;
 }
@@ -912,7 +912,7 @@ void get_zero_ops_code(struct Ipcd *i) {
 			goto good_zero_ops;
 		}
 	}
-	eeg("не найдена инструкция, добавь", i->in);
+	ee(i->in->f, i->in->p, "не найдена инструкция, добавь");
 good_zero_ops:;
 }
 
@@ -920,7 +920,8 @@ const char *const WARN_CHANGE_IMM_32_SIZE =
 	"Размер выражения не был равен чбайт, но при "
 	"этом был явно указан, его размер будет изменен под чбайт.";
 const char *const ERR_REG_NOT_16_OR_64 =
-	"Для данного типа инструкций поддерживаются только регистры размеров дбайт "
+	"Для данного типа инструкций поддерживаются только регистры размеров "
+	"дбайт "
 	"и вбайт.";
 
 enum OpsCode get_one_opscode(struct Inst *in) {
@@ -994,7 +995,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 		if (is_imm(o)) {
 			if (in->code == ICALL) {
 				if (o->sz != DWORD && o->forsed_sz)
-					pwi(WARN_CHANGE_IMM_32_SIZE, in);
+					pw(in->f, in->p, WARN_CHANGE_IMM_32_SIZE);
 				o->sz = DWORD;
 				code = __REL_32;
 			} else if (is_8(o))
@@ -1002,7 +1003,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			else if (is_32(o))
 				code = __REL_32;
 			else {
-				pwi(WARN_CHANGE_IMM_32_SIZE, in);
+				pw(in->f, in->p, WARN_CHANGE_IMM_32_SIZE);
 				o->sz = DWORD;
 				code = __REL_32;
 			}
@@ -1019,7 +1020,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			else if (is_16(o) || is_64(o))
 				code = __R_16_64;
 			else
-				eeg(ERR_REG_NOT_16_OR_64, in);
+				ee(in->f, in->p, ERR_REG_NOT_16_OR_64);
 		} else if (is_mem(o)) {
 			if (is_16(o) || is_64(o))
 				code = __RM_16_64;
@@ -1029,17 +1030,17 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 			else if (is_8(o))
 				code = __IMM_8;
 			else {
-				pwi(WARN_CHANGE_IMM_32_SIZE, in);
+				pw(in->f, in->p, WARN_CHANGE_IMM_32_SIZE);
 				o->sz = DWORD;
 				code = __IMM_32;
 			}
 		}
 		break;
 	default:
-		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);
+		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}
 	if (code == OPC_INVALID)
-		eeg(OPS_CODE_INVALID, in);
+		ee(in->f, in->p, OPS_CODE_INVALID);
 	return code;
 }
 
@@ -1080,7 +1081,8 @@ void fill_one_ops_cmd_and_data(struct Ipcd *i) {
 		// 1. NUM_FIELD The value of the opcode extension values from 0 to 7
 		// - like ModR/M byte where Reg field is for o_num
 		// - - primary used with imm or ?const regs?
-		// - this "ModR/M" byte also have mod and if its just reg and imm then
+		// - this "ModR/M" byte also have mod and if its just reg and imm
+		// then
 		// - - mod = 11 and R/M field means just reg code
 		// - if mod != 11 then it behaves as
 		// - - just usual mod and R/M fields with SIB if needed
@@ -1092,17 +1094,19 @@ void fill_one_ops_cmd_and_data(struct Ipcd *i) {
 			if (is_mem(o))
 				add_mem(i, o);
 		} else
-			eeg("а э ээ ээээ ээ да", i->in);
+			ee(i->in->f, i->in->p, "а э ээ ээээ ээ да");
 	} else if (c->o == REG_FIELD) {
 		// 2. REG_FIELD r indicates that the ModR/M byte contains a register
 		// - operand and an r/m operand
-		eeg("REG_FIELD наверно не существует для операций с одним выражением",
-			i->in);
+		ee(i->in->f, i->in->p,
+		   "REG_FIELD наверно не существует для операций с одним "
+		   "выражением");
 	} else if (c->o == PLUS_REGF) {
-		// 3. PLUS_REGF When just op code + reg code: PUSH r64/16, POP r64/16
+		// 3. PLUS_REGF When just op code + reg code: PUSH r64/16, POP
+		// r64/16
 		*(i->cmd->st + i->cmd->size - 1) += get_reg_field(o->rm);
 	} else
-		eeg("у меня муха щас над столом летает", i->in);
+		ee(i->in->f, i->in->p, "у меня муха щас над столом летает");
 }
 
 enum OpsCode get_tri_opscode(struct Inst *in) {
@@ -1115,18 +1119,18 @@ enum OpsCode get_tri_opscode(struct Inst *in) {
 	case IIMUL:
 		if (is_reg(l) && is_rm(r) && is_imm(o)) {
 			if (is_8(l))
-				eeg(ERR_WRONG_BYTE_REG, in);
+				ee(in->f, in->p, ERR_WRONG_BYTE_REG);
 
 			change_m_sz(in, l, r);
 
 			if (is_64(o)) {
 				if (o->forsed_sz)
-					pwi(WARN_CHANGE_IMM_SIZE, in);
+					pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 				o->sz = is_64(l) ? DWORD : l->sz;
 			}
 			if (is_imm_can_be_a_byte(r)) {
 				if (o->forsed_sz)
-					pwi(WARN_CHANGE_IMM_SIZE, in);
+					pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 				r->sz = BYTE;
 			}
 			code = is_8(r) ? R_16_32_64__RM_16_32_64__IMM_8
@@ -1134,7 +1138,7 @@ enum OpsCode get_tri_opscode(struct Inst *in) {
 		}
 		break;
 	default:
-		eeg(ERR_WRONG_OPS_FOR_THIS_INST, in);
+		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}
 	return code;
 }
@@ -1156,7 +1160,8 @@ void fill_tri_ops_cmd_and_data(struct Ipcd *i) {
 
 	blat(i->cmd, (uc *)c->cmd, c->len);
 	if (c->o == REG_FIELD) {
-		//  2. REG_FIELD r indicates that the ModR/M byte contains a register
+		//  2. REG_FIELD r indicates that the ModR/M byte contains a
+		//  register
 		//  - operand and an r/m operand
 		if (is_r__rm(c->opsc)) {
 			modrm += r->mod << 6;				// mod
@@ -1169,7 +1174,7 @@ void fill_tri_ops_cmd_and_data(struct Ipcd *i) {
 			// R_16_32_64__RM_16_32_64__IMM_8
 			add_imm_data(i, o);
 		} else
-			eeg("REG_FIELD ЭЭЭ", i->in);
+			ee(i->in->f, i->in->p, "REG_FIELD ЭЭЭ");
 	} else
-		eeg(TRI_OPS_DIDNT_EXISTS, i->in);
+		ee(i->in->f, i->in->p, TRI_OPS_DIDNT_EXISTS);
 }

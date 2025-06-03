@@ -17,8 +17,9 @@
 extern uc NEED_WARN;
 
 struct Pser {
+	struct Fpfc *f;
 	struct PList *ts; // tokens
-	long pos;
+	size_t pos;
 	uc debug;
 	struct PList *ds; // #define's
 };
@@ -137,6 +138,7 @@ enum ICode {
 	ILABEL,
 	ILET,
 	IDATA,
+	IINCLUDE,
 	// two ops
 	IADD,
 	IOR,
@@ -309,12 +311,11 @@ struct Word {
 struct Inst {
 	enum ICode code;
 	struct PList *os; // operands
-	long col;
-	long line;
-	char *file;
+	struct Fpfc *f;
+	struct Pos *p;
 };
-struct Inst *new_inst(enum ICode, struct PList *, struct Token *);
-void pwi(const char *, struct Inst *);
+struct Inst *new_inst(struct Pser *, enum ICode, struct PList *, struct Token *);
+void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 
 #define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AL && (o)->rm <= R_R15B))
 #define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))
@@ -367,4 +368,3 @@ void pwi(const char *, struct Inst *);
 	((o)->code == OINT && o->t->number >= -128 && o->t->number <= 127)
 
 enum RegCode get_mem_reg(enum RegCode);
-void eeg(const char *, struct Inst *);

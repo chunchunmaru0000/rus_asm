@@ -21,7 +21,7 @@ const char *const TEXT_TAB = "    ";
 char *EMPTY_STR = "_";
 char *EOF_STR = "_КОНЕЦ_ФАЙЛА_"; // конец файла
 
-char *write_ln(char *line) {
+const char *write_ln(const char *line) {
 	if (*line == '\n')
 		line++;
 	while (*line && *line != '\n') {
@@ -36,9 +36,10 @@ char *write_ln(char *line) {
 	return line;
 }
 
-void print_source_line(char *source_code, long line, const char *const color) {
+void print_source_line(const char *source_code, uint32_t line,
+					   const char *const color) {
 	line--;
-	char *str_start = source_code;
+	const char *str_start = source_code;
 	size_t nc = line;
 	if (line)
 		nc--;
@@ -50,37 +51,41 @@ void print_source_line(char *source_code, long line, const char *const color) {
 	if (*str_start == '\n')
 		str_start++;
 
-	printf("%s%5ld |", COLOR_RESET, line);
+	printf("%s%5d |", COLOR_RESET, line);
 	if (line)
 		str_start = write_ln(str_start);
 	putchar('\n');
 
-	printf("%5ld |%s", line + 1, color);
+	printf("%5d |%s", line + 1, color);
 	str_start = write_ln(str_start);
 	printf("%s\n", COLOR_RESET);
 
-	printf("%5ld |", line + 2);
+	printf("%5d |", line + 2);
 	str_start = write_ln(str_start);
 	putchar('\n');
 }
 
-void ee(struct Tzer *t, char *msg) { // error exit
-	fprintf(stderr, "%s%s:%ld:%ld %sОШИБКА: %s\n", COLOR_WHITE, t->filename,
-			t->line, t->col, COLOR_RED, msg);
-	print_source_line(t->code, t->line, COLOR_LIGHT_RED);
+void ee(struct Fpfc *f, struct Pos *p, const char *const msg) { // error exit
+	fprintf(stderr, "%s%s:%d:%d %sОШИБКА: %s\n", COLOR_WHITE, f->path, p->line,
+			p->col, COLOR_RED, msg);
+	print_source_line(f->code, p->line, COLOR_LIGHT_RED);
 	exit(1);
 }
 
 struct Tzer *new_tzer(char *filename) {
-	struct Tzer *t = (struct Tzer *)malloc(sizeof(struct Tzer));
-	t->filename = filename;
-	t->line = 1;
-	t->col = 1;
+	struct Tzer *t = malloc(sizeof(struct Tzer));
+	struct Fpfc *f = malloc(sizeof(struct Fpfc));
+	struct Pos *p = malloc(sizeof(struct Pos));
+	t->f = f;
+	t->p = p;
+
+	p->line = 1;
+	p->col = 1;
 	t->pos = 0;
 
 	FILE *file = fopen(filename, "r");
 	if (!file)
-		ee(t, "ОШИБКА В ОТКРЫТИИ ФАЙЛА");
+		ee(f, p, "ОШИБКА В ОТКРЫТИИ ФАЙЛА");
 
 	fseek(file, 0, SEEK_END);
 	long size = ftell(file);
@@ -91,28 +96,31 @@ struct Tzer *new_tzer(char *filename) {
 	text[size] = '\0';
 	fclose(file);
 
-	t->code = text;
-	t->codeLen = size - 1;
+	f->code = text;
+	f->clen = size - 1;
 	return t;
 }
 
 // #define next(t) (((t)->pos++, (t)->col++))
-#define cur(t) ((t)->pos < (t)->codeLen ? (t)->code[(t)->pos] : '\0')
+#define cur(t) ((t)->pos < (t)->f->clen ? (t)->f->code[(t)->pos] : '\0')
 #define get(t, offset)                                                         \
-	((t)->pos + (offset) < (t)->codeLen ? (t)->code[(t)->pos + (offset)] : '\0')
+	((t)->pos + (offset) < (t)->f->clen ? (t)->f->code[(t)->pos + (offset)]    \
+										: '\0')
 char next(struct Tzer *t) {
 	t->pos++;
-	t->col++;
+	t->p->col++;
 	return cur(t);
 }
 
 enum TCode next_line(struct Tzer *t, struct Token *token) {
 	next(t);
-	t->col = 1;
-	t->line++;
+	t->p->col = 1;
+	t->p->line++;
 	token->view = EMPTY_STR;
 	return SLASHN;
 }
+
+const char *const TOO_MUCH_DOTS = "Слишком много точек на одно не целое число";
 
 enum TCode num_token(struct Tzer *t, struct Token *token) {
 	uc c = cur(t), n, fpn = 0;
@@ -153,7 +161,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 		while ((c >= '0' && c <= '9') || (c == '.' && !fpn)) {
 			if (c == '.') {
 				if (fpn)
-					ee(t, "Слишком много точек на одно не целое число");
+					ee(t->f, t->p, TOO_MUCH_DOTS);
 				fpn++;
 				code = REAL;
 			}
@@ -230,7 +238,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 	num_len = t->pos - start_pos;
 	num_view = malloc(num_len + 1);
 	num_view[num_len] = 0;
-	strncpy(num_view, &t->code[start_pos], num_len);
+	strncpy(num_view, &t->f->code[start_pos], num_len);
 	// printf("\t\tnum_view: %s value: %lx\n", num_view, value);
 
 	if (base == 10) {
@@ -245,8 +253,8 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 }
 
 void start_line(struct Tzer *t) {
-	t->col = 1;
-	t->line++;
+	t->p->col = 1;
+	t->p->line++;
 }
 
 struct S2Uc {
@@ -286,8 +294,8 @@ char *const ERR_EXPECTED_NUM_STR =
 	"Ожидалась последовательность из двух 16-ричных чисел после комбинации "
 	"символов \\х__.";
 
-struct S2Uc *search_pattern(struct Tzer *t, char *text, struct S2Uc *pattern,
-							long p_sz) {
+struct S2Uc *search_pattern(struct Tzer *t, const char *text,
+							struct S2Uc *pattern, long p_sz) {
 	struct S2Uc *suc, *rhex;
 	char *s = malloc(6); // max len + terminator
 
@@ -302,14 +310,14 @@ struct S2Uc *search_pattern(struct Tzer *t, char *text, struct S2Uc *pattern,
 
 				rhex = search_pattern(t, text, rus_hex, rus_hex_SIZE);
 				if (rhex->c == SUC_NONE)
-					ee(t, ERR_EXPECTED_NUM_STR);
+					ee(t->f, t->p, ERR_EXPECTED_NUM_STR);
 				text += rhex->len;
 				suc->xl = rhex->len;
 				suc->x = rhex->c << 4;
 
 				rhex = search_pattern(t, text, rus_hex, rus_hex_SIZE);
 				if (rhex->c == SUC_NONE)
-					ee(t, ERR_EXPECTED_NUM_STR);
+					ee(t->f, t->p, ERR_EXPECTED_NUM_STR);
 				suc->xl += rhex->len;
 				suc->x += rhex->c;
 			}
@@ -332,7 +340,7 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 		if (cur(t) == '\n')
 			start_line(t);
 		if (cur(t) == '\\') {
-			suc = search_pattern(t, t->code + t->pos, s2ucs, s2ucs_SIZE);
+			suc = search_pattern(t, t->f->code + t->pos, s2ucs, s2ucs_SIZE);
 			if (suc->c != SUC_NONE) {
 				if (suc->c == SUC_X) {
 					blist_add(str_str, suc->x);
@@ -342,7 +350,7 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 					suc_full_len = suc->len;
 				}
 				t->pos += suc_full_len;
-				t->col += suc_full_len;
+				t->p->col += suc_full_len;
 				str_len += suc_full_len;
 			} else {
 				if (next(t) == '\n') // skip slash
@@ -360,7 +368,7 @@ enum TCode str_token(struct Tzer *t, struct Token *token) {
 
 	char *str_view = malloc(str_len + 1);
 	str_view[str_len] = 0;
-	strncpy(str_view, &t->code[start_pos], str_len);
+	strncpy(str_view, t->f->code + start_pos, str_len);
 
 	token->view = str_view;
 	token->str = str_str;
@@ -454,7 +462,7 @@ enum TCode usable_token(struct Tzer *t, struct Token *token) {
 		view = naa(t, ")", 1, cp, PAR_R);
 		break;
 	default:
-		ee(t, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");
+		ee(t->f, t->p, "НЕ ДОЛЖНО БЫТЬ ДОСТИЖИМО");
 	}
 
 	token->view = view;
@@ -483,7 +491,7 @@ enum TCode com_token(struct Tzer *t, struct Token *token, uc is_long) {
 
 	com_view = malloc(com_len + 1);
 	com_view[com_len] = 0;
-	strncpy(com_view, &t->code[start_pos], com_len);
+	strncpy(com_view, t->f->code + start_pos, com_len);
 
 	token->view = com_view;
 	return COM;
@@ -501,7 +509,7 @@ enum TCode id_token(struct Tzer *t, struct Token *token) {
 
 	id_view = malloc(id_len + 1);
 	id_view[id_len] = 0;
-	strncpy(id_view, &t->code[start_pos], id_len);
+	strncpy(id_view, t->f->code + start_pos, id_len);
 
 	token->view = id_view;
 	return ID;
@@ -516,8 +524,10 @@ struct Token *new_token(struct Tzer *t) {
 	uc c = cur(t);
 	enum TCode code;
 	struct Token *token = malloc(sizeof(struct Token));
-	token->line = t->line;
-	token->col = t->col;
+	struct Pos *p = malloc(sizeof(struct Pos));
+	p->line = t->p->line;
+	p->col = t->p->col;
+	token->p = p;
 
 	// every of funcs that takes token shall assign view to token
 	if (c == '\0')

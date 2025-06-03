@@ -85,6 +85,7 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 	memcpy(h->shnum, &shn, 2);
 	memcpy(h->shstrndx, ELFH_SHSTRNDX, 2);
 
+	struct Inst *i = plist_get(g->is, 0);
 	switch (g->t) {
 	case Linux_ELF_86_64:
 		memcpy(h->type, ELFH_TYPE_EXEC, 2);
@@ -93,7 +94,7 @@ struct ELFH *new_elfh(struct Gner *g, long entrytoff, long phoff, short phn,
 		memcpy(h->type, ELFH_TYPE_DYN, 2);
 		break;
 	default:
-		eeg("НЕ ДОСТУПНАЯ ЦЕЛЬ КОМПИЛЯЦИИ НА ДАННЫЙ МОМЕНТ", g->is->st[0]);
+		ee(i->f, i->p, "НЕ ДОСТУПНАЯ ЦЕЛЬ КОМПИЛЯЦИИ НА ДАННЫЙ МОМЕНТ");
 	}
 	return h;
 }
@@ -159,7 +160,8 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	}
 	char *err; // no need to free, cuz will be exit(1)
 	asprintf(&err, UNKNOWN_LABEL, s);
-	eeg(err, plist_get(g->is, g->pos));
+	struct Inst *in = plist_get(g->is, g->pos);
+	ee(in->f, in->p, err);
 	return 0;
 }
 
@@ -171,7 +173,7 @@ const char *const ERR_ZERO_SEGMENTS =
 
 void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
 	if (g->phs->size == 0)
-		eeg(ERR_ZERO_SEGMENTS, in);
+		ee(in->f, in->p, ERR_ZERO_SEGMENTS);
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
@@ -331,7 +333,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			break;
 		default:
 			printf("%d ", in->code);
-			eeg("НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ", in);
+			ee(in->f, in->p, "НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ");
 		}
 	gen_Linux_ELF_86_64_text_first_loop_end:
 		if (cmd->size + data->size) {
@@ -369,8 +371,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 						if (rel_addr > 127 || rel_addr < -128) {
 							if (g->debug)
 								printf("было то %d; \n", rel_addr);
-							eeg(TOO_BIG_TO_BE_REL_8,
-								plist_get(g->is, usage->ic));
+							in = plist_get(g->is, usage->ic);
+							ee(in->f, in->p, TOO_BIG_TO_BE_REL_8);
 						}
 						memcpy(usage_place, &rel_addr, BYTE);
 					}

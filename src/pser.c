@@ -3,29 +3,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char *fn;
-char *source_code;
-
-void eep(struct Token *t, char *msg) { // error exit
-	fprintf(stderr, "%s%s:%ld:%ld:%s ОШИБКА: %s [%s]:[%d]%s\n", COLOR_WHITE, fn,
-			t->line, t->col, COLOR_RED, msg, t->view, t->code, COLOR_RESET);
-	print_source_line(source_code, t->line, COLOR_LIGHT_RED);
-	exit(1);
-}
-void eeg(const char *msg, struct Inst *i) {
-	fprintf(stderr, "%s%s:%ld:%ld:%s ОШИБКА: %s%s\n", COLOR_WHITE, i->file,
-			i->line, i->col, COLOR_RED, msg, COLOR_RESET);
-	print_source_line(source_code, i->line, COLOR_LIGHT_RED);
+void ee_token(struct Fpfc *f, struct Token *t, char *msg) { // error exit
+	fprintf(stderr, "%s%s:%d:%d:%s ОШИБКА: %s [%s]:[%d]%s\n", COLOR_WHITE,
+			f->path, t->p->line, t->p->col, COLOR_RED, msg, t->view, t->code,
+			COLOR_RESET);
+	print_source_line(f->code, t->p->line, COLOR_LIGHT_RED);
 	exit(1);
 }
 
-// print warning inst
-void pwi(const char *msg, struct Inst *i) {
+// print warning
+void pw(struct Fpfc *f, struct Pos *p, const char *const msg) {
 	if (!NEED_WARN)
 		return;
-	printf("%s%s:%ld:%ld%s ПРЕДУПРЕЖДЕНИЕ: %s%s\n", COLOR_WHITE, i->file,
-		   i->line, i->col, COLOR_LIGHT_PURPLE, msg, COLOR_RESET);
-	print_source_line(source_code, i->line, COLOR_LIGHT_PURPLE);
+	fprintf(stderr, "%s%s:%d:%d%s ПРЕДУПРЕЖДЕНИЕ: %s%s\n", COLOR_WHITE, f->path,
+			p->line, p->col, COLOR_LIGHT_PURPLE, msg, COLOR_RESET);
+	print_source_line(f->code, p->line, COLOR_LIGHT_PURPLE);
 }
 
 int get_reg_field(enum RegCode rm) {
@@ -53,10 +45,10 @@ void print_oper(struct Oper *o) {
 }
 
 struct Pser *new_pser(char *filename, uc debug) {
-	fn = filename;
 	struct Pser *p = malloc(sizeof(struct Pser));
 	struct Tzer *t = new_tzer(filename);
-	source_code = t->code;
+	p->f = t->f;
+
 	struct PList *ts = tze(t, 10);
 	free(t);
 	p->pos = 0;
@@ -66,13 +58,17 @@ struct Pser *new_pser(char *filename, uc debug) {
 	return p;
 }
 
-struct Inst *new_inst(enum ICode code, struct PList *os, struct Token *t) {
+struct Inst *new_inst(struct Pser *p, enum ICode code, struct PList *os,
+					  struct Token *t) {
 	struct Inst *i = malloc(sizeof(struct Inst));
+	struct Pos *pos = malloc(sizeof(struct Pos));
+	i->f = p->f;
+	pos->col = t->p->col;
+	pos->line = t->p->line;
+	i->p = pos;
+
 	i->code = code;
 	i->os = os;
-	i->col = t->col;
-	i->line = t->line;
-	i->file = fn;
 	return i;
 }
 
@@ -88,6 +84,7 @@ struct Token *next_get(struct Pser *p, long off) {
 
 // parser directives
 const char *STR_DEFINE = "вот";
+const char *STR_INCLUDE = "влечь";
 // directives
 const char *STR_ENTRY = "вход";
 const char *STR_SEG = "участок";
@@ -274,7 +271,7 @@ int search_size(struct Pser *p, struct Oper **o, char *v) {
 		if (sc(v, STRS_SIZES[i])) {
 			*o = expression(p);
 			if ((*o)->code == OREG)
-				eep((*o)->t, CANT_CHANGE_REG_SZ);
+				ee_token(p->f, (*o)->t, CANT_CHANGE_REG_SZ);
 			(*o)->sz = 1 << i;
 			(*o)->forsed_sz = 1;
 			return 1;
@@ -388,7 +385,7 @@ int search_seg_reg(char *v, struct Oper *o) {
 	return 0;
 }
 
-void set_disp_to_op(struct Oper *o, struct Oper *d) {
+void set_disp_to_op(struct Pser *p, struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
 		int disp = d->t->number;
 		if (disp < -128 || disp > 127)
@@ -401,12 +398,12 @@ void set_disp_to_op(struct Oper *o, struct Oper *d) {
 		o->mod = MOD_MEM_D32;
 		o->rel_view = d->t->view;
 	} else
-		eep(d->t, WRONG_DISP);
+		ee_token(p->f, d->t, WRONG_DISP);
 	free(d);
 }
-void set_scale_to_op(struct Oper *o, struct Oper *s) {
+void set_scale_to_op(struct Pser *p, struct Oper *o, struct Oper *s) {
 	if (!(s->code == OINT))
-		eep(s->t, WRONG_SCALE);
+		ee_token(p->f, s->t, WRONG_SCALE);
 	int scale = s->t->number;
 	if (scale == 1)
 		o->scale = SCALE_1;
@@ -417,22 +414,22 @@ void set_scale_to_op(struct Oper *o, struct Oper *s) {
 	else if (scale == 8)
 		o->scale = SCALE_8;
 	else
-		eep(s->t, WRONG_SCALE);
+		ee_token(p->f, s->t, WRONG_SCALE);
 	free(s);
 }
-void set_index_to_op(struct Oper *o, struct Oper *i) {
+void set_index_to_op(struct Pser *p, struct Oper *o, struct Oper *i) {
 	if (!(i->code == OREG))
-		eep(i->t, WRONG_INDEX);
+		ee_token(p->f, i->t, WRONG_INDEX);
 	if (is_rsp_addr(i))
-		eep(i->t, FORBIDDEN_RSP_INDEX);
+		ee_token(p->f, i->t, FORBIDDEN_RSP_INDEX);
 	if (is_r_new(i))
 		o->rex |= REX_X;
 	o->index = get_mem_reg(i->rm);
 	free(i);
 }
-void set_base_to_op(struct Oper *o, struct Oper *b) {
+void set_base_to_op(struct Pser *p, struct Oper *o, struct Oper *b) {
 	if (b->code != OREG)
-		eep(b->t, WRONG_BASE);
+		ee_token(p->f, b->t, WRONG_BASE);
 	o->rm = R_RSP; // sib
 	if (is_rbp_addr(b) || is_r13_addr(b))
 		o->mod = MOD_MEM_D8;
@@ -461,9 +458,9 @@ void set_rm_to_op(struct Oper *o, struct Oper *rm) {
 void get_moffs(struct Pser *p, struct Oper **o) {
 	*o = expression(p);
 	if ((*o)->code != OINT)
-		eep((*o)->t, WRONG_MOFFS);
+		ee_token(p->f, (*o)->t, WRONG_MOFFS);
 	if ((*o)->sz != DWORD && (*o)->sz != QWORD)
-		eep((*o)->t, WRONG_MOFFS_MEM_SZ);
+		ee_token(p->f, (*o)->t, WRONG_MOFFS_MEM_SZ);
 
 	(*o)->code = OMOFFS;
 	(*o)->mem_sz = (*o)->sz;
@@ -507,7 +504,7 @@ struct Oper *expression(struct Pser *p) {
 			t0->number = *(uint16_t *)(t0->str->st);
 			o->sz = WORD;
 		} else
-			eep(t0, INVALID_STR_LEN);
+			ee_token(p->f, t0, INVALID_STR_LEN);
 		code = OINT;
 		ot = t0;
 		break;
@@ -520,7 +517,7 @@ struct Oper *expression(struct Pser *p) {
 			t0->fpn *= -1;
 			code = OFPN;
 		} else
-			eep(t0, ERR_WRONG_MINUS);
+			ee_token(p->f, t0, ERR_WRONG_MINUS);
 		o->sz = DWORD;
 		ot = t0;
 		break;
@@ -556,14 +553,14 @@ struct Oper *expression(struct Pser *p) {
 		do {
 			otmp = expression(p);
 			if (otmp->code != OINT && otmp->code != OREL && otmp->code != OREG)
-				eep(otmp->t, WRONG_ADDRES_OP);
+				ee_token(p->f, otmp->t, WRONG_ADDRES_OP);
 			if (is_r8(otmp) || is_r16(otmp))
-				eep(otmp->t, WRONG_ADDR_REG_SZ);
+				ee_token(p->f, otmp->t, WRONG_ADDR_REG_SZ);
 			if (otmp->code == OREG) {
 				if (o->mem_sz) {
 					if ((is_f_reg64(otmp->rm) && o->mem_sz == DWORD) ||
 						(is_f_reg32(otmp->rm) && o->mem_sz == QWORD))
-						eep(otmp->t, DISSERENT_SIZE_REGS);
+						ee_token(p->f, otmp->t, DISSERENT_SIZE_REGS);
 				} else {
 					if (is_f_reg32(otmp->rm))
 						o->mem_sz = DWORD;
@@ -578,7 +575,7 @@ struct Oper *expression(struct Pser *p) {
 
 		// [r s r d] = 4 os max
 		if (sib->size > 4 || sib->size == 0)
-			eep(t0, TOO_MUCH_OS);
+			ee_token(p->f, t0, TOO_MUCH_OS);
 		ot = t0;
 		code = OMEM;
 		o->mod = MOD_MEM;
@@ -590,7 +587,7 @@ struct Oper *expression(struct Pser *p) {
 		if (sib->size == 1) {
 			if (otmp->code == OREL || otmp->code == OINT) {
 				// disp
-				set_disp_to_op(o, otmp); // changes mod
+				set_disp_to_op(p, o, otmp); // changes mod
 				// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
 				o->mod = MOD_MEM;
 				o->rm = R_RBP;
@@ -598,13 +595,13 @@ struct Oper *expression(struct Pser *p) {
 				// reg(rm)
 				set_rm_to_op(o, otmp);
 			} else
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (sib->size == 2) {
 			if (otmp->code == OINT) {
 				// sc reg(index)
-				set_scale_to_op(o, otmp);
-				set_index_to_op(o, plist_get(sib, 1));
+				set_scale_to_op(p, o, otmp);
+				set_index_to_op(p, o, plist_get(sib, 1));
 				// mod = 00, rm = 100, base = 101 ==
 				o->rm = R_RSP; // sib
 				// no base register and
@@ -615,60 +612,60 @@ struct Oper *expression(struct Pser *p) {
 				otmp2 = plist_get(sib, 1);
 				if (otmp2->code == OREG) {
 					// reg(base) reg(index) | sib
-					set_base_to_op(o, otmp);
-					set_index_to_op(o, otmp2);
+					set_base_to_op(p, o, otmp);
+					set_index_to_op(p, o, otmp2);
 				} else if (otmp2->code == OREL || otmp2->code == OINT) {
 					// reg(rm) disp         | not sib
 					set_rm_to_op(o, otmp);
-					set_disp_to_op(o, otmp2); // changes mod to non 00
+					set_disp_to_op(p, o, otmp2); // changes mod to non 00
 				} else
-					eep(t0, POSSIBLE_WRONG_ORDER);
+					ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
 			} else
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (sib->size == 3) {
 			if (otmp->code == OREG) {
-				set_base_to_op(o, otmp); // sets sib
+				set_base_to_op(p, o, otmp); // sets sib
 
 				otmp2 = plist_get(sib, 1);
 				if (otmp2->code == OREG) {
 					// reg(base) reg(index) disp | sib
-					set_index_to_op(o, otmp2);
+					set_index_to_op(p, o, otmp2);
 					otmp2 = plist_get(sib, 2);
-					set_disp_to_op(o, otmp2); // changes mod to non 00
+					set_disp_to_op(p, o, otmp2); // changes mod to non 00
 				} else if (otmp2->code == OINT) {
 					// reg(base) sc reg(index)   | sib
-					set_scale_to_op(o, otmp2);
+					set_scale_to_op(p, o, otmp2);
 					otmp2 = plist_get(sib, 2);
-					set_index_to_op(o, otmp2);
+					set_index_to_op(p, o, otmp2);
 				} else
-					eep(t0, POSSIBLE_WRONG_ORDER);
+					ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
 			} else if (otmp->code == OINT) {
 				o->rm = R_RSP; // sib
 				// sc reg(index) disp            | sib
-				set_scale_to_op(o, otmp);
+				set_scale_to_op(p, o, otmp);
 				otmp = plist_get(sib, 1);
-				set_index_to_op(o, otmp);
+				set_index_to_op(p, o, otmp);
 				// mod = 00, rm = 100, base = 101 no base register and disp32
 				o->base = R_RBP;
 				otmp = plist_get(sib, 2);
 				// REMEMBER: here too need to write disp32
-				set_disp_to_op(o, otmp); // changes mod
+				set_disp_to_op(p, o, otmp); // changes mod
 				o->mod = MOD_MEM;
 			} else
-				eep(t0, POSSIBLE_WRONG_ORDER);
+				ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
 
 		} else if (otmp->code == OREG) { // size is 4
 			// reg(base) sc reg(index) disp | sib
-			set_base_to_op(o, otmp); // sets sib
-			set_scale_to_op(o, plist_get(sib, 1));
-			set_index_to_op(o, plist_get(sib, 2));
-			set_disp_to_op(o, plist_get(sib, 3)); // changes mod
+			set_base_to_op(p, o, otmp); // sets sib
+			set_scale_to_op(p, o, plist_get(sib, 1));
+			set_index_to_op(p, o, plist_get(sib, 2));
+			set_disp_to_op(p, o, plist_get(sib, 3)); // changes mod
 		} else
-			eep(t0, POSSIBLE_WRONG_ORDER);
+			ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
 		break;
 	default:
-		eep(t0, ERR_WRONG_TOKEN);
+		ee_token(p->f, t0, ERR_WRONG_TOKEN);
 	};
 
 	o->code = code;
@@ -726,7 +723,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		code = IDATA;
 	else {
 		if (size < 0)
-			eep(c, INVALID_RESERVED_USAGE_BEGIN);
+			ee_token(p->f, c, INVALID_RESERVED_USAGE_BEGIN);
 
 		name = c;
 		do
@@ -734,9 +731,9 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		while (c->code == SLASH || c->code == SLASHN);
 		size = is_size_word(c->view);
 		if (!size)
-			eep(c, INVALID_SIZE_NOT_FOUND);
+			ee_token(p->f, c, INVALID_SIZE_NOT_FOUND);
 		if (size == RESERVED)
-			eep(c, INVALID_RESERVED_USAGE_BEGIN);
+			ee_token(p->f, c, INVALID_RESERVED_USAGE_BEGIN);
 	}
 
 	loop {
@@ -744,7 +741,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		if (c->code == SLASH) {
 			c = next_get(p, 0); // skip slash get \n
 			if (c->code != SLASHN)
-				eep(c, AWAITED_SLASHN);
+				ee_token(p->f, c, AWAITED_SLASHN);
 			continue;
 		}
 		if (c->code == SEP) {
@@ -761,12 +758,12 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 
 					o = expression(p);
 					if (o->code != OINT)
-						eep(c, INVALID_RESERVED_USAGE);
+						ee_token(p->f, c, INVALID_RESERVED_USAGE);
 					value = o->t->number;
 
 					o = expression(p);
 					if (o->code != OINT)
-						eep(c, EXPEXTED_INT_FOR_RESERVED_TIMES);
+						ee_token(p->f, c, EXPEXTED_INT_FOR_RESERVED_TIMES);
 
 					blist_add_set(data, size, &value, o->t->number);
 					p->pos--; // here expression eats next token so
@@ -784,7 +781,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				c->fpn = o->t->fpn;
 				goto let_i_real;
 			} else
-				eep(c, INVALID_DEFN_USAGE);
+				ee_token(p->f, c, INVALID_DEFN_USAGE);
 		} else if (c->code == INT)
 			blat(data, (uc *)&c->number, size);
 		else if (c->code == STR)
@@ -797,7 +794,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				float value = c->fpn;
 				blat(data, (uc *)&value, DWORD);
 			} else
-				eep(c, INVALID_SIZE_OF_FPN);
+				ee_token(p->f, c, INVALID_SIZE_OF_FPN);
 		} else {
 			if (p->debug) {
 				if (code == ILET)
@@ -823,6 +820,8 @@ enum ICode define_pd(struct Pser *p) {
 	plist_add(p->ds, d);
 	return INONE;
 }
+
+enum ICode include_pd(struct Pser *p) { return IINCLUDE; }
 
 int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 	size_t i;
@@ -878,6 +877,8 @@ struct Inst *get_inst(struct Pser *p) {
 			code = let_i(p, os);
 		else if (sc(cv, STR_DEFINE))
 			code = define_pd(p);
+		else if (sc(cv, STR_INCLUDE))
+			code = include_pd(p);
 		// TODO: include statement will be parser derective and also
 		// need TODO: file name pointer in every instruction for diagnostics
 		// argument for the statement is string with path to an include file
@@ -887,15 +888,15 @@ struct Inst *get_inst(struct Pser *p) {
 		else if (sc(cv, STR_ENTRY))
 			code = entry_i(p, os);
 		else
-			eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
+			ee_token(p->f, cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 	} else if (cur->code == INC)
 		code = one_ops_i(p, os, IINC);
 	else if (cur->code == DEC)
 		code = one_ops_i(p, os, IDEC);
 	else
-		eep(cur, "НЕИЗВЕСТНАЯ КОМАНДА");
+		ee_token(p->f, cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 
-	return new_inst(code, os, cur);
+	return new_inst(p, code, os, cur);
 }
 
 struct PList *pse(struct Pser *p) {

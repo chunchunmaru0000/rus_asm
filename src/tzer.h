@@ -19,16 +19,13 @@ extern const char *const COLOR_RESET;
 #define color_print(c, msg) (printf("%s%s%s", (c), (msg), COLOR_RESET))
 
 struct Tzer {
-	char *filename;
-	long line;
-	long col;
-
-	long pos;
-	char *code;
-	long codeLen;
+	struct Fpfc *f;
+	struct Pos *p;
+	size_t pos;
 };
 
 struct Tzer *new_tzer(char *);
 struct Token *new_token(struct Tzer *);
 struct PList *tze(struct Tzer *, long);
-void print_source_line(char *, long, const char *const);
+void print_source_line(const char *, uint32_t, const char *const);
+void ee(struct Fpfc *, struct Pos *, const char *const);
