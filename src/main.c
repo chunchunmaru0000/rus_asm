@@ -6,6 +6,7 @@ int main(int argc, char **args) {
 
 	struct Pser *p = new_pser(fs->filename, fs->debug);
 	struct PList *is = pse(p);
+	free(p);
 	struct Gner *g = new_gner(is, fs->tr, fs->debug);
 	gen(g);
 

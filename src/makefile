@@ -3,7 +3,7 @@
 	xxd тест
 	chmod +x тест
 	./тест
-	
+
 асм:
 	gcc main.c flgs.c gner.c cmnd.c lbel.c pser.c lsts.c tzer.c -o асм
 
@@ -20,6 +20,9 @@ b:
 
 $(BUILD)/%: $(TESTS)%.асм асм b
 	@./асм $< $@ -о $(DEBUG) -п $(WARNS)
+	@if [ "$(basename $(notdir $<))" = "тест_вывод_числа" ]; then \
+		chmod +x $@ ; $@ ; \
+	fi
 
 all: $(BS)
 	@./асм тест.асм тест -о $(DEBUG) -п $(WARNS)

@@ -821,7 +821,20 @@ enum ICode define_pd(struct Pser *p) {
 	return INONE;
 }
 
-enum ICode include_pd(struct Pser *p) { return IINCLUDE; }
+const char *const EXPECTED_STR_AS_INCLUDE_PATH =
+	"В выраженнии \"влечь\" в качестве параметра ожидалась строка "
+	"с путем к файлу.";
+
+enum ICode include_pd(struct Pser *p, struct PList *os) {
+	// TODO: make relative folder addressation
+	struct Token *path = next_get(p, 0);
+	if (path->code != STR)
+		ee(p->f, path->p, EXPECTED_STR_AS_INCLUDE_PATH);
+
+	next_get(p, 0);
+	plist_add(os, path);
+	return IINCLUDE;
+}
 
 int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 	size_t i;
@@ -878,11 +891,7 @@ struct Inst *get_inst(struct Pser *p) {
 		else if (sc(cv, STR_DEFINE))
 			code = define_pd(p);
 		else if (sc(cv, STR_INCLUDE))
-			code = include_pd(p);
-		// TODO: include statement will be parser derective and also
-		// need TODO: file name pointer in every instruction for diagnostics
-		// argument for the statement is string with path to an include file
-		// isntructions of an include instruction will be in in->os
+			code = include_pd(p, os);
 		else if (sc(cv, STR_SEG))
 			code = seg_i(p, os);
 		else if (sc(cv, STR_ENTRY))
@@ -899,15 +908,32 @@ struct Inst *get_inst(struct Pser *p) {
 	return new_inst(p, code, os, cur);
 }
 
+void include_in_is(struct Pser *p, struct PList *is, struct Inst *i) {
+	struct Token *path = plist_get(i->os, 0);
+	blist_add(path->str, 0); // string 0 terminator
+
+	struct Pser *tmp_p = new_pser((char *)path->str->st, p->debug);
+	free(tmp_p->ds);
+	tmp_p->ds = p->ds;
+	// TODO: fix (null) filename
+	struct PList *inc = pse(tmp_p);
+
+	for (uint32_t j = 0; j < inc->size; j++)
+		plist_add(is, plist_get(inc, j));
+
+	free(tmp_p);
+	free(inc);
+}
+
 struct PList *pse(struct Pser *p) {
 	struct PList *is = new_plist(p->ts->cap_pace); // why not
 
 	struct Inst *i = get_inst(p);
 	while (i->code != IEOI) {
-		if (i->code != INONE)
+		if (i->code == IINCLUDE)
+			include_in_is(p, is, i);
+		else if (i->code != INONE)
 			plist_add(is, i);
-		// and here TODO: if include statemnet then add all its instructions
-		// from i->os to is
 		i = get_inst(p);
 	}
 	plist_add(is, i);
