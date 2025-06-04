@@ -36,6 +36,8 @@ const char *write_ln(const char *line) {
 	return line;
 }
 
+// TODO: better output, sometimes skips enters, liek why one enter is skipped
+// but two not
 void print_source_line(const char *source_code, uint32_t line,
 					   const char *const color) {
 	line--;
@@ -96,6 +98,7 @@ struct Tzer *new_tzer(char *filename) {
 	text[size] = '\0';
 	fclose(file);
 
+	f->path = filename;
 	f->code = text;
 	f->clen = size - 1;
 	return t;

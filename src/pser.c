@@ -913,9 +913,8 @@ void include_in_is(struct Pser *p, struct PList *is, struct Inst *i) {
 	blist_add(path->str, 0); // string 0 terminator
 
 	struct Pser *tmp_p = new_pser((char *)path->str->st, p->debug);
-	free(tmp_p->ds);
+	plist_free(tmp_p->ds);
 	tmp_p->ds = p->ds;
-	// TODO: fix (null) filename
 	struct PList *inc = pse(tmp_p);
 
 	for (uint32_t j = 0; j < inc->size; j++)
