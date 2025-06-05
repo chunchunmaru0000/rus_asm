@@ -22,8 +22,6 @@ char *EMPTY_STR = "_";
 char *EOF_STR = "_КОНЕЦ_ФАЙЛА_"; // конец файла
 
 const char *write_ln(const char *line) {
-	if (*line == '\n')
-		line++;
 	while (*line && *line != '\n') {
 		if (*line == '\t')
 			printf("%s", TEXT_TAB);
@@ -36,8 +34,6 @@ const char *write_ln(const char *line) {
 	return line;
 }
 
-// TODO: better output, sometimes skips enters, liek why one enter is skipped
-// but two not
 void print_source_line(const char *source_code, uint32_t line,
 					   const char *const color) {
 	line--;
@@ -46,12 +42,10 @@ void print_source_line(const char *source_code, uint32_t line,
 	if (line)
 		nc--;
 	while (nc) {
-		str_start++;
 		if (*str_start == '\n')
 			nc--;
-	}
-	if (*str_start == '\n')
 		str_start++;
+	}
 
 	printf("%s%5d |", COLOR_RESET, line);
 	if (line)
@@ -63,7 +57,8 @@ void print_source_line(const char *source_code, uint32_t line,
 	printf("%s\n", COLOR_RESET);
 
 	printf("%5d |", line + 2);
-	str_start = write_ln(str_start);
+	if (*str_start)
+		write_ln(str_start);
 	putchar('\n');
 }
 
