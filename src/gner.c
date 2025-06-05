@@ -176,6 +176,45 @@ void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
 		ee(in->f, in->p, ERR_ZERO_SEGMENTS);
 }
 
+int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, int phs_c) {
+	return 0; // TODO: remove this
+
+	struct Oper *oper = plist_get(i->in->os, 0);
+	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
+	int rel_addr, is_shorted = 0;
+
+	if (is_imm(oper)) {
+		if (oper->code == OREL) {
+			assert_phs_not_zero(g, i->in);
+			// 1 plov for rel 32 value
+			struct Defn *not_plov = plist_get(i->not_plovs, 0);
+
+			struct Usage *usage = not_plov->value;
+			struct Plov *l = find_label(g, not_plov->view);
+
+			if (usage->type == REL_ADDR && l->declared && l->si == phs_c - 1) {
+				struct ELFPH *ph = plist_get(g->phs, phs_c - 1);
+
+				rel_addr = l->addr - (ph->vaddr + usage->cmd_end +
+									  all_h_sz * (l->si == 1));
+
+				if (rel_addr <= 127 && rel_addr >= -128) {
+					plist_clear_items_free(i->not_plovs);
+					// TODO: remove_usage();
+				}
+			}
+		} else {
+			rel_addr = oper->code == OINT ? oper->t->number : oper->t->fpn;
+		}
+		if (rel_addr <= 127 && rel_addr >= -128) {
+			short_to_rel_8(i, rel_addr);
+			is_shorted = 1;
+		}
+	}
+
+	return is_shorted;
+}
+
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
@@ -197,7 +236,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	ipcd->not_plovs = new_plist(2);
 	ipcd->debug = g->debug;
 
-	int phs_counter = 0;
+	int phs_c = 0;
 	uint64_t phs_cur_sz;
 
 	for (i = 0; i < g->is->size; i++) {
@@ -209,11 +248,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 		ipcd->in = in;
 		if (code > IDATA) {
-			// TODO: near jmp
 			get_ops_code(ipcd);
-			// so here is has a list of denfs with usages relative to data size
+
+			if (is_rel8_shortable(code))
+				// TODO: near jmp
+				if (try_to_short_to_rel_8(g, ipcd, phs_c))
+					goto gen_Linux_ELF_86_64_text_first_loop_end;
+
 			if (ipcd->not_plovs->size == 0)
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
+
+			// so here is has a list of denfs with usages relative to data size
 			for (j = 0; j < ipcd->not_plovs->size; j++) {
 				assert_phs_not_zero(g, in);
 
@@ -221,19 +266,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				usage = not_plov->value;
 				l = find_label(g, not_plov->view);
 
-				if (usage->type == REL_ADDR && l->declared &&
-					l->si == phs_counter - 1) {
-
-					ph = plist_get(g->phs, phs_counter - 1);
-					int rel_addr = l->addr - (ph->vaddr + usage->cmd_end +
-											  all_h_sz * (l->si == 1));
-
-					if (rel_addr <= 127 && rel_addr >= -128) {
-						// TODO:
-					}
-				}
-
-				usage->hc = phs_counter;
+				usage->hc = phs_c;
 				usage->ic = g->pos;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
 				// from here need to optimize rel32 to rel8
@@ -241,8 +274,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				// {01 00 00 00} {12 34 45 67}
 				// if {01 00 00 00} can be BYTE cuz label->declared
 
-				ph = plist_get(g->phs, phs_counter - 1);
-				uint64_t ph_start = ph->offset - all_h_sz * (phs_counter > 1);
+				ph = plist_get(g->phs, phs_c - 1);
+				uint64_t ph_start = ph->offset - all_h_sz * (phs_c > 1);
 				// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
 				usage->cmd_end =
 					(g->text->size - ph_start) + cmd->size + data->size;
@@ -258,7 +291,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l = find_label(g, tok->view);
 
 			assert_phs_not_zero(g, in);
-			ph = plist_get(g->phs, phs_counter - 1);
+			ph = plist_get(g->phs, phs_c - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
 			l->declared = 1;
@@ -274,7 +307,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l = find_label(g, tok->view);
 
 			assert_phs_not_zero(g, in);
-			ph = plist_get(g->phs, phs_counter - 1);
+			ph = plist_get(g->phs, phs_c - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
 			l->declared = 1;
@@ -285,7 +318,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			blat(data, data_bl->st, data_bl->size);
 			break;
 		case ISEGMENT:
-			phs_cur_sz = phs_counter ? 0 : all_h_sz;
+			phs_cur_sz = phs_c ? 0 : all_h_sz;
 			/*
 			 * 0 offset = 0
 			 * 0 addr = 0 + pie
@@ -295,16 +328,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			 * i size = segment size
 			 */
 			//  do segment adress and offset and size for prev segment
-			ph = g->phs->st[phs_counter];
-			if (phs_counter == 0) {
+			ph = g->phs->st[phs_c];
+			if (phs_c == 0) {
 				ph->offset = 0;		  // 0 offset = 0
 				ph->vaddr = g->pie;	  // 0 addr = 0 + pie
 				ph->memsz = all_h_sz; // + segment size // 0 size
 			} else {
-				phl = g->phs->st[phs_counter - 1];
+				phl = g->phs->st[phs_c - 1];
 				// because for first its size of all data that is only first
 				// data for the moment
-				if (phs_counter == 1)
+				if (phs_c == 1)
 					// 0 size = all p h + elf h + segment size
 					phl->memsz += g->text->size;
 				else
@@ -315,16 +348,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				// i offset = last segment size + last segment offset
 				ph->offset = phl->memsz + phl->offset;
 				// i addr = offset + align * (i - 1) + pie
-				ph->vaddr = ph->offset + ph->align * (phs_counter) + g->pie;
+				ph->vaddr = ph->offset + ph->align * (phs_c) + g->pie;
 			}
 			ph->filesz = ph->memsz;
 			ph->paddr = ph->vaddr;
-			phs_counter++;
+			phs_c++;
 			last_text_sz = g->text->size;
 			break;
 		case IEOI:
 			assert_phs_not_zero(g, in);
-			phl = g->phs->st[phs_counter - 1];
+			phl = g->phs->st[phs_c - 1];
 			phl->memsz = g->phs->size == 1 ? (int64_t)phl->memsz + g->text->size
 										   : g->text->size - last_text_sz;
 			phl->filesz = phl->memsz;
@@ -344,7 +377,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		}
 	}
 
-	phs_counter = 0;
+	phs_c = 0;
 	for (i = 0; i < g->is->size; i++) {
 		g->pos = i;
 		in = plist_get(g->is, i);
@@ -383,6 +416,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l = find_label(g, tok->view);
 			g->elfh->entry = l->addr;
 		} else if (in->code == ISEGMENT)
-			phs_counter++;
+			phs_c++;
 	}
 }

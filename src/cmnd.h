@@ -120,6 +120,7 @@ struct Ipcd {
 	uc debug;
 };
 void get_ops_code(struct Ipcd *);
+void short_to_rel_8(struct Ipcd *, char);
 
 #define is_rm__r(c)                                                            \
 	((c) == RM_8__R_8 || (c) == RM_16_32_64__R_16_32_64 ||                     \

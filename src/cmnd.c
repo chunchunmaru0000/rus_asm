@@ -177,6 +177,8 @@ void add_mem(struct Ipcd *i, struct Oper *m) {
 	}
 }
 
+void short_to_rel_8(struct Ipcd *i, char rel_addr) {}
+
 void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	struct Oper *l, *r;
 	const struct Cmnd *c = i->c;

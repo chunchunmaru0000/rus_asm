@@ -181,6 +181,7 @@ enum ICode {
 	IDEC,
 	ICALLF, // just
 	IJMPF,	// for them to be
+
 	IJMP,
 	IJO,
 	IJNO,
@@ -198,6 +199,7 @@ enum ICode {
 	IJNL,
 	IJLE,
 	IJG,
+
 	ILOOPNZ,
 	ILOOPZ,
 	ILOOP,
@@ -366,5 +368,6 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 	(((o)->code == OMEM || (o)->code == OMOFFS) && (o)->mem_sz == DWORD)
 #define is_imm_can_be_a_byte(o)                                                \
 	((o)->code == OINT && o->t->number >= -128 && o->t->number <= 127)
+#define is_rel8_shortable(c) ((c) >= IJMP && (c) <= IJG)
 
 enum RegCode get_mem_reg(enum RegCode);
