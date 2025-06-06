@@ -176,37 +176,32 @@ void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
 		ee(in->f, in->p, ERR_ZERO_SEGMENTS);
 }
 
+#define SHORT_JMP_CMND_SZ 2 // byte for op code and byte for rel 8
 int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, int phs_c) {
-	return 0; // TODO: remove this
-
+	//	return 0; // TODO:? optimizations with flags ?
 	struct Oper *oper = plist_get(i->in->os, 0);
-	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
-	int rel_addr, is_shorted = 0;
+	int rel_addr = -129, is_shorted = 0;
 
 	if (is_imm(oper)) {
 		if (oper->code == OREL) {
 			assert_phs_not_zero(g, i->in);
+
 			// 1 plov for rel 32 value
 			struct Defn *not_plov = plist_get(i->not_plovs, 0);
-
 			struct Usage *usage = not_plov->value;
 			struct Plov *l = find_label(g, not_plov->view);
 
-			if (usage->type == REL_ADDR && l->declared && l->si == phs_c - 1) {
-				struct ELFPH *ph = plist_get(g->phs, phs_c - 1);
-
-				rel_addr = l->addr - (ph->vaddr + usage->cmd_end +
-									  all_h_sz * (l->si == 1));
-
-				if (rel_addr <= 127 && rel_addr >= -128) {
-					plist_clear_items_free(i->not_plovs);
-					// TODO: remove_usage();
-				}
+			if (l->declared && usage->type == REL_ADDR && l->si == phs_c - 1) {
+				rel_addr = l->rel_addr - (g->text->size + SHORT_JMP_CMND_SZ);
+				if (rel_addr >= -128)
+					plist_clear_items_free(i->not_plovs); // frees usage too
 			}
-		} else {
+		} else
 			rel_addr = oper->code == OINT ? oper->t->number : oper->t->fpn;
-		}
-		if (rel_addr <= 127 && rel_addr >= -128) {
+
+		if (rel_addr >= -128) {
+			blist_clear(i->cmd);
+			blist_clear(i->data);
 			short_to_rel_8(i, rel_addr);
 			is_shorted = 1;
 		}
@@ -251,7 +246,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			get_ops_code(ipcd);
 
 			if (is_rel8_shortable(code))
-				// TODO: near jmp
+				// TODO: near jmp BETTER fr
+				// smtng like counter for 128 bytes before label declared
+				// and if past 128 bytes then dont care
+				// and if encounter declaration then recompile last 128 bytes?
 				if (try_to_short_to_rel_8(g, ipcd, phs_c))
 					goto gen_Linux_ELF_86_64_text_first_loop_end;
 

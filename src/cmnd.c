@@ -177,8 +177,6 @@ void add_mem(struct Ipcd *i, struct Oper *m) {
 	}
 }
 
-void short_to_rel_8(struct Ipcd *i, char rel_addr) {}
-
 void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	struct Oper *l, *r;
 	const struct Cmnd *c = i->c;
@@ -609,6 +607,19 @@ const struct Cmnd cmnds[] = {
 	{IOUTPUT, {0xee}, 1, NOT_FIELD, 0, DX__AL},
 	{IOUTPUT, {0xef}, 1, NOT_FIELD, 0, DX__EAX},
 };
+
+void short_to_rel_8(struct Ipcd *i, char rel_addr) {
+	const struct Cmnd *c;
+	for (size_t j = 0; j < lenofarr(cmnds); j++) {
+		c = cmnds + j;
+		if (c->inst == i->in->code && c->opsc == __REL_8) {
+			blat(i->cmd, (uc *)c->cmd, c->len);
+			blist_add(i->data, rel_addr);
+			return;
+		}
+	}
+	ee(i->in->f, i->in->p, "ЭЭЭээЭэ");
+}
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
 	"Размер числа был вбайт, но данный тип инструкций не "
