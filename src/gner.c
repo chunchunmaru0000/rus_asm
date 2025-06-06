@@ -15,6 +15,7 @@ struct Gner *new_gner(struct PList *is, enum Target t, uc debug) {
 
 	g->pie = 0x400000;
 	g->lps = new_plist(5);
+	g->jmps = new_plist(8);
 	g->phs = new_plist(3);
 	g->shs = new_plist(1);
 	return g;
@@ -176,11 +177,11 @@ void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
 		ee(in->f, in->p, ERR_ZERO_SEGMENTS);
 }
 
-#define SHORT_JMP_CMND_SZ 2 // byte for op code and byte for rel 8
-int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, int phs_c) {
+int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
+						  int phs_c) {
 	//	return 0; // TODO:? optimizations with flags ?
 	struct Oper *oper = plist_get(i->in->os, 0);
-	int rel_addr = -129, is_shorted = 0;
+	int rel_addr = -129, is_shorted = UNSHORTABLE;
 
 	if (is_imm(oper)) {
 		if (oper->code == OREL) {
@@ -189,12 +190,17 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, int phs_c) {
 			// 1 plov for rel 32 value
 			struct Defn *not_plov = plist_get(i->not_plovs, 0);
 			struct Usage *usage = not_plov->value;
-			struct Plov *l = find_label(g, not_plov->view);
+			*l = find_label(g, not_plov->view);
 
-			if (l->declared && usage->type == REL_ADDR && l->si == phs_c - 1) {
-				rel_addr = l->rel_addr - (g->text->size + SHORT_JMP_CMND_SZ);
-				if (rel_addr >= -128)
-					plist_clear_items_free(i->not_plovs); // frees usage too
+			if (usage->type == REL_ADDR && (*l)->si == phs_c - 1) {
+				if ((*l)->declared) {
+					rel_addr =
+						(*l)->rel_addr - (g->text->size + SHORT_JMP_CMND_SZ);
+					if (rel_addr >= -128)
+						plist_clear_items_free(i->not_plovs); // frees usage too
+				} else
+					// not yet declared but possibly can be shorter
+					is_shorted = SHORTABLE;
 			}
 		} else
 			rel_addr = oper->code == OINT ? oper->t->number : oper->t->fpn;
@@ -203,11 +209,19 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, int phs_c) {
 			blist_clear(i->cmd);
 			blist_clear(i->data);
 			short_to_rel_8(i, rel_addr);
-			is_shorted = 1;
+			is_shorted = SHORTENED;
 		}
 	}
 
 	return is_shorted;
+}
+
+struct Jump *new_jmp(struct Gner *g, char *label) {
+	struct Jump *jmp = malloc(sizeof(struct Jump));
+	jmp->label = label;
+	jmp->addr = g->text->size;
+	jmp->ipos = g->pos;
+	return jmp;
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
@@ -231,7 +245,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	ipcd->not_plovs = new_plist(2);
 	ipcd->debug = g->debug;
 
-	int phs_c = 0;
+	int phs_c = 0, is_shorted;
 	uint64_t phs_cur_sz;
 
 	for (i = 0; i < g->is->size; i++) {
@@ -245,13 +259,19 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		if (code > IDATA) {
 			get_ops_code(ipcd);
 
-			if (is_rel8_shortable(code))
+			if (is_rel8_shortable(code)) {
 				// TODO: near jmp BETTER fr
 				// smtng like counter for 128 bytes before label declared
 				// and if past 128 bytes then dont care
 				// and if encounter declaration then recompile last 128 bytes?
-				if (try_to_short_to_rel_8(g, ipcd, phs_c))
+				is_shorted = try_to_short_to_rel_8(g, ipcd, &l, phs_c);
+				if (is_shorted == SHORTENED)
 					goto gen_Linux_ELF_86_64_text_first_loop_end;
+				else if (is_shorted == SHORTABLE)
+					plist_add(g->jmps, new_jmp(g, l->label));
+				// TODO: delete usage in SHORTABLE jmp
+				// where usage->ic == jmp->ipos
+			}
 
 			if (ipcd->not_plovs->size == 0)
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
@@ -267,10 +287,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				usage->hc = phs_c;
 				usage->ic = g->pos;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
-				// from here need to optimize rel32 to rel8
-				// mov [rax + 0x00000001], 0x67453412
-				// {01 00 00 00} {12 34 45 67}
-				// if {01 00 00 00} can be BYTE cuz label->declared
 
 				ph = plist_get(g->phs, phs_c - 1);
 				uint64_t ph_start = ph->offset - all_h_sz * (phs_c > 1);

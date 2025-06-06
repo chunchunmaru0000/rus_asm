@@ -37,19 +37,25 @@ struct ELFPH { // ELF Program Header
 struct ELFSH { // ELF Segment Header
 };
 
+#define SHORT_JMP_CMND_SZ 2 // byte for op code and byte for rel 8
+#define SHORTENED 1
+#define UNSHORTABLE 0
+#define SHORTABLE -1
+
 struct Gner {
 	enum Target t;
 	uc debug;
 	struct PList *is;
-	long pos;
+	uint32_t pos;
 	struct BList *prol;
 	struct BList *text;
 
 	uint64_t pie;
 	struct ELFH *elfh;
-	struct PList *lps; // labels plovs
-	struct PList *phs; // program headers
-	struct PList *shs; // section headers
+	struct PList *lps;	// labels plovs
+	struct PList *jmps; // jmps
+	struct PList *phs;	// program headers
+	struct PList *shs;	// section headers
 };
 
 struct Gner *new_gner(struct PList *, enum Target, uc);

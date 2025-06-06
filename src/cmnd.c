@@ -287,6 +287,7 @@ int is_imm_r(enum OpsCode c) {
 }
 
 // http://ref.x86asm.net/coder64.html
+// https://www.felixcloutier.com/x86/
 
 // add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
 // lock fs    repne  scas  word  [edi] -> f0 64f2 6766 af
@@ -305,7 +306,6 @@ int is_imm_r(enum OpsCode c) {
 // - prefix 66 is used with all 16 bit ops like add ax, bx or
 //		add word [rax], 255
 // REX prefixes
-// TODO: VEX/EVEX prefixes
 
 const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
