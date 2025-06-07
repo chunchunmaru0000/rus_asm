@@ -122,12 +122,6 @@ struct Ipcd {
 void get_ops_code(struct Ipcd *);
 void short_to_rel_8(struct Ipcd *, char);
 
-struct Jump {
-	char *label;
-	int addr;	   // addres from beginning of text to place before jmp
-	uint32_t ipos; // instruction pos
-};
-
 #define is_rm__r(c)                                                            \
 	((c) == RM_8__R_8 || (c) == RM_16_32_64__R_16_32_64 ||                     \
 	 (c) == M_16__SREG || (c) == R_16_32_64__SREG)

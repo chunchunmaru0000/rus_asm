@@ -38,9 +38,18 @@ struct ELFSH { // ELF Segment Header
 };
 
 #define SHORT_JMP_CMND_SZ 2 // byte for op code and byte for rel 8
+#define LONG_JMP_CMND_SZ 5	// (byte E9 for JMP rel16/32) + 4 bytes for rel 32
+#define LONG_NOT_JMP_CMND_SZ 6 // 2 bytes for cmd + 4 bytes for rel 32
 #define SHORTENED 1
 #define UNSHORTABLE 0
 #define SHORTABLE -1
+
+struct Jump {
+	char *label;
+	int addr;	   // addres from beginning of text to place before jmp
+	uint32_t ipos; // instruction pos
+	enum ICode code;
+};
 
 struct Gner {
 	enum Target t;

@@ -216,11 +216,40 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
 	return is_shorted;
 }
 
-struct Jump *new_jmp(struct Gner *g, char *label) {
+struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l, int *rel_addr) {
+	struct Jump *jmp, *found_jmp = 0;
+
+	for (uint32_t i = 0; i < g->jmps->size; i++) {
+		jmp = plist_get(g->jmps, i);
+
+		if (sc(l->label, jmp->label)) {
+			*rel_addr =
+			// TODO: works with only IJMP for now
+				jmp->code == IJMP
+					? (g->text->size - 3) - (jmp->addr + SHORT_JMP_CMND_SZ)
+					: (g->text->size - 4) - (jmp->addr + SHORT_JMP_CMND_SZ);
+			// (g->text->size - 3) - (jmp->addr + SHORT_JMP_CMND_SZ);
+
+			if (*rel_addr <= 127) {
+				found_jmp = jmp;
+				break;
+			} else {
+				// free(jmp)?
+				// TODO: decide what is here, cuz i beleive its need to be
+				// freed and deleted from the list but its not node-list
+			}
+		}
+	}
+
+	return found_jmp;
+}
+
+struct Jump *new_jmp(struct Gner *g, char *label, enum ICode code) {
 	struct Jump *jmp = malloc(sizeof(struct Jump));
 	jmp->label = label;
 	jmp->addr = g->text->size;
 	jmp->ipos = g->pos;
+	jmp->code = code;
 	return jmp;
 }
 
@@ -238,6 +267,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct Plov *l;
 	struct Usage *usage;
 	struct Defn *not_plov;
+	struct Jump *jmp;
 
 	struct Ipcd *ipcd = malloc(sizeof(struct Ipcd));
 	ipcd->data = data;
@@ -268,9 +298,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				if (is_shorted == SHORTENED)
 					goto gen_Linux_ELF_86_64_text_first_loop_end;
 				else if (is_shorted == SHORTABLE)
-					plist_add(g->jmps, new_jmp(g, l->label));
-				// TODO: delete usage in SHORTABLE jmp
-				// where usage->ic == jmp->ipos
+					plist_add(g->jmps, new_jmp(g, l->label, code));
 			}
 
 			if (ipcd->not_plovs->size == 0)
@@ -301,21 +329,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		}
 		switch (code) {
 		case ILABEL:
-			tok = plist_get(in->os, 0);
-			l = find_label(g, tok->view);
-
-			assert_phs_not_zero(g, in);
-			ph = plist_get(g->phs, phs_c - 1);
-			l->addr = phs_cur_sz + ph->vaddr;
-			l->rel_addr = g->text->size;
-			l->declared = 1;
-			if (g->debug & 1)
-				printf("метка[%s]\t[0x%08lx]\n", l->label, l->addr);
-			break;
-		case IDATA:
-			data_bl = plist_get(in->os, 0);
-			blat(data, data_bl->st, data_bl->size);
-			break;
 		case ILET:
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
@@ -324,11 +337,54 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			ph = plist_get(g->phs, phs_c - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
-			l->declared = 1;
-			if (g->debug & 1)
-				printf("перем[%s]\t[0x%08lx]\n", l->label, l->addr);
 
-			data_bl = plist_get(in->os, 1);
+			l->declared = 1;
+			// use here is_shorted just because its also a temp int
+			jmp = try_find_in_jmps(g, l, &is_shorted);
+			if (jmp) {
+				ipcd->in = plist_get(g->is, jmp->ipos);
+				short_to_rel_8(ipcd, is_shorted);
+
+				i = jmp->ipos; // it will be incremented after the loop
+				g->text->size = jmp->addr;
+
+				// this is shit and need to prove that its not
+				// TODO: im not sure that its valid but maybe it is
+				// need a lot of tests to prove this
+				// also TODO: have it in a separate function
+				for (long ui = 0; ui < l->us->size; ui++) {
+					usage = plist_get(l->us, ui);
+
+					if (usage->ic == jmp->ipos) {
+						for (long uj = ui; uj < l->us->size; uj++)
+							// this thing also frees all usages that are should
+							// be or changed because ther addr will be not
+							// valid, TODO: check if there is a solution where
+							// it can be not freed but changed, is it even
+							// possible if i recompile it because how do i now
+							// that its already created in here but it could
+							// save frees and mallocs possibly
+							free(plist_get(l->us, uj));
+						l->us->size = ui - 1;
+						break;
+					}
+				}
+
+				plist_clear_items_free(g->jmps);
+				l->declared = 0; // because returns back in pos
+				goto gen_Linux_ELF_86_64_text_first_loop_end;
+			}
+
+			if (g->debug & 1)
+				printf("метка[%s]\t[0x%08lx]\n", l->label, l->addr);
+
+			if (code == ILET) {
+				data_bl = plist_get(in->os, 1);
+				blat(data, data_bl->st, data_bl->size);
+			}
+			break;
+		case IDATA:
+			data_bl = plist_get(in->os, 0);
 			blat(data, data_bl->st, data_bl->size);
 			break;
 		case ISEGMENT:
@@ -368,6 +424,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			ph->paddr = ph->vaddr;
 			phs_c++;
 			last_text_sz = g->text->size;
+			// if its another segment then its already not near jmp
+			plist_clear_items_free(g->jmps);
 			break;
 		case IEOI:
 			assert_phs_not_zero(g, in);
