@@ -341,7 +341,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l->declared = 1;
 			// use here is_shorted just because its also a temp int
 			jmp = try_find_in_jmps(g, l, &is_shorted);
-			if (jmp) {
+			if (jmp && 0) { // TODO: remove it
 				ipcd->in = plist_get(g->is, jmp->ipos);
 				short_to_rel_8(ipcd, is_shorted);
 
