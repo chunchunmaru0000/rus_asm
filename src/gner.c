@@ -123,6 +123,7 @@ struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	p->si = segment_place;
 	p->us = new_plist(4);
 	// p->a = g->pie; // + first ph memsz;
+	p->ipos = g->pos;
 	p->declared = 0;
 
 	return p;
@@ -139,6 +140,7 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 
 	for (long i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
+		g->pos = i;
 
 		if (in->code == ISEGMENT) {
 			flags = plist_get(in->os, 0);
@@ -223,11 +225,10 @@ struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l, int *rel_addr) {
 		jmp = plist_get(g->jmps, i);
 
 		if (sc(l->label, jmp->label)) {
+			// this should be right
 			*rel_addr =
-			// TODO: works with only IJMP for now
-				jmp->code == IJMP
-					? (g->text->size - 3) - (jmp->addr + SHORT_JMP_CMND_SZ)
-					: (g->text->size - 4) - (jmp->addr + SHORT_JMP_CMND_SZ);
+				g->text->size - jmp->addr -
+				(jmp->code == IJMP ? LONG_JMP_CMND_SZ : LONG_NOT_JMP_CMND_SZ);
 			// (g->text->size - 3) - (jmp->addr + SHORT_JMP_CMND_SZ);
 
 			if (*rel_addr <= 127) {
@@ -290,10 +291,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			get_ops_code(ipcd);
 
 			if (is_rel8_shortable(code)) {
-				// TODO: near jmp BETTER fr
-				// smtng like counter for 128 bytes before label declared
-				// and if past 128 bytes then dont care
-				// and if encounter declaration then recompile last 128 bytes?
 				is_shorted = try_to_short_to_rel_8(g, ipcd, &l, phs_c);
 				if (is_shorted == SHORTENED)
 					goto gen_Linux_ELF_86_64_text_first_loop_end;
@@ -341,7 +338,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l->declared = 1;
 			// use here is_shorted just because its also a temp int
 			jmp = try_find_in_jmps(g, l, &is_shorted);
-			if (jmp && 0) { // TODO: remove it
+			if (jmp && 0) { //  TODO: remove it
 				ipcd->in = plist_get(g->is, jmp->ipos);
 				short_to_rel_8(ipcd, is_shorted);
 
@@ -365,13 +362,33 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 							// that its already created in here but it could
 							// save frees and mallocs possibly
 							free(plist_get(l->us, uj));
-						l->us->size = ui - 1;
+						l->us->size = ui; // - 1 TODO: check this
 						break;
 					}
 				}
 
-				plist_clear_items_free(g->jmps);
+				for (long ji = 0; ji < g->jmps->size; ji++) {
+					struct Jump *tjmp = plist_get(g->jmps, ji);
+
+					if (tjmp->ipos == jmp->ipos) {
+						for (long jj = ji; jj < g->jmps->size; jj++)
+							free(plist_get(g->jmps, jj));
+						g->jmps->size = ji;
+						break;
+					}
+				}
+
+				for (long li = 0; li < g->lps->size; li++) {
+					struct Plov *ltmp = plist_get(g->lps, li);
+					if (ltmp->ipos >= jmp->ipos) {
+						ltmp->declared = 0;
+						printf("%s %d\n", ltmp->label, ltmp->declared);
+					}
+				}
+
+				// plist_clear_items_free(g->jmps);
 				l->declared = 0; // because returns back in pos
+				printf("%s %d\n", l->label, l->declared);
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
 			}
 

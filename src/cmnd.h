@@ -20,6 +20,7 @@ struct Plov {		   // Pointer Label Of Value
 	uint64_t rel_addr; // relative adress in executable file from file start
 	int si;			   // segment place
 	struct PList *us;  // usages
+	uint32_t ipos;
 	uc declared;
 };
 

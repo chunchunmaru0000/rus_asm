@@ -71,7 +71,7 @@ long blist_add(struct BList *l, uc p) {
 
 long blist_cut(struct BList *l) {
 	l->cap = l->size;
-	if (!l->size){
+	if (!l->size) {
 		free(l->st);
 		return 0;
 	}
