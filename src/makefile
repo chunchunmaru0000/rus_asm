@@ -4,6 +4,14 @@
 	chmod +x тест
 	./тест
 
+1: асм
+	fasm test.asm
+	./асм тест1.асм тест1
+	xxd test
+	xxd тест1
+	rm test
+	rm тест1
+
 асм:
 	gcc main.c flgs.c gner.c cmnd.c lbel.c pser.c lsts.c tzer.c -o асм
 

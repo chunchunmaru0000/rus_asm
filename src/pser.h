@@ -316,7 +316,8 @@ struct Inst {
 	struct Fpfc *f;
 	struct Pos *p;
 };
-struct Inst *new_inst(struct Pser *, enum ICode, struct PList *, struct Token *);
+struct Inst *new_inst(struct Pser *, enum ICode, struct PList *,
+					  struct Token *);
 void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 
 #define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AL && (o)->rm <= R_R15B))
@@ -366,8 +367,9 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_sib(o) ((o)->rm == R_RSI)
 #define is_addr32(o)                                                           \
 	(((o)->code == OMEM || (o)->code == OMOFFS) && (o)->mem_sz == DWORD)
+#define is_in_byte(i) ((i) >= -128 && (i) <= 127)
 #define is_imm_can_be_a_byte(o)                                                \
-	((o)->code == OINT && o->t->number >= -128 && o->t->number <= 127)
+	((o)->code == OINT && is_in_byte((o)->t->number))
 #define is_rel8_shortable(c) ((c) >= IJMP && (c) <= IJG)
 
 enum RegCode get_mem_reg(enum RegCode);

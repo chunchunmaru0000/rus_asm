@@ -168,6 +168,13 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	return 0;
 }
 
+void recompile_jmp_rel32_as_jmp_rel8(struct Ipcd *i) {
+	blist_clear(i->cmd);
+	blist_clear(i->data);
+	((struct Oper *)plist_get(i->in->os, 0))->sz = BYTE;
+	get_ops_code(i);
+}
+
 const char *const TOO_BIG_TO_BE_REL_8 =
 	"Значение было слишком большим чтобы уместиться в 1 байт.";
 const char *const ERR_ZERO_SEGMENTS =
@@ -198,7 +205,7 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
 				if ((*l)->declared) {
 					rel_addr =
 						(*l)->rel_addr - (g->text->size + SHORT_JMP_CMND_SZ);
-					if (rel_addr >= -128)
+					if (is_in_byte(rel_addr))
 						plist_clear_items_free(i->not_plovs); // frees usage too
 				} else
 					// not yet declared but possibly can be shorter
@@ -207,10 +214,8 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
 		} else
 			rel_addr = oper->code == OINT ? oper->t->number : oper->t->fpn;
 
-		if (rel_addr >= -128) {
-			blist_clear(i->cmd);
-			blist_clear(i->data);
-			short_to_rel_8(i, rel_addr);
+		if (is_in_byte(rel_addr)) {
+			recompile_jmp_rel32_as_jmp_rel8(i);
 			is_shorted = SHORTENED;
 		}
 	}
@@ -218,26 +223,32 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
 	return is_shorted;
 }
 
-struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l, int *rel_addr) {
+struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l) {
 	struct Jump *jmp, *found_jmp = 0;
 
+	// TODO: i beleive here need a reverse loop so that it shortens
+	// the nearest ones before the farest
 	for (uint32_t i = 0; i < g->jmps->size; i++) {
 		jmp = plist_get(g->jmps, i);
 
 		if (sc(l->label, jmp->label)) {
 			// this should be right
-			*rel_addr =
+			int rel_addr =
 				g->text->size - jmp->addr -
 				(jmp->code == IJMP ? LONG_JMP_CMND_SZ : LONG_NOT_JMP_CMND_SZ);
 			// (g->text->size - 3) - (jmp->addr + SHORT_JMP_CMND_SZ);
 
-			if (*rel_addr <= 127) {
+			if (is_in_byte(rel_addr)) {
 				found_jmp = jmp;
 				break;
 			} else {
-				// free(jmp)?
-				// TODO: decide what is here, cuz i beleive its need to be
-				// freed and deleted from the list but its not node-list
+				// TODO: i beleive dont need to anything here
+				// cuz if its just too far for NOW
+				// its still can be possibly SHORT after other shortings
+				// BUT still some of them can already be not reachable and
+				// doesnt matter what si shortened
+				// in such a case maybe just need to free(jmp) and jmps->st++
+				// TODO: find out how to determine if UNSHORTABLE
 			}
 		}
 	}
@@ -293,11 +304,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			if (is_rel8_shortable(code)) {
 				is_shorted = try_to_short_to_rel_8(g, ipcd, &l, phs_c);
 				if (is_shorted == SHORTENED)
-					goto gen_Linux_ELF_86_64_text_first_loop_end;
+					;
 				else if (is_shorted == SHORTABLE)
 					plist_add(g->jmps, new_jmp(g, l->label, code));
 			}
 
+		gen_Linux_ELF_86_64_text_add_usages:
 			if (ipcd->not_plovs->size == 0)
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
 
@@ -333,17 +345,21 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			assert_phs_not_zero(g, in);
 			ph = plist_get(g->phs, phs_c - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
+			printf("\t\t\t%s \t 0x%08lx = 0x%08lx + 0x%08lx\n", l->label, l->addr,
+				   phs_cur_sz, ph->vaddr);
 			l->rel_addr = g->text->size;
-
 			l->declared = 1;
-			// use here is_shorted just because its also a temp int
-			jmp = try_find_in_jmps(g, l, &is_shorted);
-			if (jmp && 0) { //  TODO: remove it
-				ipcd->in = plist_get(g->is, jmp->ipos);
-				short_to_rel_8(ipcd, is_shorted);
 
+			jmp = try_find_in_jmps(g, l);
+			// if jmp means its SHORTABLE
+			if (jmp && 0) {		   //  TODO: remove it
 				i = jmp->ipos; // it will be incremented after the loop
+				g->pos = i;
+				phs_cur_sz -= g->text->size - jmp->addr;
 				g->text->size = jmp->addr;
+				in = plist_get(g->is, i); // i = jmp->ipos
+				ipcd->in = in;			  // jmp instruction
+				recompile_jmp_rel32_as_jmp_rel8(ipcd);
 
 				// this is shit and need to prove that its not
 				// TODO: im not sure that its valid but maybe it is
@@ -382,14 +398,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					struct Plov *ltmp = plist_get(g->lps, li);
 					if (ltmp->ipos >= jmp->ipos) {
 						ltmp->declared = 0;
-						printf("%s %d\n", ltmp->label, ltmp->declared);
 					}
 				}
 
-				// plist_clear_items_free(g->jmps);
 				l->declared = 0; // because returns back in pos
-				printf("%s %d\n", l->label, l->declared);
-				goto gen_Linux_ELF_86_64_text_first_loop_end;
+				goto gen_Linux_ELF_86_64_text_add_usages;
 			}
 
 			if (g->debug & 1)
@@ -487,12 +500,18 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 						l->addr - (ph->vaddr + usage->cmd_end +
 								   all_h_sz * ((usage->hc - 1) == 0));
 
+					printf("\t\t0x%08lx - (0x%08lx + 0x%08lx + %d * ((0x%08lx "
+						   "- 1) == 0)) = %d %s "
+						   "jmp:%ld\n",
+						   l->addr, ph->vaddr, usage->cmd_end, all_h_sz,
+						   usage->hc, rel_addr, l->label, usage->ic);
+
 					if (usage->type == REL_ADDR)
 						memcpy(usage_place, &rel_addr, DWORD);
 					else { // REL_ADDR_8
-						if (rel_addr > 127 || rel_addr < -128) {
+						if (!is_in_byte(rel_addr)) {
 							if (g->debug)
-								printf("было то %d; \n", rel_addr);
+								printf("было то %d;\n", rel_addr);
 							in = plist_get(g->is, usage->ic);
 							ee(in->f, in->p, TOO_BIG_TO_BE_REL_8);
 						}

@@ -608,19 +608,6 @@ const struct Cmnd cmnds[] = {
 	{IOUTPUT, {0xef}, 1, NOT_FIELD, 0, DX__EAX},
 };
 
-void short_to_rel_8(struct Ipcd *i, char rel_addr) {
-	const struct Cmnd *c;
-	for (size_t j = 0; j < lenofarr(cmnds); j++) {
-		c = cmnds + j;
-		if (c->inst == i->in->code && c->opsc == __REL_8) {
-			blat(i->cmd, (uc *)c->cmd, c->len);
-			blist_add(i->data, rel_addr);
-			return;
-		}
-	}
-	ee(i->in->f, i->in->p, "ЭЭЭээЭэ");
-}
-
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
 	"Размер числа был вбайт, но данный тип инструкций не "
 	"поддерживает числа таких размеров, поэтому скорее всего размер числа "
