@@ -345,14 +345,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			assert_phs_not_zero(g, in);
 			ph = plist_get(g->phs, phs_c - 1);
 			l->addr = phs_cur_sz + ph->vaddr;
-			printf("\t\t\t%s \t 0x%08lx = 0x%08lx + 0x%08lx\n", l->label, l->addr,
-				   phs_cur_sz, ph->vaddr);
 			l->rel_addr = g->text->size;
 			l->declared = 1;
 
 			jmp = try_find_in_jmps(g, l);
 			// if jmp means its SHORTABLE
-			if (jmp && 0) {		   //  TODO: remove it
+			if (jmp) {
 				i = jmp->ipos; // it will be incremented after the loop
 				g->pos = i;
 				phs_cur_sz -= g->text->size - jmp->addr;
@@ -361,25 +359,21 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				ipcd->in = in;			  // jmp instruction
 				recompile_jmp_rel32_as_jmp_rel8(ipcd);
 
-				// this is shit and need to prove that its not
-				// TODO: im not sure that its valid but maybe it is
-				// need a lot of tests to prove this
-				// also TODO: have it in a separate function
-				for (long ui = 0; ui < l->us->size; ui++) {
-					usage = plist_get(l->us, ui);
+				for (long li = 0; li < g->lps->size; li++) {
+					struct Plov *ltmp = plist_get(g->lps, li);
 
-					if (usage->ic == jmp->ipos) {
-						for (long uj = ui; uj < l->us->size; uj++)
-							// this thing also frees all usages that are should
-							// be or changed because ther addr will be not
-							// valid, TODO: check if there is a solution where
-							// it can be not freed but changed, is it even
-							// possible if i recompile it because how do i now
-							// that its already created in here but it could
-							// save frees and mallocs possibly
-							free(plist_get(l->us, uj));
-						l->us->size = ui; // - 1 TODO: check this
-						break;
+					if (ltmp->ipos >= jmp->ipos) {
+						ltmp->declared = 0;
+					}
+
+					for (long ui = 0; ui < ltmp->us->size; ui++) {
+						usage = plist_get(ltmp->us, ui);
+						if (usage->ic >= jmp->ipos) {
+							for (long uj = ui; uj < ltmp->us->size; uj++)
+								free(plist_get(ltmp->us, uj));
+							ltmp->us->size = ui;
+							break;
+						}
 					}
 				}
 
@@ -391,13 +385,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 							free(plist_get(g->jmps, jj));
 						g->jmps->size = ji;
 						break;
-					}
-				}
-
-				for (long li = 0; li < g->lps->size; li++) {
-					struct Plov *ltmp = plist_get(g->lps, li);
-					if (ltmp->ipos >= jmp->ipos) {
-						ltmp->declared = 0;
 					}
 				}
 
@@ -499,12 +486,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					int rel_addr =
 						l->addr - (ph->vaddr + usage->cmd_end +
 								   all_h_sz * ((usage->hc - 1) == 0));
-
-					printf("\t\t0x%08lx - (0x%08lx + 0x%08lx + %d * ((0x%08lx "
-						   "- 1) == 0)) = %d %s "
-						   "jmp:%ld\n",
-						   l->addr, ph->vaddr, usage->cmd_end, all_h_sz,
-						   usage->hc, rel_addr, l->label, usage->ic);
 
 					if (usage->type == REL_ADDR)
 						memcpy(usage_place, &rel_addr, DWORD);
