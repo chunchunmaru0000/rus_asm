@@ -266,7 +266,7 @@ struct Jump *new_jmp(struct Gner *g, char *label, enum ICode code) {
 }
 
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
-	long i, j, last_text_sz;
+	long i, j, last_text_sz, li, ui, uj;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
 	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
@@ -279,7 +279,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct Plov *l;
 	struct Usage *usage;
 	struct Defn *not_plov;
-	struct Jump *jmp;
+	struct Jump *jmp, *tjmp;
 
 	struct Ipcd *ipcd = malloc(sizeof(struct Ipcd));
 	ipcd->data = data;
@@ -359,36 +359,34 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				ipcd->in = in;			  // jmp instruction
 				recompile_jmp_rel32_as_jmp_rel8(ipcd);
 
-				for (long li = 0; li < g->lps->size; li++) {
-					struct Plov *ltmp = plist_get(g->lps, li);
+				for (li = 0; li < g->lps->size; li++) {
+					l = plist_get(g->lps, li);
+					if (l->ipos >= jmp->ipos)
+						l->declared = 0;
 
-					if (ltmp->ipos >= jmp->ipos) {
-						ltmp->declared = 0;
-					}
+					for (ui = 0; ui < l->us->size; ui++) {
+						usage = plist_get(l->us, ui);
 
-					for (long ui = 0; ui < ltmp->us->size; ui++) {
-						usage = plist_get(ltmp->us, ui);
 						if (usage->ic >= jmp->ipos) {
-							for (long uj = ui; uj < ltmp->us->size; uj++)
-								free(plist_get(ltmp->us, uj));
-							ltmp->us->size = ui;
+							for (uj = ui; uj < l->us->size; uj++)
+								free(plist_get(l->us, uj));
+							l->us->size = ui;
 							break;
 						}
 					}
 				}
 
-				for (long ji = 0; ji < g->jmps->size; ji++) {
-					struct Jump *tjmp = plist_get(g->jmps, ji);
+				for (ui = 0; ui < g->jmps->size; ui++) {
+					tjmp = plist_get(g->jmps, ui);
 
 					if (tjmp->ipos == jmp->ipos) {
-						for (long jj = ji; jj < g->jmps->size; jj++)
-							free(plist_get(g->jmps, jj));
-						g->jmps->size = ji;
+						for (uj = ui; uj < g->jmps->size; uj++)
+							free(plist_get(g->jmps, uj));
+						g->jmps->size = ui;
 						break;
 					}
 				}
-
-				l->declared = 0; // because returns back in pos
+				// l->declared = 0; // because returns back in pos
 				goto gen_Linux_ELF_86_64_text_add_usages;
 			}
 

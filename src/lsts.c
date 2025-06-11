@@ -32,6 +32,22 @@ void plist_clear_items_free(struct PList *l) {
 	plist_clear(l);
 }
 
+// void plist_cut_items_free(struct PList *l, long cut_to) {
+// 	long i, j;
+// 	void *value;
+//
+// 	for (i = 0; i < l->size; i++) {
+// 		value = plist_get(l, i);
+//
+// 		if (usage->ic >= cut_to) {
+// 			for (j = i; j < l->size; j++)
+// 				free(plist_get(l, j));
+// 			l->size = i;
+// 			break;
+// 		}
+// 	}
+// }
+
 long plist_add(struct PList *l, void *p) {
 	if (l->size >= l->cap) {
 		l->cap += l->cap_pace;
