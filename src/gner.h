@@ -43,12 +43,14 @@ struct ELFSH { // ELF Segment Header
 #define SHORTENED 1
 #define UNSHORTABLE 0
 #define SHORTABLE -1
+#define inst_size(i) ((i)->cmd->size + (i)->data->size)
 
 struct Jump {
 	char *label;
 	int addr;	   // addres from beginning of text to place before jmp
 	uint32_t ipos; // instruction pos
 	enum ICode code;
+	uc size;
 };
 
 struct Gner {
@@ -56,6 +58,7 @@ struct Gner {
 	uc debug;
 	struct PList *is;
 	uint32_t pos;
+	uint32_t compiled;
 	struct BList *prol;
 	struct BList *text;
 

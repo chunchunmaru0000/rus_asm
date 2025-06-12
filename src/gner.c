@@ -10,6 +10,7 @@ struct Gner *new_gner(struct PList *is, enum Target t, uc debug) {
 	g->debug = debug;
 	g->is = is;
 	g->pos = 0;
+	g->compiled = 0;
 	g->prol = new_blist(100);
 	g->text = new_blist(100);
 
@@ -256,12 +257,14 @@ struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l) {
 	return found_jmp;
 }
 
-struct Jump *new_jmp(struct Gner *g, char *label, enum ICode code) {
+struct Jump *new_jmp(struct Gner *g, struct Ipcd *ipcd, char *label,
+					 enum ICode code) {
 	struct Jump *jmp = malloc(sizeof(struct Jump));
 	jmp->label = label;
 	jmp->addr = g->text->size;
 	jmp->ipos = g->pos;
 	jmp->code = code;
+	jmp->size = inst_size(ipcd);
 	return jmp;
 }
 
@@ -287,7 +290,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	ipcd->not_plovs = new_plist(2);
 	ipcd->debug = g->debug;
 
-	int phs_c = 0, is_shorted;
+	int phs_c = 0, shorter;
 	uint64_t phs_cur_sz;
 
 	for (i = 0; i < g->is->size; i++) {
@@ -302,11 +305,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			get_ops_code(ipcd);
 
 			if (is_rel8_shortable(code)) {
-				is_shorted = try_to_short_to_rel_8(g, ipcd, &l, phs_c);
-				if (is_shorted == SHORTENED)
-					;
-				else if (is_shorted == SHORTABLE)
-					plist_add(g->jmps, new_jmp(g, l->label, code));
+				if (try_to_short_to_rel_8(g, ipcd, &l, phs_c) == SHORTABLE)
+					plist_add(g->jmps, new_jmp(g, ipcd, l->label, code));
 			}
 
 		gen_Linux_ELF_86_64_text_add_usages:
@@ -353,11 +353,18 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			if (jmp) {
 				i = jmp->ipos; // it will be incremented after the loop
 				g->pos = i;
-				phs_cur_sz -= g->text->size - jmp->addr;
-				g->text->size = jmp->addr;
 				in = plist_get(g->is, i); // i = jmp->ipos
 				ipcd->in = in;			  // jmp instruction
+
 				recompile_jmp_rel32_as_jmp_rel8(ipcd);
+
+				phs_cur_sz -= g->text->size - jmp->addr;
+				g->text->size = jmp->addr;
+
+				shorter = jmp->size - inst_size(ipcd);
+				// phs_cur_sz -= shorter;
+				// g->text->size -= shorter;
+				// g->compiled++;
 
 				for (li = 0; li < g->lps->size; li++) {
 					l = plist_get(g->lps, li);
@@ -455,12 +462,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			printf("%d ", in->code);
 			ee(in->f, in->p, "НЕИЗВЕСТНАЯ ИНСТРУКЦИЯ");
 		}
-	gen_Linux_ELF_86_64_text_first_loop_end:
-		if (cmd->size + data->size) {
-			blat(g->text, cmd->st, cmd->size);
-			blat(g->text, data->st, data->size);
 
-			phs_cur_sz += cmd->size + data->size;
+	gen_Linux_ELF_86_64_text_first_loop_end:
+		if (1 || g->pos >= g->compiled) {
+			g->compiled++;
+
+			if (inst_size(ipcd)) {
+				blat(g->text, cmd->st, cmd->size);
+				blat(g->text, data->st, data->size);
+
+				phs_cur_sz += inst_size(ipcd);
+			}
 		}
 	}
 

@@ -653,6 +653,9 @@ void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
 	o->sz = sz;
 }
 
+// TODO: for example
+// зумн ебх ебх 2 ; работает
+// зусн ебх 2     ; ошибка, но опкод то один
 enum OpsCode get_two_opscode(struct Inst *in) {
 	struct Oper *l, *r;
 	declare_two_ops(in, l, r);
@@ -744,7 +747,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 			else if (l->sz != r->sz && !(l->sz == QWORD && r->sz == DWORD))
 				change_size_lr(in, l, r);
 
-			if (is_imm_can_be_a_byte(r) && !(is_al(l) || is_rA(l))) {
+			if (is_imm_can_be_a_byte(r) && !(in->code == ITEST && !is_8(l))) {
 				if (r->forsed_sz)
 					pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 				r->sz = BYTE;
@@ -754,7 +757,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				ee(in->f, in->p, REG_MEM_IMM_SIZES_NOT_MATCH);
 			if (is_al(l))
 				code = AL__IMM_8;
-			else if (is_rA(l))
+			else if (is_rA(l) && !is_8(r))
 				code = RAX__IMM_16_32;
 			else if (is_8(l))
 				code = RM_8__IMM_8;
@@ -1128,12 +1131,12 @@ enum OpsCode get_tri_opscode(struct Inst *in) {
 					pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 				o->sz = is_64(l) ? DWORD : l->sz;
 			}
-			if (is_imm_can_be_a_byte(r)) {
+			if (is_imm_can_be_a_byte(o)) {
 				if (o->forsed_sz)
 					pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
-				r->sz = BYTE;
+				o->sz = BYTE;
 			}
-			code = is_8(r) ? R_16_32_64__RM_16_32_64__IMM_8
+			code = is_8(o) ? R_16_32_64__RM_16_32_64__IMM_8
 						   : R_16_32_64__RM_16_32_64__IMM_16_32;
 		}
 		break;
