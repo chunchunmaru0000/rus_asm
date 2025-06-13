@@ -288,11 +288,12 @@ void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
 
 	g->text->size -= shorter;
 	g->eps->phs_cur_sz -= shorter;
+	printf("\tshorted on %d\n", shorter);
 
 	for (i = 0; i < g->lps->size; i++) {
 		l = plist_get(g->lps, i);
 
-		if (l->ipos >= jmp->ipos) {
+		if (l->ipos > jmp->ipos) {
 			l->addr -= shorter;
 			l->rel_addr -= shorter;
 			l->declared = 0;
@@ -301,7 +302,7 @@ void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
 		for (ui = 0; ui < l->us->size; ui++) {
 			usage = plist_get(l->us, ui);
 
-			if (usage->ic >= jmp->ipos) {
+			if (usage->ic > jmp->ipos) {
 				for (uj = ui; uj < l->us->size; uj++) {
 					usage = plist_get(l->us, uj);
 
@@ -328,13 +329,18 @@ exit_shift_labels_loop:
 	}
 }
 
-void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp,
-					uint32_t insz) {
+void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp) {
 	struct Token *tok;
 	struct Plov *l;
 	struct Inst *in;
 
-	int shorter = jmp->size - insz;
+	// ipcd hves recompiled jmp unstruction and jmp holds old jmp size
+	int shorter = jmp->size - inst_size(ipcd);
+	jmp->size = inst_size(ipcd);
+	printf("\tg->text->size: %ld\tshorter: %d\tjmp->addr: %d\n", g->text->size,
+		   shorter, jmp->addr);
+	if (!shorter)
+		return;
 	shift_left_on_shorter(g, jmp, shorter);
 
 	for (long ri = jmp->ipos; ri < g->compiled; ri++) {
@@ -352,9 +358,8 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp,
 				ipcd->in = in;					  // jmp instruction
 
 				recompile_jmp_rel32_as_jmp_rel8(ipcd);
-				jmp->size = inst_size(ipcd);
 
-				recompile_loop(g, ipcd, jmp, inst_size(ipcd));
+				recompile_loop(g, ipcd, jmp);
 				break; //  ???
 			}
 		}
@@ -445,52 +450,58 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			jmp = try_find_in_jmps(g, l);
 			// if jmp means its SHORTABLE
 			if (jmp) {
-				i = jmp->ipos; // it will be incremented after the loop
-				g->pos = i;
-				in = plist_get(g->is, i); // i = jmp->ipos
-				ipcd->in = in;			  // jmp instruction
+				if (1) {
+					i = jmp->ipos; // it will be incremented after the loop
+					g->pos = i;
+					in = plist_get(g->is, i); // i = jmp->ipos
+					ipcd->in = in;			  // jmp instruction
 
-				recompile_jmp_rel32_as_jmp_rel8(ipcd);
-				g->eps->phs_cur_sz -= g->text->size - jmp->addr;
-				g->text->size = jmp->addr;
-				jmp->size = inst_size(ipcd);
+					recompile_jmp_rel32_as_jmp_rel8(ipcd);
+					g->eps->phs_cur_sz -= g->text->size - jmp->addr;
+					g->text->size = jmp->addr;
+					jmp->size = inst_size(ipcd);
 
-				// recompile_loop(g, jmp, inst_size(ipcd));
+					for (li = 0; li < g->lps->size; li++) {
+						l = plist_get(g->lps, li);
+						if (l->ipos >= jmp->ipos)
+							l->declared = 0;
 
-				for (li = 0; li < g->lps->size; li++) {
-					l = plist_get(g->lps, li);
-					if (l->ipos >= jmp->ipos)
-						l->declared = 0;
+						for (ui = 0; ui < l->us->size; ui++) {
+							usage = plist_get(l->us, ui);
 
-					for (ui = 0; ui < l->us->size; ui++) {
-						usage = plist_get(l->us, ui);
+							if (usage->ic >= jmp->ipos) {
+								for (uj = ui; uj < l->us->size; uj++)
+									free(plist_get(l->us, uj));
+								l->us->size = ui;
+								break;
+							}
+						}
+					}
 
-						if (usage->ic >= jmp->ipos) {
-							for (uj = ui; uj < l->us->size; uj++)
-								free(plist_get(l->us, uj));
-							l->us->size = ui;
+					for (ui = 0; ui < g->jmps->size; ui++) {
+						tjmp = plist_get(g->jmps, ui);
+
+						if (tjmp->ipos == jmp->ipos) {
+							for (uj = ui; uj < g->jmps->size; uj++)
+								free(plist_get(g->jmps, uj));
+							g->jmps->size = ui;
 							break;
 						}
 					}
-				}
+					// l->declared = 0; // because returns back in pos
+					goto gen_Linux_ELF_86_64_text_add_usages;
+				} else {
+					in = plist_get(g->is, jmp->ipos);
+					ipcd->in = in;
+					// it recompiles instruction but doesnt apply it to the text
+					// also doesnt goes to gen_Linux_ELF_86_64_text_add_usages
+					// so doesnt changes usage of jmp
+					recompile_jmp_rel32_as_jmp_rel8(ipcd);
 
-				for (ui = 0; ui < g->jmps->size; ui++) {
-					tjmp = plist_get(g->jmps, ui);
+					recompile_loop(g, ipcd, jmp);
 
-					if (tjmp->ipos == jmp->ipos) {
-						for (uj = ui; uj < g->jmps->size; uj++)
-							free(plist_get(g->jmps, uj));
-						g->jmps->size = ui;
-						break;
-					}
+					in = plist_get(g->is, g->pos); // restore inst
 				}
-				// l->declared = 0; // because returns back in pos
-				if (code == ILET) { // TODO: check this out
-					data_bl = plist_get(in->os, 1);
-					blat(data, data_bl->st, data_bl->size);
-				}
-
-				goto gen_Linux_ELF_86_64_text_add_usages;
 			}
 
 			if (g->debug & 1)
