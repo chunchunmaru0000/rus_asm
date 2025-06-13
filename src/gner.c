@@ -244,7 +244,6 @@ struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l) {
 			int rel_addr =
 				g->text->size - jmp->addr -
 				(jmp->code == IJMP ? LONG_JMP_CMND_SZ : LONG_NOT_JMP_CMND_SZ);
-			// (g->text->size - 3) - (jmp->addr + SHORT_JMP_CMND_SZ);
 
 			if (is_in_byte(rel_addr)) {
 				found_jmp = jmp;
@@ -257,6 +256,8 @@ struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l) {
 				// doesnt matter what si shortened
 				// in such a case maybe just need to free(jmp) and jmps->st++
 				// TODO: find out how to determine if UNSHORTABLE
+				//  to count jmps between laaabel and jmp and have max shortable
+				//  size
 			}
 		}
 	}
@@ -275,7 +276,57 @@ struct Jump *new_jmp(struct Gner *g, struct Ipcd *ipcd, char *label,
 	return jmp;
 }
 
-void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {}
+void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
+	int i, ui, uj;
+	struct Plov *l;
+	struct Jump *tjmp;
+	struct Usage *usage;
+
+	int jmp_rel_end = jmp->addr + jmp->size;
+	void *jmp_end = g->text->st + jmp_rel_end;
+	memmove(jmp_end, jmp_end + shorter, g->text->size - jmp_rel_end);
+
+	g->text->size -= shorter;
+	g->eps->phs_cur_sz -= shorter;
+
+	for (i = 0; i < g->lps->size; i++) {
+		l = plist_get(g->lps, i);
+
+		if (l->ipos >= jmp->ipos) {
+			l->addr -= shorter;
+			l->rel_addr -= shorter;
+			l->declared = 0;
+		}
+
+		for (ui = 0; ui < l->us->size; ui++) {
+			usage = plist_get(l->us, ui);
+
+			if (usage->ic >= jmp->ipos) {
+				for (uj = ui; uj < l->us->size; uj++) {
+					usage = plist_get(l->us, uj);
+
+					usage->place -= shorter;
+					usage->cmd_end -= shorter;
+				}
+				goto exit_shift_labels_loop;
+			}
+		}
+	}
+exit_shift_labels_loop:
+
+	for (ui = 0; ui < g->jmps->size; ui++) {
+		tjmp = plist_get(g->jmps, ui);
+
+		if (tjmp->ipos > jmp->ipos) {
+			for (uj = ui; uj < g->jmps->size; uj++) {
+				tjmp = plist_get(g->jmps, uj);
+
+				tjmp->addr -= shorter;
+			}
+			return; // exit loop
+		}
+	}
+}
 
 void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp,
 					uint32_t insz) {
@@ -285,8 +336,6 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp,
 
 	int shorter = jmp->size - insz;
 	shift_left_on_shorter(g, jmp, shorter);
-	// g->text->size -= shorter; // inside shift_left_on_shorter
-	g->eps->phs_cur_sz -= shorter;
 
 	for (long ri = jmp->ipos; ri < g->compiled; ri++) {
 		g->pos = ri;
@@ -299,14 +348,14 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp,
 
 			jmp = try_find_in_jmps(g, l);
 			if (jmp) {
-				// i = jmp->ipos; // it will be incremented after the loop
-				// g->pos = i;
 				in = plist_get(g->is, jmp->ipos); // i = jmp->ipos
 				ipcd->in = in;					  // jmp instruction
 
 				recompile_jmp_rel32_as_jmp_rel8(ipcd);
 				jmp->size = inst_size(ipcd);
+
 				recompile_loop(g, ipcd, jmp, inst_size(ipcd));
+				break; //  ???
 			}
 		}
 	}
@@ -436,6 +485,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					}
 				}
 				// l->declared = 0; // because returns back in pos
+				if (code == ILET) { // TODO: check this out
+					data_bl = plist_get(in->os, 1);
+					blat(data, data_bl->st, data_bl->size);
+				}
+
 				goto gen_Linux_ELF_86_64_text_add_usages;
 			}
 
