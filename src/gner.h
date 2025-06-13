@@ -53,6 +53,13 @@ struct Jump {
 	uc size;
 };
 
+struct Ephs {
+	int phs_c;
+	uint32_t phs_cur_sz;
+	uint32_t all_h_sz;
+	struct PList *phs; // program headers
+};
+
 struct Gner {
 	enum Target t;
 	uc debug;
@@ -65,8 +72,9 @@ struct Gner {
 	uint64_t pie;
 	struct ELFH *elfh;
 	struct PList *lps;	// labels plovs
+	struct Ephs *eps;
+	//struct PList *phs;	// program headers
 	struct PList *jmps; // jmps
-	struct PList *phs;	// program headers
 	struct PList *shs;	// section headers
 };
 

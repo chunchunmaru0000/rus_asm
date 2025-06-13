@@ -17,8 +17,16 @@ struct Gner *new_gner(struct PList *is, enum Target t, uc debug) {
 	g->pie = 0x400000;
 	g->lps = new_plist(5);
 	g->jmps = new_plist(8);
-	g->phs = new_plist(3);
 	g->shs = new_plist(1);
+	// g->phs = new_plist(3);
+
+	struct Ephs *es = malloc(sizeof(struct Ephs));
+	es->phs_c = 0;
+	es->phs_cur_sz = 0;
+	es->all_h_sz = 0;
+	es->phs = new_plist(3);
+	g->eps = es;
+
 	return g;
 }
 
@@ -35,8 +43,8 @@ void gen(struct Gner *g) {
 		gen_Linux_ELF_86_64_text(g);
 
 		blat(g->prol, (uc *)g->elfh, sizeof(struct ELFH));
-		for (int i = 0; i < g->phs->size; i++)
-			blat(g->prol, plist_get(g->phs, i), sizeof(struct ELFPH));
+		for (int i = 0; i < g->eps->phs->size; i++)
+			blat(g->prol, plist_get(g->eps->phs, i), sizeof(struct ELFPH));
 		for (int i = 0; i < g->shs->size; i++)
 			blat(g->prol, plist_get(g->shs, i), sizeof(struct ELFSH));
 		break;
@@ -119,7 +127,7 @@ struct ELFPH *new_ph(int t, int flags, uint64_t off, uint64_t addr,
 struct Plov *new_label(struct Gner *g, struct Inst *in) {
 	struct Plov *p = malloc(sizeof(struct Plov));
 
-	int segment_place = g->phs->size - 1;
+	int segment_place = g->eps->phs->size - 1;
 	p->label = ((struct Token *)plist_get(in->os, 0))->view;
 	p->si = segment_place;
 	p->us = new_plist(4);
@@ -147,12 +155,12 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 			flags = plist_get(in->os, 0);
 			// type =   1,  flags, offset,     adress,     size
 			ph = new_ph(1, *flags, 0x7366666f, 0x72646461, 0x657a6973);
-			plist_add(g->phs, ph);
+			plist_add(g->eps->phs, ph);
 		} else if (in->code == ILABEL || in->code == ILET)
 			plist_add(g->lps, new_label(g, in));
 	}
 	// entry = 0 but will be editet
-	g->elfh = new_elfh(g, 0, 0x40, g->phs->size, 0x00, g->shs->size);
+	g->elfh = new_elfh(g, 0, 0x40, g->eps->phs->size, 0x00, g->shs->size);
 }
 
 struct Plov *find_label(struct Gner *g, char *s) {
@@ -183,12 +191,11 @@ const char *const ERR_ZERO_SEGMENTS =
 	"требуется хотя бы один участок.";
 
 void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
-	if (g->phs->size == 0)
+	if (g->eps->phs->size == 0)
 		ee(in->f, in->p, ERR_ZERO_SEGMENTS);
 }
 
-int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
-						  int phs_c) {
+int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l) {
 	//	return 0; // TODO:? optimizations with flags ?
 	struct Oper *oper = plist_get(i->in->os, 0);
 	int rel_addr = -129, is_shorted = UNSHORTABLE;
@@ -202,7 +209,7 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l,
 			struct Usage *usage = not_plov->value;
 			*l = find_label(g, not_plov->view);
 
-			if (usage->type == REL_ADDR && (*l)->si == phs_c - 1) {
+			if (usage->type == REL_ADDR && (*l)->si == g->eps->phs_c - 1) {
 				if ((*l)->declared) {
 					rel_addr =
 						(*l)->rel_addr - (g->text->size + SHORT_JMP_CMND_SZ);
@@ -268,10 +275,48 @@ struct Jump *new_jmp(struct Gner *g, struct Ipcd *ipcd, char *label,
 	return jmp;
 }
 
+void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {}
+
+void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp,
+					uint32_t insz) {
+	struct Token *tok;
+	struct Plov *l;
+	struct Inst *in;
+
+	int shorter = jmp->size - insz;
+	shift_left_on_shorter(g, jmp, shorter);
+	// g->text->size -= shorter; // inside shift_left_on_shorter
+	g->eps->phs_cur_sz -= shorter;
+
+	for (long ri = jmp->ipos; ri < g->compiled; ri++) {
+		g->pos = ri;
+		in = plist_get(g->is, ri);
+
+		ipcd->in = in;
+		if (in->code == ILET || in->code == ILABEL) {
+			tok = plist_get(in->os, 0);
+			l = find_label(g, tok->view);
+
+			jmp = try_find_in_jmps(g, l);
+			if (jmp) {
+				// i = jmp->ipos; // it will be incremented after the loop
+				// g->pos = i;
+				in = plist_get(g->is, jmp->ipos); // i = jmp->ipos
+				ipcd->in = in;					  // jmp instruction
+
+				recompile_jmp_rel32_as_jmp_rel8(ipcd);
+				jmp->size = inst_size(ipcd);
+				recompile_loop(g, ipcd, jmp, inst_size(ipcd));
+			}
+		}
+	}
+}
+
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz, li, ui, uj;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
-	int all_h_sz = sizeof(struct ELFH) + g->phs->size * sizeof(struct ELFPH);
+	g->eps->all_h_sz =
+		sizeof(struct ELFH) + g->eps->phs->size * sizeof(struct ELFPH);
 	enum ICode code;
 	// take
 	struct Inst *in;
@@ -290,8 +335,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	ipcd->not_plovs = new_plist(2);
 	ipcd->debug = g->debug;
 
-	int phs_c = 0, shorter;
-	uint64_t phs_cur_sz;
+	int *phs_c = &g->eps->phs_c;
 
 	for (i = 0; i < g->is->size; i++) {
 		in = plist_get(g->is, i);
@@ -305,7 +349,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			get_ops_code(ipcd);
 
 			if (is_rel8_shortable(code)) {
-				if (try_to_short_to_rel_8(g, ipcd, &l, phs_c) == SHORTABLE)
+				if (try_to_short_to_rel_8(g, ipcd, &l) == SHORTABLE)
 					plist_add(g->jmps, new_jmp(g, ipcd, l->label, code));
 			}
 
@@ -321,12 +365,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				usage = not_plov->value;
 				l = find_label(g, not_plov->view);
 
-				usage->hc = phs_c;
+				usage->hc = *phs_c;
 				usage->ic = g->pos;
 				usage->place += (uint64_t)(g->text->size) + cmd->size;
 
-				ph = plist_get(g->phs, phs_c - 1);
-				uint64_t ph_start = ph->offset - all_h_sz * (phs_c > 1);
+				ph = plist_get(g->eps->phs, *phs_c - 1);
+				uint64_t ph_start =
+					ph->offset - g->eps->all_h_sz * (*phs_c > 1);
 				// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
 				usage->cmd_end =
 					(g->text->size - ph_start) + cmd->size + data->size;
@@ -343,8 +388,8 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l = find_label(g, tok->view);
 
 			assert_phs_not_zero(g, in);
-			ph = plist_get(g->phs, phs_c - 1);
-			l->addr = phs_cur_sz + ph->vaddr;
+			ph = plist_get(g->eps->phs, *phs_c - 1);
+			l->addr = g->eps->phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
 			l->declared = 1;
 
@@ -357,14 +402,11 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				ipcd->in = in;			  // jmp instruction
 
 				recompile_jmp_rel32_as_jmp_rel8(ipcd);
-
-				phs_cur_sz -= g->text->size - jmp->addr;
+				g->eps->phs_cur_sz -= g->text->size - jmp->addr;
 				g->text->size = jmp->addr;
+				jmp->size = inst_size(ipcd);
 
-				shorter = jmp->size - inst_size(ipcd);
-				// phs_cur_sz -= shorter;
-				// g->text->size -= shorter;
-				// g->compiled++;
+				// recompile_loop(g, jmp, inst_size(ipcd));
 
 				for (li = 0; li < g->lps->size; li++) {
 					l = plist_get(g->lps, li);
@@ -410,7 +452,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			blat(data, data_bl->st, data_bl->size);
 			break;
 		case ISEGMENT:
-			phs_cur_sz = phs_c ? 0 : all_h_sz;
+			g->eps->phs_cur_sz = *phs_c ? 0 : g->eps->all_h_sz;
 			/*
 			 * 0 offset = 0
 			 * 0 addr = 0 + pie
@@ -420,16 +462,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			 * i size = segment size
 			 */
 			//  do segment adress and offset and size for prev segment
-			ph = g->phs->st[phs_c];
-			if (phs_c == 0) {
-				ph->offset = 0;		  // 0 offset = 0
-				ph->vaddr = g->pie;	  // 0 addr = 0 + pie
-				ph->memsz = all_h_sz; // + segment size // 0 size
+			ph = g->eps->phs->st[*phs_c];
+			if (*phs_c == 0) {
+				ph->offset = 0;				  // 0 offset = 0
+				ph->vaddr = g->pie;			  // 0 addr = 0 + pie
+				ph->memsz = g->eps->all_h_sz; // + segment size // 0 size
 			} else {
-				phl = g->phs->st[phs_c - 1];
+				phl = g->eps->phs->st[*phs_c - 1];
 				// because for first its size of all data that is only first
 				// data for the moment
-				if (phs_c == 1)
+				if (*phs_c == 1)
 					// 0 size = all p h + elf h + segment size
 					phl->memsz += g->text->size;
 				else
@@ -440,20 +482,21 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				// i offset = last segment size + last segment offset
 				ph->offset = phl->memsz + phl->offset;
 				// i addr = offset + align * (i - 1) + pie
-				ph->vaddr = ph->offset + ph->align * (phs_c) + g->pie;
+				ph->vaddr = ph->offset + ph->align * (*phs_c) + g->pie;
 			}
 			ph->filesz = ph->memsz;
 			ph->paddr = ph->vaddr;
-			phs_c++;
+			(*phs_c)++;
 			last_text_sz = g->text->size;
 			// if its another segment then its already not near jmp
 			plist_clear_items_free(g->jmps);
 			break;
 		case IEOI:
 			assert_phs_not_zero(g, in);
-			phl = g->phs->st[phs_c - 1];
-			phl->memsz = g->phs->size == 1 ? (int64_t)phl->memsz + g->text->size
-										   : g->text->size - last_text_sz;
+			phl = g->eps->phs->st[*phs_c - 1];
+			phl->memsz = g->eps->phs->size == 1
+							 ? (int64_t)phl->memsz + g->text->size
+							 : g->text->size - last_text_sz;
 			phl->filesz = phl->memsz;
 			break;
 		case IENTRY:
@@ -471,7 +514,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				blat(g->text, cmd->st, cmd->size);
 				blat(g->text, data->st, data->size);
 
-				phs_cur_sz += inst_size(ipcd);
+				g->eps->phs_cur_sz += inst_size(ipcd);
 			}
 		}
 	}
@@ -492,10 +535,10 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				if (usage->type == ADDR) {
 					memcpy(usage_place, &l->addr, DWORD);
 				} else {
-					ph = plist_get(g->phs, usage->hc - 1);
+					ph = plist_get(g->eps->phs, usage->hc - 1);
 					int rel_addr =
 						l->addr - (ph->vaddr + usage->cmd_end +
-								   all_h_sz * ((usage->hc - 1) == 0));
+								   g->eps->all_h_sz * ((usage->hc - 1) == 0));
 
 					if (usage->type == REL_ADDR)
 						memcpy(usage_place, &rel_addr, DWORD);
