@@ -239,7 +239,7 @@ struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l) {
 	for (uint32_t i = 0; i < g->jmps->size; i++) {
 		jmp = plist_get(g->jmps, i);
 
-		if (sc(l->label, jmp->label)) {
+		if (l->ipos == jmp->lipos) {
 			// this should be right
 			int rel_addr =
 				g->text->size - jmp->addr -
@@ -265,10 +265,10 @@ struct Jump *try_find_in_jmps(struct Gner *g, struct Plov *l) {
 	return found_jmp;
 }
 
-struct Jump *new_jmp(struct Gner *g, struct Ipcd *ipcd, char *label,
+struct Jump *new_jmp(struct Gner *g, struct Ipcd *ipcd, struct Plov *l,
 					 enum ICode code) {
 	struct Jump *jmp = malloc(sizeof(struct Jump));
-	jmp->label = label;
+	jmp->lipos = l->ipos;
 	jmp->addr = g->text->size;
 	jmp->ipos = g->pos;
 	jmp->code = code;
@@ -288,7 +288,6 @@ void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
 
 	g->text->size -= shorter;
 	g->eps->phs_cur_sz -= shorter;
-	printf("\tshorted on %d\n", shorter);
 
 	for (i = 0; i < g->lps->size; i++) {
 		l = plist_get(g->lps, i);
@@ -310,6 +309,16 @@ void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
 					usage->cmd_end -= shorter;
 				}
 				goto exit_shift_labels_loop;
+			} else if (usage->ic == jmp->ipos) {
+				usage->place = jmp->addr + 1;
+				usage->type = REL_ADDR_8;
+				printf("\t%s usage->place: %ld\n", l->label, usage->place);
+
+				struct ELFPH *ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
+				uint64_t ph_start =
+					ph->offset - g->eps->all_h_sz * (g->eps->phs_c > 1);
+				// 2 is size of cmd and data
+				usage->cmd_end = (g->text->size - ph_start) + 2;
 			}
 		}
 	}
@@ -342,6 +351,8 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp) {
 	if (!shorter)
 		return;
 	shift_left_on_shorter(g, jmp, shorter);
+	// all rel8 jmps are 1 byte cmd
+	g->text->st[jmp->addr] = ipcd->cmd->st[0];
 
 	for (long ri = jmp->ipos; ri < g->compiled; ri++) {
 		g->pos = ri;
@@ -404,7 +415,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			if (is_rel8_shortable(code)) {
 				if (try_to_short_to_rel_8(g, ipcd, &l) == SHORTABLE)
-					plist_add(g->jmps, new_jmp(g, ipcd, l->label, code));
+					plist_add(g->jmps, new_jmp(g, ipcd, l, code));
 			}
 
 		gen_Linux_ELF_86_64_text_add_usages:
@@ -447,61 +458,50 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			l->rel_addr = g->text->size;
 			l->declared = 1;
 
-			jmp = try_find_in_jmps(g, l);
 			// if jmp means its SHORTABLE
-			if (jmp) {
-				if (1) {
-					i = jmp->ipos; // it will be incremented after the loop
-					g->pos = i;
-					in = plist_get(g->is, i); // i = jmp->ipos
-					ipcd->in = in;			  // jmp instruction
+			jmp = try_find_in_jmps(g, l);
+#define OPT_WHILE_COMPILE 1
+			if (jmp && OPT_WHILE_COMPILE) {
+				i = jmp->ipos; // it will be incremented after the loop
+				g->pos = i;
+				in = plist_get(g->is, i); // i = jmp->ipos
+				ipcd->in = in;			  // jmp instruction
 
-					recompile_jmp_rel32_as_jmp_rel8(ipcd);
-					g->eps->phs_cur_sz -= g->text->size - jmp->addr;
-					g->text->size = jmp->addr;
-					jmp->size = inst_size(ipcd);
+				recompile_jmp_rel32_as_jmp_rel8(ipcd);
+				jmp->size = inst_size(ipcd);
 
-					for (li = 0; li < g->lps->size; li++) {
-						l = plist_get(g->lps, li);
-						if (l->ipos >= jmp->ipos)
-							l->declared = 0;
+				g->eps->phs_cur_sz -= g->text->size - jmp->addr;
+				g->text->size = jmp->addr;
 
-						for (ui = 0; ui < l->us->size; ui++) {
-							usage = plist_get(l->us, ui);
+				for (li = 0; li < g->lps->size; li++) {
+					l = plist_get(g->lps, li);
+					if (l->ipos >= jmp->ipos)
+						l->declared = 0;
 
-							if (usage->ic >= jmp->ipos) {
-								for (uj = ui; uj < l->us->size; uj++)
-									free(plist_get(l->us, uj));
-								l->us->size = ui;
-								break;
-							}
-						}
-					}
+					for (ui = 0; ui < l->us->size; ui++) {
+						usage = plist_get(l->us, ui);
 
-					for (ui = 0; ui < g->jmps->size; ui++) {
-						tjmp = plist_get(g->jmps, ui);
-
-						if (tjmp->ipos == jmp->ipos) {
-							for (uj = ui; uj < g->jmps->size; uj++)
-								free(plist_get(g->jmps, uj));
-							g->jmps->size = ui;
+						if (usage->ic >= jmp->ipos) {
+							for (uj = ui; uj < l->us->size; uj++)
+								free(plist_get(l->us, uj));
+							l->us->size = ui;
 							break;
 						}
 					}
-					// l->declared = 0; // because returns back in pos
-					goto gen_Linux_ELF_86_64_text_add_usages;
-				} else {
-					in = plist_get(g->is, jmp->ipos);
-					ipcd->in = in;
-					// it recompiles instruction but doesnt apply it to the text
-					// also doesnt goes to gen_Linux_ELF_86_64_text_add_usages
-					// so doesnt changes usage of jmp
-					recompile_jmp_rel32_as_jmp_rel8(ipcd);
-
-					recompile_loop(g, ipcd, jmp);
-
-					in = plist_get(g->is, g->pos); // restore inst
 				}
+
+				for (ui = 0; ui < g->jmps->size; ui++) {
+					tjmp = plist_get(g->jmps, ui);
+
+					if (tjmp->ipos == jmp->ipos) {
+						for (uj = ui; uj < g->jmps->size; uj++)
+							free(plist_get(g->jmps, uj));
+						g->jmps->size = ui;
+						break;
+					}
+				}
+				// l->declared = 0; // because returns back in pos
+				goto gen_Linux_ELF_86_64_text_add_usages;
 			}
 
 			if (g->debug & 1)
@@ -583,6 +583,28 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			}
 		}
 	}
+
+	// 	for (i = 0; i < g->lps->size; i++) {
+	// 		l = plist_get(g->lps, i);
+	// 		l->declared = 0; // undeclare all labels
+	// 	}
+	// 	for (i = 0; i < g->is->size; i++) {
+	// 		in = plist_get(g->is, i);
+	// 		g->pos = i;
+	// 		ipcd->in = in;
+	//
+	// 		if (in->code == ILET || in->code == ILABEL) {
+	// 			l->declared = 1;
+	// 		}
+	// 		// it recompiles instruction but doesnt apply it to the text
+	// 		// also doesnt goes to gen_Linux_ELF_86_64_text_add_usages
+	// 		// so doesnt changes usage of jmp
+	// 		recompile_jmp_rel32_as_jmp_rel8(ipcd);
+	//
+	// 		recompile_loop(g, ipcd, jmp);
+	//
+	// 		in = plist_get(g->is, g->pos); // restore inst
+	// 	}
 
 	phs_c = 0;
 	for (i = 0; i < g->is->size; i++) {

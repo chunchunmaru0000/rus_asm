@@ -46,9 +46,10 @@ struct ELFSH { // ELF Segment Header
 #define inst_size(i) ((i)->cmd->size + (i)->data->size)
 
 struct Jump {
-	char *label;
-	int addr;	   // addres from beginning of text to place before jmp
-	uint32_t ipos; // instruction pos
+	//	char *label;
+	uint32_t lipos; // label ipos
+	int addr;		// addres from beginning of text to place before jmp
+	uint32_t ipos;	// instruction pos
 	enum ICode code;
 	uc size;
 };
@@ -71,9 +72,9 @@ struct Gner {
 
 	uint64_t pie;
 	struct ELFH *elfh;
-	struct PList *lps;	// labels plovs
+	struct PList *lps; // labels plovs
 	struct Ephs *eps;
-	//struct PList *phs;	// program headers
+	// struct PList *phs;	// program headers
 	struct PList *jmps; // jmps
 	struct PList *shs;	// section headers
 };

@@ -14,8 +14,8 @@ extern const char *const REG_MEM_IMM_SIZES_NOT_MATCH;
 extern const char *const UNKNOWN_LABEL;
 
 // for label and maybe variables that have a string view and ptr to value
-struct Plov {		   // Pointer Label Of Value
-	char *label;	   // label
+struct Plov {	 // Pointer Label Of Value
+	char *label; // label
 	uint64_t addr;	   // adress
 	uint64_t rel_addr; // relative adress in executable file from file start
 	int si;			   // segment place
