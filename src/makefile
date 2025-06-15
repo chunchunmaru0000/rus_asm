@@ -18,6 +18,7 @@
 
 WARNS := 0
 DEBUG := 0
+OPT := 3
 TESTS := ../tests/
 BUILD := ../tests/build
 TS := $(wildcard $(TESTS)/*.асм)
@@ -27,14 +28,14 @@ b:
 	mkdir -p $(BUILD)
 
 $(BUILD)/%: $(TESTS)%.асм асм b
-	@./асм $< $@ -о $(DEBUG) -п $(WARNS)
+	@./асм $< $@ -о $(DEBUG) -п $(WARNS) -с $(OPT)
 	@if [ "$(basename $(notdir $<))" = "тест_вывод_числа" ]; then \
 		chmod +x $@ ; $@ ; \
 	fi
 
 all: $(BS)
-	@./асм тест.асм тест -о $(DEBUG) -п $(WARNS)
-	@./асм тест_заглавными.асм тест_заглавными -о $(DEBUG) -п $(WARNS)
+	@./асм тест.асм тест -о $(DEBUG) -п $(WARNS) -с $(OPT)
+	@./асм тест_заглавными.асм тест_заглавными -о $(DEBUG) -п $(WARNS) -с $(OPT)
 	@chmod +x тест_заглавными
 	./тест_заглавными < t.txt
 	rm -rf $(BUILD)

@@ -4,10 +4,15 @@
 #include <unistd.h>
 
 uc NEED_WARN = 1;
+// 0b0 - no opt
+// 0b1 - declared label opt
+// 0b10 - not declared label opt
+uc OPT_FLAG = 0b11;
 
 const struct Flag flags[] = {
-	{"-д", CF_DEBUG},  {"-о", CF_DEBUG}, {"-d", CF_DEBUG}, {"-ц", CF_TARGET},
-	{"-t", CF_TARGET}, {"-w", CF_WARNS}, {"-п", CF_WARNS},
+	{"-д", CF_DEBUG},  {"-о", CF_DEBUG},  {"-d", CF_DEBUG},
+	{"-ц", CF_TARGET}, {"-t", CF_TARGET}, {"-w", CF_WARNS},
+	{"-п", CF_WARNS},  {"-o", CF_OPT},	  {"-с", CF_OPT},
 };
 
 void exit_msg(char *msg) {
@@ -53,12 +58,13 @@ struct Flags *get_flags(int argc, char **args) {
 				switch (flag.f) {
 				case CF_DEBUG:
 					f->debug = atoi(args[i]);
-					goto get_flags_exit_j_loop;
 				case CF_TARGET:
 					goto get_flags_exit_j_loop;
 				case CF_WARNS:
-
 					NEED_WARN = atoi(args[i]);
+					goto get_flags_exit_j_loop;
+				case CF_OPT:
+					OPT_FLAG = atoi(args[i]);
 					goto get_flags_exit_j_loop;
 				}
 			}

@@ -44,6 +44,7 @@ struct ELFSH { // ELF Segment Header
 #define UNSHORTABLE 0
 #define SHORTABLE -1
 #define inst_size(i) ((i)->cmd->size + (i)->data->size)
+extern uc OPT_FLAG;
 
 struct Jump {
 	//	char *label;

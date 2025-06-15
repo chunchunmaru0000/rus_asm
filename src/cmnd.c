@@ -655,7 +655,7 @@ void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
 
 // TODO: for example
 // зумн ебх ебх 2 ; работает
-// зусн ебх 2     ; ошибка, но опкод то один
+// зумн ебх 2     ; ошибка, но опкод то один
 enum OpsCode get_two_opscode(struct Inst *in) {
 	struct Oper *l, *r;
 	declare_two_ops(in, l, r);

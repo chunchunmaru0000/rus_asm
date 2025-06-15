@@ -196,7 +196,9 @@ void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
 }
 
 int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l) {
-	//	return 0; // TODO:? optimizations with flags ?
+	if ((0b1 & OPT_FLAG) == 0)
+		return UNSHORTABLE;
+
 	struct Oper *oper = plist_get(i->in->os, 0);
 	int rel_addr = -129, is_shorted = UNSHORTABLE;
 
@@ -460,8 +462,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			// if jmp means its SHORTABLE
 			jmp = try_find_in_jmps(g, l);
-#define OPT_WHILE_COMPILE 1
-			if (jmp && OPT_WHILE_COMPILE) {
+			if (jmp && (0b10 & OPT_FLAG)) {
 				i = jmp->ipos; // it will be incremented after the loop
 				g->pos = i;
 				in = plist_get(g->is, i); // i = jmp->ipos
@@ -572,39 +573,16 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		}
 
 	gen_Linux_ELF_86_64_text_first_loop_end:
-		if (1 || g->pos >= g->compiled) {
-			g->compiled++;
+		// if (1 || g->pos >= g->compiled) {
+		// 	g->compiled++;
+		if (inst_size(ipcd)) {
+			blat(g->text, cmd->st, cmd->size);
+			blat(g->text, data->st, data->size);
 
-			if (inst_size(ipcd)) {
-				blat(g->text, cmd->st, cmd->size);
-				blat(g->text, data->st, data->size);
-
-				g->eps->phs_cur_sz += inst_size(ipcd);
-			}
+			g->eps->phs_cur_sz += inst_size(ipcd);
 		}
+		//}
 	}
-
-	// 	for (i = 0; i < g->lps->size; i++) {
-	// 		l = plist_get(g->lps, i);
-	// 		l->declared = 0; // undeclare all labels
-	// 	}
-	// 	for (i = 0; i < g->is->size; i++) {
-	// 		in = plist_get(g->is, i);
-	// 		g->pos = i;
-	// 		ipcd->in = in;
-	//
-	// 		if (in->code == ILET || in->code == ILABEL) {
-	// 			l->declared = 1;
-	// 		}
-	// 		// it recompiles instruction but doesnt apply it to the text
-	// 		// also doesnt goes to gen_Linux_ELF_86_64_text_add_usages
-	// 		// so doesnt changes usage of jmp
-	// 		recompile_jmp_rel32_as_jmp_rel8(ipcd);
-	//
-	// 		recompile_loop(g, ipcd, jmp);
-	//
-	// 		in = plist_get(g->is, g->pos); // restore inst
-	// 	}
 
 	phs_c = 0;
 	for (i = 0; i < g->is->size; i++) {
