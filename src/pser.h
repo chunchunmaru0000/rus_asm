@@ -32,7 +32,7 @@ enum OCode { // operand type codes
 	OREL,	 // labels and vars relative offsets
 	OREG,	 // general purpose registers
 	OMEM,	 // [] size is size of entire op
-	OSIMD,	 // single instruction multiple data registers
+	OXMM,	 // single instruction multiple data registers
 	OSREG,	 // segment registers cs, ds, fs, gs
 	OMOFFS,
 	// OCR // control registers?
@@ -126,6 +126,23 @@ enum RegCode {
 	R_R13,
 	R_R14,
 	R_R15,
+
+	R_XMM0,
+	R_XMM1,
+	R_XMM2,
+	R_XMM3,
+	R_XMM4,
+	R_XMM5,
+	R_XMM6,
+	R_XMM7,
+	R_XMM8,
+	R_XMM9,
+	R_XMM10,
+	R_XMM11,
+	R_XMM12,
+	R_XMM13,
+	R_XMM14,
+	R_XMM15,
 };
 
 enum ICode {
@@ -343,6 +360,7 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)
 #define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
 #define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)
+#define is_f_xmm(rm) ((rm) >= R_XMM0 && (rm) <= R_XMM15)
 #define is_f_seg(rm) ((rm) >= R_ES && (rm) <= R_GS)
 
 #define is_fs(o) ((o)->code == OSREG && (o)->rm == R_FS)

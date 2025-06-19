@@ -30,6 +30,8 @@ int get_reg_field(enum RegCode rm) {
 		f = rm - R_EAX;
 	else if (is_f_reg64(rm))
 		f = rm - R_RAX;
+	else if (is_f_xmm(rm))
+		f = rm - R_XMM0;
 	else if (is_f_seg(rm))
 		f = rm - R_ES;
 	if (f > 0b111)
@@ -142,6 +144,10 @@ const struct Word ZERO_OPS_WORDS[] = {
 // less			м 	меньше
 // greater		б	больше
 
+// TODO: make xmm
+// TODO: make segments addresation, like cs:123
+// TODO: make AVX
+// TODO: make FPU
 // TODO: make string ops with 32-bit addressation
 const struct Word ONE_OPS_WORDS[] = {
 	{"зов", ICALL},		{"идти", IJMP},		{"прер", IINT},
@@ -209,6 +215,24 @@ const struct Reg R_REGS[] = {
 	{R_R8, "р8"},	{R_R9, "р9"},		 {R_R10, "р10"}, {R_R11, "р11"},
 	{R_R12, "р12"}, {R_R13, "р13"},		 {R_R14, "р14"}, {R_R15, "р15"},
 	{R_RIP, "рип"}, {R_RFLAGS, "рфлаги"}};
+// xmm
+const struct Reg XMM_REGS[] = {
+	{R_XMM0, "хмм0"},	{R_XMM1, "хмм1"},	{R_XMM2, "хмм2"},
+	{R_XMM3, "хмм3"},	{R_XMM4, "хмм4"},	{R_XMM5, "хмм5"},
+	{R_XMM6, "хмм6"},	{R_XMM7, "хмм7"},	{R_XMM8, "хмм8"},
+	{R_XMM9, "хмм9"},	{R_XMM10, "хмм10"}, {R_XMM11, "хмм11"},
+	{R_XMM12, "хмм12"}, {R_XMM13, "хмм13"}, {R_XMM14, "хмм14"},
+	{R_XMM15, "хмм15"},
+
+	{R_XMM0, "ам0"},	{R_XMM1, "ам1"},	{R_XMM2, "ам2"},
+	{R_XMM3, "ам3"},	{R_XMM4, "ам4"},	{R_XMM5, "ам5"},
+	{R_XMM6, "ам6"},	{R_XMM7, "ам7"},	{R_XMM8, "ам8"},
+	{R_XMM9, "ам9"},	{R_XMM10, "ам10"},	{R_XMM11, "ам11"},
+	{R_XMM12, "ам12"},	{R_XMM13, "ам13"},	{R_XMM14, "ам14"},
+	{R_XMM15, "ам15"},
+};
+// ymm - бм
+// zmm - вм
 
 char *CANT_CHANGE_REG_SZ =
 	"Нельзя менять размер регистра, это ни к чему не приведет так и так.";
@@ -374,12 +398,13 @@ int search_reg(char *v, const int regs_len, const struct Reg regs[],
 	return 0;
 }
 
-int search_seg_reg(char *v, struct Oper *o) {
-	for (int i = 0; i < (long)lenofarr(SEG_REGS); i++)
-		if (sc(v, SEG_REGS[i].v)) {
-			o->rm = SEG_REGS[i].c;
-			o->code = OSREG;
-			o->sz = WORD;
+int search_some_reg(char *v, const int regs_len, const struct Reg regs[],
+					struct Oper *o, enum OCode code, int sz) {
+	for (int i = 0; i < regs_len; i++)
+		if (sc(v, regs[i].v)) {
+			o->rm = regs[i].c;
+			o->code = code;
+			o->sz = sz;
 			return 1;
 		}
 	return 0;
@@ -532,7 +557,11 @@ struct Oper *expression(struct Pser *p) {
 			;
 		else if (search_reg(v, lenofarr(B_REGS), B_REGS, o, BYTE))
 			;
-		else if (search_seg_reg(v, o))
+		else if (search_some_reg(v, lenofarr(XMM_REGS), XMM_REGS, o, OXMM,
+								 OWORD))
+			;
+		else if (search_some_reg(v, lenofarr(SEG_REGS), SEG_REGS, o, OSREG,
+								 WORD))
 			;
 		else if (search_size(p, &o, v) || search_defn(p, &o, v)) {
 			plist_free(sib);
