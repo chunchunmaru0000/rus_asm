@@ -73,6 +73,9 @@ enum OpsCode {
 	EAX__DX,
 	DX__AL,
 	DX__EAX,
+
+	XMM__RM_32,
+	XMM__RM_64,
 };
 
 #define NOT_FIELD 0

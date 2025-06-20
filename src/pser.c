@@ -95,10 +95,6 @@ const char *STR_SEG_W = "изм";
 const char *STR_SEG_X = "исп";
 const char *STR_EOF = "_КОНЕЦ_ФАЙЛА_";
 const char *STR_LET = "пусть";
-const char *STR_BYTE = "байт";
-const char *STR_WORD = "дбайт";
-const char *STR_DWORD = "чбайт";
-const char *STR_QWORD = "вбайт";
 const char *STR_ADDR = "адр";
 // instruction words
 // load - выг рузить
@@ -177,6 +173,34 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"срав", ICMP},	   {"или", IOR},	{"и", IAND},	   {"искл", IXOR},
 	{"плюсс", IADC},   {"минсп", ISBB}, {"обмн", IXCHG},   {"задр", ILEA},
 	{"войти", IENTER}, {"ввд", IINPUT}, {"вывд", IOUTPUT},
+// Single		о
+// Double		д
+// Scalar		с
+// Un aligned	н в
+// Packed		у
+
+// High			в
+// Low			н
+	{"бнуо", IMOVUPS},
+	{"бсо", IMOVSS},
+	{"бнуд", IMOVUPD},
+	{"бсд", IMOVSD_XMM},
+	
+	{"бвн", IMOVHLPS},
+	{"бнв", IMOVLHPS},
+
+	{"бнуо", IMOVLPS},
+	{"б", IMOVLPD},
+	{"б", IMOVDDUP},
+
+	{"б", IMOVSLDUP},
+	{"б", IMOVSHDUP},
+
+	{"б", IUNPCKHPS},
+	{"б", IUNPCKHPD},
+
+	{"б", IMOVHPS},
+	{"б", IMOVHPD},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
@@ -224,15 +248,15 @@ const struct Reg XMM_REGS[] = {
 	{R_XMM12, "хмм12"}, {R_XMM13, "хмм13"}, {R_XMM14, "хмм14"},
 	{R_XMM15, "хмм15"},
 
-	{R_XMM0, "ам0"},	{R_XMM1, "ам1"},	{R_XMM2, "ам2"},
-	{R_XMM3, "ам3"},	{R_XMM4, "ам4"},	{R_XMM5, "ам5"},
-	{R_XMM6, "ам6"},	{R_XMM7, "ам7"},	{R_XMM8, "ам8"},
-	{R_XMM9, "ам9"},	{R_XMM10, "ам10"},	{R_XMM11, "ам11"},
-	{R_XMM12, "ам12"},	{R_XMM13, "ам13"},	{R_XMM14, "ам14"},
-	{R_XMM15, "ам15"},
+	{R_XMM0, "ээ0"},	{R_XMM1, "ээ1"},	{R_XMM2, "ээ2"},
+	{R_XMM3, "ээ3"},	{R_XMM4, "ээ4"},	{R_XMM5, "ээ5"},
+	{R_XMM6, "ээ6"},	{R_XMM7, "ээ7"},	{R_XMM8, "ээ8"},
+	{R_XMM9, "ээ9"},	{R_XMM10, "ээ10"},	{R_XMM11, "ээ11"},
+	{R_XMM12, "ээ12"},	{R_XMM13, "ээ13"},	{R_XMM14, "ээ14"},
+	{R_XMM15, "ээ15"},
 };
-// ymm - бм
-// zmm - вм
+// ymm - юю
+// zmm - яя
 
 char *CANT_CHANGE_REG_SZ =
 	"Нельзя менять размер регистра, это ни к чему не приведет так и так.";
@@ -288,7 +312,8 @@ enum ICode two_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
 // void set_tc(struct Token **tp, enum OCode *cp, struct Token *t, enum
 // OCode c) { *tp = t; *cp = c; }
 
-const char *STRS_SIZES[] = {"байт", "дбайт", "чбайт", "вбайт"};
+const char *STRS_SIZES[] = {"байт",	 "дбайт", "чбайт", "вбайт",
+							"эбайт", "юбайт", "ябайт"};
 const char *STR_RESERVED = "запас";
 int search_size(struct Pser *p, struct Oper **o, char *v) {
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
@@ -558,7 +583,7 @@ struct Oper *expression(struct Pser *p) {
 		else if (search_reg(v, lenofarr(B_REGS), B_REGS, o, BYTE))
 			;
 		else if (search_some_reg(v, lenofarr(XMM_REGS), XMM_REGS, o, OXMM,
-								 OWORD))
+								 XWORD))
 			;
 		else if (search_some_reg(v, lenofarr(SEG_REGS), SEG_REGS, o, OSREG,
 								 WORD))

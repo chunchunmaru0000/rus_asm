@@ -5,7 +5,9 @@
 #define WORD 2
 #define DWORD 4
 #define QWORD 8
-#define OWORD 16 // ?
+#define XWORD 16 // эбайт
+#define YWORD 32 // юбайт
+#define ZWORD 64 // ябайт
 
 struct PList {
 	void **st; // start

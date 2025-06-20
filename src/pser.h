@@ -37,7 +37,7 @@ enum OCode { // operand type codes
 	OMOFFS,
 	// OCR // control registers?
 	// ODR // debug registers?
-	// IOR // i/o registers? are there even these
+	// OIOR // i/o registers? are there even these
 	OFPU, // FPU registers and things
 };
 
@@ -196,8 +196,8 @@ enum ICode {
 	IINT,
 	IINC,
 	IDEC,
-	ICALLF, // just
-	IJMPF,	// for them to be
+	ICALLF,
+	IJMPF,
 
 	IJMP,
 	IJO,
@@ -286,7 +286,33 @@ enum ICode {
 	ISTOSW,
 	ISTOSD,
 	ISTOSQ,
+	// xmm
+	IMOVUPS,
+	IMOVSS,
+	IMOVUPD,
+	IMOVSD_XMM,
+
+	IMOVHLPS,
+	IMOVLHPS,
+
+	IMOVLPS,
+	IMOVLPD,
+	IMOVDDUP,
+
+	IMOVSLDUP,
+	IMOVSHDUP,
+
+	IUNPCKHPS,
+	IUNPCKHPD,
+
+	IMOVHPS,
+	IMOVHPD,
+	// 0f 28 - 66 0f 2f
+	// 66 0F 3A 08 - 66 0F 3A 63
+	// 0f 50 - F3 0F 7F
+	// 0F C2 - 66 0F FE
 };
+// TODO: 0f 00 - 0f 0d
 
 struct Reg {
 	enum RegCode c;
