@@ -623,17 +623,23 @@ const char *const ERR_WRONG_OPS_FOR_THIS_INST =
 const char *const ERR_WRONG_BYTE_REG =
 	"Данная инструкция не поддерживает регистры размером байт.";
 
-void change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
-	if (r->forsed_sz)
-		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
-	r->sz = l->sz;
+void change_mem_size(struct Inst *in, struct Oper *o, uc sz) {
+	if (o->forsed_sz)
+		pw(in->f, in->p, WARN_CHANGE_MEM_SIZE);
+	o->sz = sz;
 }
+void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
+	if (o->forsed_sz)
+		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
+	o->sz = sz;
+}
+
+#define change_size_lr(in, l, r) (change_imm_size((in), (r), (l)->sz))
+
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm) {
-	if (is_mem(rm) && rm->sz != r->sz) {
-		if (rm->forsed_sz)
-			pw(in->f, in->p, WARN_CHANGE_MEM_SIZE);
-		rm->sz = r->sz;
-	} else if (rm->sz != r->sz)
+	if (is_mem(rm) && rm->sz != r->sz)
+		change_mem_size(in, rm, r->sz);
+	else if (rm->sz != r->sz)
 		ee(in->f, in->p, REGS_SIZES_NOT_MATCH);
 }
 void warn_change_to_eq_size_lr(struct Inst *i, struct Oper *l, struct Oper *r) {
@@ -647,10 +653,18 @@ int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 	}
 	return 0;
 }
-void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
-	if (o->forsed_sz)
-		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
-	o->sz = sz;
+
+void get_xm_xm_code(enum OpsCode *code, struct Inst *in, struct Oper *l,
+					struct Oper *r, enum OpsCode x_xm, enum OpsCode xm_x,
+					uc sz) {
+	if (is_xmm(l) && is_xm(r)) {
+		if (is_mem(r))
+			change_mem_size(in, r, sz);
+		*code = x_xm;
+	} else if (is_mem(l) && is_xmm(r)) {
+		change_mem_size(in, l, sz);
+		*code = xm_x;
+	}
 }
 
 // TODO: for example
@@ -821,6 +835,41 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 				else if (!is_8(l))
 					code = RM_16_32_64__IMM_16_32;
 			}
+		}
+		break;
+	case IMOVUPS:
+	case IMOVUPD:
+	case IUNPCKLPD:
+	case IUNPCKHPD:
+		get_xm_xm_code(&code, in, l, r, XMM__XMM_M_128, XMM_M_128__XMM, XWORD);
+		break;
+	case IMOVSS:
+		get_xm_xm_code(&code, in, l, r, XMM__XMM_M_32, XMM_M_32__XMM, DWORD);
+		break;
+	case IMOVSD_XMM:
+	case IMOVDDUP:
+	case IMOVSLDUP:
+	case IUNPCKLPS:
+	case IUNPCKHPS:
+	case IMOVSHDUP:
+		get_xm_xm_code(&code, in, l, r, XMM__XMM_M_64, XMM_M_64__XMM, QWORD);
+		break;
+	case IMOVHLPS:
+	case IMOVLHPS:
+		// here OPC_INVALID grants that if is_mem(l) then invalid ops code
+		if (!is_mem(r))
+			get_xm_xm_code(&code, in, l, r, XMM__XMM, OPC_INVALID, 0);
+		break;
+	case IMOVLPS:
+	case IMOVLPD:
+	case IMOVHPS:
+	case IMOVHPD:
+		if (is_xmm(l) && is_mem(r)){
+			change_mem_size(in, r, QWORD);
+			code = XMM__M_64;
+		} else if (is_mem(l) && is_xmm(r)){
+			change_mem_size(in, l, QWORD);
+			code = M_64__XMM;
 		}
 		break;
 	default:

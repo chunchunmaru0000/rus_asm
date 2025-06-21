@@ -14,8 +14,8 @@ extern const char *const REG_MEM_IMM_SIZES_NOT_MATCH;
 extern const char *const UNKNOWN_LABEL;
 
 // for label and maybe variables that have a string view and ptr to value
-struct Plov {	 // Pointer Label Of Value
-	char *label; // label
+struct Plov {		   // Pointer Label Of Value
+	char *label;	   // label
 	uint64_t addr;	   // adress
 	uint64_t rel_addr; // relative adress in executable file from file start
 	int si;			   // segment place
@@ -74,8 +74,15 @@ enum OpsCode {
 	DX__AL,
 	DX__EAX,
 
-	XMM__RM_32,
-	XMM__RM_64,
+	XMM__XMM_M_128,
+	XMM__XMM_M_32,
+	XMM__XMM_M_64,
+	XMM_M_128__XMM,
+	XMM_M_32__XMM,
+	XMM_M_64__XMM,
+	XMM__M_64,
+	M_64__XMM,
+	XMM__XMM,
 };
 
 #define NOT_FIELD 0

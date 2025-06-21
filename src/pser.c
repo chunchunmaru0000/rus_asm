@@ -168,39 +168,28 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идесх0", IJECXZ}, {"идрсх0", IJRCXZ}, {"не", INOT},
 	{"нег", INEG},
 };
-const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},	   {"плюс", IADD},	{"минс", ISUB},	   {"проб", ITEST},
-	{"срав", ICMP},	   {"или", IOR},	{"и", IAND},	   {"искл", IXOR},
-	{"плюсс", IADC},   {"минсп", ISBB}, {"обмн", IXCHG},   {"задр", ILEA},
-	{"войти", IENTER}, {"ввд", IINPUT}, {"вывд", IOUTPUT},
 // Single		о
 // Double		д
 // Scalar		с
-// Un aligned	н в
+// Un aligned	нр не ровный
 // Packed		у
-
+// Duplicate	удв
 // High			в
 // Low			н
-	{"бнуо", IMOVUPS},
-	{"бсо", IMOVSS},
-	{"бнуд", IMOVUPD},
-	{"бсд", IMOVSD_XMM},
-	
-	{"бвн", IMOVHLPS},
-	{"бнв", IMOVLHPS},
+// Unpack		рсп
+const struct Word TWO_OPS_WORDS[] = {
+	{"быть", IMOV},		   {"плюс", IADD},		   {"минс", ISUB},
+	{"проб", ITEST},	   {"срав", ICMP},		   {"или", IOR},
+	{"и", IAND},		   {"искл", IXOR},		   {"плюсс", IADC},
+	{"минсп", ISBB},	   {"обмн", IXCHG},		   {"задр", ILEA},
+	{"войти", IENTER},	   {"ввд", IINPUT},		   {"вывд", IOUTPUT},
 
-	{"бнуо", IMOVLPS},
-	{"б", IMOVLPD},
-	{"б", IMOVDDUP},
-
-	{"б", IMOVSLDUP},
-	{"б", IMOVSHDUP},
-
-	{"б", IUNPCKHPS},
-	{"б", IUNPCKHPD},
-
-	{"б", IMOVHPS},
-	{"б", IMOVHPD},
+	{"бнруо", IMOVUPS},	   {"бсо", IMOVSS},		   {"бнруд", IMOVUPD},
+	{"бсд", IMOVSD_XMM},   {"бвн", IMOVHLPS},	   {"бнв", IMOVLHPS},
+	{"бнуо", IMOVLPS},	   {"бнуд", IMOVLPD},	   {"бвуо", IMOVHPS},
+	{"бвуд", IMOVHPD},	   {"бдудв", IMOVDDUP},	   {"бонудв", IMOVSLDUP},
+	{"бовудв", IMOVSHDUP}, {"брспнуо", IUNPCKLPS}, {"брспнуд", IUNPCKLPD},
+	{"брспуо", IUNPCKHPS}, {"брспуд", IUNPCKHPD},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},

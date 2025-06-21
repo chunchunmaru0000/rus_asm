@@ -287,30 +287,27 @@ enum ICode {
 	ISTOSD,
 	ISTOSQ,
 	// xmm
-	IMOVUPS,
+	IMOVUPS, // 0f 10
 	IMOVSS,
 	IMOVUPD,
 	IMOVSD_XMM,
-
 	IMOVHLPS,
 	IMOVLHPS,
-
 	IMOVLPS,
 	IMOVLPD,
 	IMOVDDUP,
-
 	IMOVSLDUP,
 	IMOVSHDUP,
-
+	IUNPCKLPS,
+	IUNPCKLPD,
 	IUNPCKHPS,
 	IUNPCKHPD,
-
 	IMOVHPS,
-	IMOVHPD,
-	// 0f 28 - 66 0f 2f
-	// 66 0F 3A 08 - 66 0F 3A 63
-	// 0f 50 - F3 0F 7F
-	// 0F C2 - 66 0F FE
+	IMOVHPD, // 66 0f 17
+			 // 0f 28 - 66 0f 2f
+			 // 66 0F 3A 08 - 66 0F 3A 63
+			 // 0f 50 - F3 0F 7F
+			 // 0F C2 - 66 0F FE
 };
 // TODO: 0f 00 - 0f 0d
 
@@ -396,6 +393,8 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN || (o)->code == OREL)
 #define is_seg(o) ((o)->code == OSREG)
+#define is_xmm(o) ((o)->code == OXMM)
+#define is_xm(o) (is_xmm((o)) || is_mem((o)))
 #define is_8(o) ((o)->sz == BYTE)
 #define is_16(o) ((o)->sz == WORD)
 #define is_32(o) ((o)->sz == DWORD)
