@@ -177,6 +177,82 @@ void add_mem(struct Ipcd *i, struct Oper *m) {
 	}
 }
 
+const enum OpsCode RM_L[] = {
+	RM_8__R_8,			RM_16_32_64__R_16_32_64,
+	RM_8__IMM_8,		RM_16_32_64__IMM_16_32,
+	RM_16_32_64__IMM_8,
+};
+const enum OpsCode RM_R[] = {
+	R_8__RM_8,
+	R_16_32_64__RM_16_32_64,
+	SREG__RM_16,
+	R_16_32_64__RM_16_32_64__IMM_8,
+	R_16_32_64__RM_16_32_64__IMM_16_32,
+	R_64__RM_32,
+	R_16_32_64__M,
+};
+const enum OpsCode IMM_R[] = {
+	AL__IMM_8,	RM_16_32_64__IMM_16_32,	  RM_8__IMM_8,	  RM_16_32_64__IMM_8,
+	R_8__IMM_8, R_16_32_64__IMM_16_32_64, RAX__IMM_16_32,
+};
+const enum OpsCode XM_L[] = {
+	XM_128__X,
+	XM_32__X,
+	XM_64__X,
+	M_64__X,
+};
+const enum OpsCode XM_R[] = {
+	X__XM_128,
+	X__XM_32,
+	X__XM_64,
+	X__M_64,
+};
+const enum OpsCode RM__X_ARR[] = {
+	RM_64__X,
+};
+const enum OpsCode X__RM_ARR[] = {
+	X__RM_64,
+};
+const enum OpsCode RM__R_ARR[] = {
+	RM_8__R_8,
+	RM_16_32_64__R_16_32_64,
+	M_16__SREG,
+	R_16_32_64__SREG,
+};
+const enum OpsCode R__RM_ARR[] = {
+	R_8__RM_8,	   R_16_32_64__RM_16_32_64,
+	R_64__RM_32,   R_16_32_64__RM_16_32_64__IMM_16_32,
+	SREG__RM_16,   R_16_32_64__RM_16_32_64__IMM_8,
+	R_16_32_64__M,
+};
+const enum OpsCode XRM__XR_ARR[] = {
+	X__X, // this one is strange
+	RM_64__X, M_64__X, XM_128__X, XM_32__X, XM_64__X,
+};
+const enum OpsCode XR__XRM_ARR[] = {
+	X__XM_128, X__XM_32, X__XM_64, X__RM_64, X__M_64,
+};
+
+int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
+	for (size_t i = 0; i < arr_len; i++)
+		if (c == arr[i])
+			return 1;
+	return 0;
+}
+
+#define is_rm_l(c) (is_in_opsc((c), RM_L, lenofarr(RM_L)))
+#define is_rm_r(c) (is_in_opsc((c), RM_R, lenofarr(RM_R)))
+#define is_imm_r(c) (is_in_opsc((c), IMM_R, lenofarr(IMM_R)))
+#define is_xm_l(c) (is_in_opsc((c), XM_L, lenofarr(XM_L)))
+#define is_xm_r(c) (is_in_opsc((c), XM_R, lenofarr(XM_R)))
+#define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, lenofarr(RM__X_ARR)))
+#define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
+
+#define is_rm__r(c) (is_in_opsc((c), RM__R_ARR, lenofarr(RM__R_ARR)))
+#define is_r__rm(c) (is_in_opsc((c), R__RM_ARR, lenofarr(R__RM_ARR)))
+#define is_xrm__xr(c) (is_in_opsc((c), XRM__XR_ARR, lenofarr(XRM__XR_ARR)))
+#define is_xr__xrm(c) (is_in_opsc((c), XR__XRM_ARR, lenofarr(XR__XRM_ARR)))
+
 void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	struct Oper *l, *r;
 	const struct Cmnd *c = i->c;
@@ -219,14 +295,14 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 		//   - - - r__rm or rm__r, lea uses r__m
 		//   - - - also sreg__rm or rm__sreg
 		//   - - - also xmm, CRn, DRn and maybe more shit
-		if (is_rm__r(c->opsc)) {
+		if (is_rm__r(c->opsc) || is_xrm__xr(c->opsc)) {
 			modrm += l->mod << 6;				// mod
 			modrm += get_reg_field(r->rm) << 3; // r
 			modrm += get_reg_field(l->rm);		// rm
 			blist_add(i->cmd, modrm);
 			if (is_mem(l))
 				add_mem(i, l);
-		} else if (is_r__rm(c->opsc)) {
+		} else if (is_r__rm(c->opsc) || is_xr__xrm(c->opsc)) {
 			modrm += r->mod << 6;				// mod
 			modrm += get_reg_field(l->rm) << 3; // r
 			modrm += get_reg_field(r->rm);		// rm
@@ -245,57 +321,6 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 	} else
 		ee(i->in->f, i->in->p, "че не так то");
 }
-
-const enum OpsCode RM_L[] = {
-	RM_8__R_8,			RM_16_32_64__R_16_32_64,
-	RM_8__IMM_8,		RM_16_32_64__IMM_16_32,
-	RM_16_32_64__IMM_8,
-};
-const enum OpsCode RM_R[] = {
-	R_8__RM_8,
-	R_16_32_64__RM_16_32_64,
-	SREG__RM_16,
-	R_16_32_64__RM_16_32_64__IMM_8,
-	R_16_32_64__RM_16_32_64__IMM_16_32,
-	R_64__RM_32,
-	R_16_32_64__M,
-};
-const enum OpsCode IMM_R[] = {
-	AL__IMM_8,	RM_16_32_64__IMM_16_32,	  RM_8__IMM_8,	  RM_16_32_64__IMM_8,
-	R_8__IMM_8, R_16_32_64__IMM_16_32_64, RAX__IMM_16_32,
-};
-const enum OpsCode XM_L[] = {
-	XM_128__X,
-	XM_32__X,
-	XM_64__X,
-	M_64__X,
-};
-const enum OpsCode XM_R[] = {
-	X__XM_128,
-	X__XM_32,
-	X__XM_64,
-	X__M_64,
-};
-const enum OpsCode RM__X_ARR[] = {
-	RM_64__X,
-};
-const enum OpsCode X__RM_ARR[] = {
-	X__RM_64,
-};
-
-int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
-	for (size_t i = 0; i < arr_len; i++)
-		if (c == arr[i])
-			return 1;
-	return 0;
-}
-#define is_rm_l(c) (is_in_opsc((c), RM_L, lenofarr(RM_L)))
-#define is_rm_r(c) (is_in_opsc((c), RM_R, lenofarr(RM_R)))
-#define is_imm_r(c) (is_in_opsc((c), IMM_R, lenofarr(IMM_R)))
-#define is_xm_l(c) (is_in_opsc((c), XM_L, lenofarr(XM_L)))
-#define is_xm_r(c) (is_in_opsc((c), XM_R, lenofarr(XM_R)))
-#define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, lenofarr(RM__X_ARR)))
-#define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
 
 // ССЫЛКИ:
 // * http://ref.x86asm.net/coder64.html
@@ -623,37 +648,30 @@ const struct Cmnd cmnds[] = {
 	// F3 Scalar Single-precision Prefix
 	// 66 Precision-size override prefix
 	{IMOVUPS, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_128},
-	{IMOVSS, {0xf3, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_32},
-	{IMOVUPD, {0x66, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_128},
-	{IMOVSD, {0xf2, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_64},
-
+	{IMOVSS, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_32},
+	{IMOVUPD, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOVSD, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_64},
 	{IMOVUPS, {0x0f, 0x11}, 2, REG_FIELD, 0, XM_128__X},
-	{IMOVSS, {0xf3, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_32__X},
-	{IMOVUPD, {0x66, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_128__X},
-	{IMOVSD, {0xf2, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_64__X},
-
+	{IMOVSS, {0x0f, 0x11}, 2, REG_FIELD, 0, XM_32__X},
+	{IMOVUPD, {0x0f, 0x11}, 2, REG_FIELD, 0, XM_128__X},
+	{IMOVSD, {0x0f, 0x11}, 2, REG_FIELD, 0, XM_64__X},
 	{IMOVHLPS, {0x0f, 0x12}, 2, REG_FIELD, 0, X__X},
 	{IMOVLPS, {0x0f, 0x12}, 2, REG_FIELD, 0, X__M_64},
-	{IMOVLPD, {0x66, 0x0f, 0x12}, 3, REG_FIELD, 0, X__M_64},
-	{IMOVDDUP, {0xf2, 0x0f, 0x12}, 3, REG_FIELD, 0, X__XM_64},
-	{IMOVSLDUP, {0xf3, 0x0f, 0x12}, 3, REG_FIELD, 0, X__XM_64},
-
+	{IMOVLPD, {0x0f, 0x12}, 2, REG_FIELD, 0, X__M_64},
+	{IMOVDDUP, {0x0f, 0x12}, 2, REG_FIELD, 0, X__XM_64},
+	{IMOVSLDUP, {0x0f, 0x12}, 2, REG_FIELD, 0, X__XM_64},
 	{IMOVLPS, {0x0f, 0x13}, 2, REG_FIELD, 0, M_64__X},
-	{IMOVLPS, {0x66, 0x0f, 0x13}, 3, REG_FIELD, 0, M_64__X},
-
+	{IMOVLPS, {0x0f, 0x13}, 2, REG_FIELD, 0, M_64__X},
 	{IUNPCKLPS, {0x0f, 0x14}, 2, REG_FIELD, 0, X__XM_64},
-	{IUNPCKLPD, {0x66, 0x0f, 0x14}, 3, REG_FIELD, 0, X__XM_128},
-
+	{IUNPCKLPD, {0x0f, 0x14}, 2, REG_FIELD, 0, X__XM_128},
 	{IUNPCKHPS, {0x0f, 0x15}, 2, REG_FIELD, 0, X__XM_64},
-	{IUNPCKHPD, {0x66, 0x0f, 0x15}, 3, REG_FIELD, 0, X__XM_128},
-
+	{IUNPCKHPD, {0x0f, 0x15}, 2, REG_FIELD, 0, X__XM_128},
 	{IMOVLHPS, {0x0f, 0x16}, 2, REG_FIELD, 0, X__X},
 	{IMOVHPS, {0x0f, 0x16}, 2, REG_FIELD, 0, X__M_64},
-	{IMOVHPD, {0x66, 0x0f, 0x16}, 3, REG_FIELD, 0, X__M_64},
-	{IMOVSHDUP, {0xf3, 0x0f, 0x16}, 3, REG_FIELD, 0, X__XM_64},
-
+	{IMOVHPD, {0x0f, 0x16}, 2, REG_FIELD, 0, X__M_64},
+	{IMOVSHDUP, {0x0f, 0x16}, 2, REG_FIELD, 0, X__XM_64},
 	{IMOVHPS, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
-	{IMOVHPD, {0x66, 0x0f, 0x17}, 3, REG_FIELD, 0, M_64__X},
+	{IMOVHPD, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
