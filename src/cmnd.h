@@ -134,6 +134,6 @@ struct Ipcd {
 	uc debug;
 };
 void get_ops_code(struct Ipcd *);
-void get_align(struct Ipcd *, int);
+void get_align(struct Ipcd *, int, int, int);
 
 #define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)

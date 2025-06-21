@@ -675,12 +675,16 @@ const struct Cmnd cmnds[] = {
 	{IMOVHPD, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
 };
 
-void get_align(struct Ipcd *i, int len) {
-	const struct Cmnd *c = cmnds; // nop
+void get_align(struct Ipcd *i, int size, int align, int value) {
 	// there is a thing bout nops at 0F 18 - 0F 1F
 	// but im not sure, maybe there is a better way to align
+	// TODO: see if there is better nop for align
+	if (value == -1)
+		value = ((const struct Cmnd *)cmnds)->cmd[0]; // nop
+	int len = (align - (size % align)) % align;
+
 	for (int j = 0; j < len; j++)
-		blist_add(i->cmd, *c->cmd);
+		blist_add(i->cmd, value);
 }
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =

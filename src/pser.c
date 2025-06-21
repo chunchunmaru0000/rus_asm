@@ -871,7 +871,15 @@ const char *const EXPECTED_POSITIVE_INT_FOR_ALIGN =
 
 enum ICode align_pd(struct Pser *p, struct PList *os) {
 	next_get(p, 0); // skip равнять
+
 	struct Oper *o = expression(p);
+	if (o->code != OINT || o->t->number < 0)
+		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
+	plist_add(os, o);
+	if (gettp(p, 0)->code == SLASHN)
+		return IALIGN;
+
+	o = expression(p);
 	if (o->code != OINT || o->t->number < 0)
 		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
 	plist_add(os, o);
