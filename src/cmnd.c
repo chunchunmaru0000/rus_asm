@@ -606,6 +606,32 @@ const struct Cmnd cmnds[] = {
 	{IINPUT, {0xed}, 1, NOT_FIELD, 0, EAX__DX},
 	{IOUTPUT, {0xee}, 1, NOT_FIELD, 0, DX__AL},
 	{IOUTPUT, {0xef}, 1, NOT_FIELD, 0, DX__EAX},
+	// xmm
+	{IMOVUPS, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOVSS, {0xf3, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_32},
+	{IMOVUPD, {0x66, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_128},
+	{IMOVSD, {0xf2, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_64},
+	{IMOVUPS, {0x0f, 0x11}, 2, REG_FIELD, 0, XM_128__X},
+	{IMOVSS, {0xf3, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_32__X},
+	{IMOVUPD, {0x66, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_128__X},
+	{IMOVSD, {0xf2, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_64__X},
+	{IMOVHLPS, {0x0f, 0x12}, 2, REG_FIELD, 0, X__X},
+	{IMOVLPS, {0x0f, 0x12}, 2, REG_FIELD, 0, X__M_64},
+	{IMOVLPD, {0x66, 0x0f, 0x12}, 3, REG_FIELD, 0, X__M_64},
+	{IMOVDDUP, {0xf2, 0x0f, 0x12}, 3, REG_FIELD, 0, X__XM_64},
+	{IMOVSLDUP, {0xf3, 0x0f, 0x12}, 3, REG_FIELD, 0, X__XM_64},
+	{IMOVLPS, {0x0f, 0x13}, 2, REG_FIELD, 0, M_64__X},
+	{IMOVLPS, {0x66, 0x0f, 0x13}, 3, REG_FIELD, 0, M_64__X},
+	{IUNPCKLPS, {0x0f, 0x14}, 2, REG_FIELD, 0, X__XM_64},
+	{IUNPCKLPD, {0x66, 0x0f, 0x14}, 3, REG_FIELD, 0, X__XM_128},
+	{IUNPCKHPS, {0x0f, 0x15}, 2, REG_FIELD, 0, X__XM_64},
+	{IUNPCKHPD, {0x66, 0x0f, 0x15}, 3, REG_FIELD, 0, X__XM_128},
+	{IMOVLHPS, {0x0f, 0x16}, 2, REG_FIELD, 0, X__X},
+	{IMOVHPS, {0x0f, 0x16}, 2, REG_FIELD, 0, X__M_64},
+	{IMOVHPD, {0x66, 0x0f, 0x16}, 3, REG_FIELD, 0, X__M_64},
+	{IMOVSHDUP, {0xf3, 0x0f, 0x16}, 3, REG_FIELD, 0, X__XM_64},
+	{IMOVHPS, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
+	{IMOVHPD, {0x66, 0x0f, 0x17}, 3, REG_FIELD, 0, M_64__X},
 };
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
@@ -841,10 +867,10 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case IMOVUPD:
 	case IUNPCKLPD:
 	case IUNPCKHPD:
-		get_xm_xm_code(&code, in, l, r, XMM__XMM_M_128, XMM_M_128__XMM, XWORD);
+		get_xm_xm_code(&code, in, l, r, X__XM_128, XM_128__X, XWORD);
 		break;
 	case IMOVSS:
-		get_xm_xm_code(&code, in, l, r, XMM__XMM_M_32, XMM_M_32__XMM, DWORD);
+		get_xm_xm_code(&code, in, l, r, X__XM_32, XM_32__X, DWORD);
 		break;
 	case IMOVSD_XMM:
 	case IMOVDDUP:
@@ -852,24 +878,24 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case IUNPCKLPS:
 	case IUNPCKHPS:
 	case IMOVSHDUP:
-		get_xm_xm_code(&code, in, l, r, XMM__XMM_M_64, XMM_M_64__XMM, QWORD);
+		get_xm_xm_code(&code, in, l, r, X__XM_64, XM_64__X, QWORD);
 		break;
 	case IMOVHLPS:
 	case IMOVLHPS:
 		// here OPC_INVALID grants that if is_mem(l) then invalid ops code
 		if (!is_mem(r))
-			get_xm_xm_code(&code, in, l, r, XMM__XMM, OPC_INVALID, 0);
+			get_xm_xm_code(&code, in, l, r, X__X, OPC_INVALID, 0);
 		break;
 	case IMOVLPS:
 	case IMOVLPD:
 	case IMOVHPS:
 	case IMOVHPD:
-		if (is_xmm(l) && is_mem(r)){
+		if (is_xmm(l) && is_mem(r)) {
 			change_mem_size(in, r, QWORD);
-			code = XMM__M_64;
-		} else if (is_mem(l) && is_xmm(r)){
+			code = X__M_64;
+		} else if (is_mem(l) && is_xmm(r)) {
 			change_mem_size(in, l, QWORD);
-			code = M_64__XMM;
+			code = M_64__X;
 		}
 		break;
 	default:

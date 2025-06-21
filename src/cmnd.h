@@ -74,15 +74,15 @@ enum OpsCode {
 	DX__AL,
 	DX__EAX,
 
-	XMM__XMM_M_128,
-	XMM__XMM_M_32,
-	XMM__XMM_M_64,
-	XMM_M_128__XMM,
-	XMM_M_32__XMM,
-	XMM_M_64__XMM,
-	XMM__M_64,
-	M_64__XMM,
-	XMM__XMM,
+	X__XM_128,
+	X__XM_32,
+	X__XM_64,
+	XM_128__X,
+	XM_32__X,
+	XM_64__X,
+	X__M_64,
+	M_64__X,
+	X__X,
 };
 
 #define NOT_FIELD 0
