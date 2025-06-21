@@ -346,6 +346,7 @@ void fill_two_ops_cmd_and_data(struct Ipcd *i) {
 
 const struct Cmnd cmnds[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
+	//
 	{IRET, {0xc3}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IRETF, {0x48, 0xcb}, 2, NOT_FIELD, 0, OPC_INVALID},
 	{ILOCK, {0xf0}, 1, NOT_FIELD, 0, OPC_INVALID},
@@ -673,6 +674,14 @@ const struct Cmnd cmnds[] = {
 	{IMOVHPS, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
 	{IMOVHPD, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
 };
+
+void get_align(struct Ipcd *i, int len) {
+	const struct Cmnd *c = cmnds; // nop
+	// there is a thing bout nops at 0F 18 - 0F 1F
+	// but im not sure, maybe there is a better way to align
+	for (int j = 0; j < len; j++)
+		blist_add(i->cmd, *c->cmd);
+}
 
 const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
 	"Размер числа был вбайт, но данный тип инструкций не "

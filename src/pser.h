@@ -154,8 +154,9 @@ enum ICode {
 	ISECTION,
 	ILABEL,
 	ILET,
-	IDATA,
 	IINCLUDE,
+	IALIGN,
+	IDATA,
 	// two ops
 	IADD,
 	IOR,
@@ -354,9 +355,6 @@ struct Oper { // operand
 	uc mod;				 // mod specifies displaacement size or r/m
 	char *rel_view;
 	int disp; // displacement
-
-	// enum SimdCode scode;
-	// all other needed enums also
 };
 void print_oper(struct Oper *);
 int get_reg_field(enum RegCode);

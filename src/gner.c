@@ -517,6 +517,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			data_bl = plist_get(in->os, 0);
 			blat(data, data_bl->st, data_bl->size);
 			break;
+		case IALIGN:
+			j = ((struct Oper *)plist_get(in->os, 0))->t->number;
+			j = (j - ((g->text->size + g->eps->all_h_sz) % j)) % j;
+			printf("\talign %ld\n", j);
+			get_align(ipcd, j);
+			break;
 		case ISEGMENT:
 			g->eps->phs_cur_sz = *phs_c ? 0 : g->eps->all_h_sz;
 			/*

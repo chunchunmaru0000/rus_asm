@@ -96,6 +96,7 @@ const char *STR_SEG_X = "исп";
 const char *STR_EOF = "_КОНЕЦ_ФАЙЛА_";
 const char *STR_LET = "пусть";
 const char *STR_ADDR = "адр";
+const char *STR_ALIGN = "равнять";
 // instruction words
 // load - выг рузить
 // store - заг рузить
@@ -237,10 +238,10 @@ const struct Reg XMM_REGS[] = {
 	{R_XMM12, "хмм12"}, {R_XMM13, "хмм13"}, {R_XMM14, "хмм14"},
 	{R_XMM15, "хмм15"},
 
-	{R_XMM0, "э0"},	{R_XMM1, "э1"},	{R_XMM2, "э2"},
-	{R_XMM3, "э3"},	{R_XMM4, "э4"},	{R_XMM5, "э5"},
-	{R_XMM6, "э6"},	{R_XMM7, "э7"},	{R_XMM8, "э8"},
-	{R_XMM9, "э9"},	{R_XMM10, "э10"},	{R_XMM11, "э11"},
+	{R_XMM0, "э0"},		{R_XMM1, "э1"},		{R_XMM2, "э2"},
+	{R_XMM3, "э3"},		{R_XMM4, "э4"},		{R_XMM5, "э5"},
+	{R_XMM6, "э6"},		{R_XMM7, "э7"},		{R_XMM8, "э8"},
+	{R_XMM9, "э9"},		{R_XMM10, "э10"},	{R_XMM11, "э11"},
 	{R_XMM12, "э12"},	{R_XMM13, "э13"},	{R_XMM14, "э14"},
 	{R_XMM15, "э15"},
 };
@@ -864,6 +865,19 @@ enum ICode define_pd(struct Pser *p) {
 	return INONE;
 }
 
+const char *const EXPECTED_POSITIVE_INT_FOR_ALIGN =
+	"Для функции \"равнять\" в качестве единственного аргумента ожидалось "
+	"положительное целое число.";
+
+enum ICode align_pd(struct Pser *p, struct PList *os) {
+	next_get(p, 0); // skip равнять
+	struct Oper *o = expression(p);
+	if (o->code != OINT || o->t->number < 0)
+		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
+	plist_add(os, o);
+	return IALIGN;
+}
+
 const char *const EXPECTED_STR_AS_INCLUDE_PATH =
 	"В выраженнии \"влечь\" в качестве параметра ожидалась строка "
 	"с путем к файлу.";
@@ -933,6 +947,8 @@ struct Inst *get_inst(struct Pser *p) {
 			code = let_i(p, os);
 		else if (sc(cv, STR_DEFINE))
 			code = define_pd(p);
+		else if (sc(cv, STR_ALIGN))
+			code = align_pd(p, os);
 		else if (sc(cv, STR_INCLUDE))
 			code = include_pd(p, os);
 		else if (sc(cv, STR_SEG))
