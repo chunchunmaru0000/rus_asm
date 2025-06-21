@@ -287,27 +287,48 @@ enum ICode {
 	ISTOSD,
 	ISTOSQ,
 	// xmm
-	IMOVUPS, // 0f 10
-	IMOVSS,
-	IMOVUPD,
-	IMOVSD_XMM,
+	I_XMM_INSTRUCTIONS_BEGIN,
+	// __
+	I_XMM_NO_PREFIX_BEGIN,
+
+	IMOVUPS,
 	IMOVHLPS,
-	IMOVLHPS,
 	IMOVLPS,
+	IUNPCKLPS,
+	IUNPCKHPS,
+	IMOVLHPS,
+	IMOVHPS,
+
+	I_XMM_NO_PREFIX_END,
+	// 66
+	I_XMM_66_PREFIX_BEGIN,
+
+	IMOVUPD,
 	IMOVLPD,
+	IUNPCKLPD,
+	IUNPCKHPD,
+	IMOVHPD,
+
+	I_XMM_66_PREFIX_END,
+	// F2
+	I_XMM_F2_PREFIX_BEGIN,
+
+	IMOVSD_XMM,
 	IMOVDDUP,
+
+	I_XMM_F2_PREFIX_END,
+	// F3
+	I_XMM_F3_PREFIX_BEGIN,
+
+	IMOVSS,
 	IMOVSLDUP,
 	IMOVSHDUP,
-	IUNPCKLPS,
-	IUNPCKLPD,
-	IUNPCKHPS,
-	IUNPCKHPD,
-	IMOVHPS,
-	IMOVHPD, // 66 0f 17
-			 // 0f 28 - 66 0f 2f
-			 // 66 0F 3A 08 - 66 0F 3A 63
-			 // 0f 50 - F3 0F 7F
-			 // 0F C2 - 66 0F FE
+
+	I_XMM_F3_PREFIX_END,
+	// 0f 28 - 66 0f 2f
+	// 66 0F 3A 08 - 66 0F 3A 63
+	// 0f 50 - F3 0F 7F
+	// 0F C2 - 66 0F FE
 };
 // TODO: 0f 00 - 0f 0d
 
@@ -378,6 +399,8 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 						   ((o)->rm >= R_R8D && (o)->rm <= R_R15D) ||          \
 						   ((o)->rm >= R_R8W && (o)->rm <= R_R15W) ||          \
 						   ((o)->rm >= R_R8B && (o)->rm <= R_R15B)))
+#define is_x_new(o)                                                            \
+	((o)->code == OXMM && ((o)->rm >= R_XMM8 && (o)->rm <= R_XMM15))
 
 #define is_f_reg8(rm) ((rm) >= R_AL && (rm) <= R_R15B)
 #define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)
@@ -414,5 +437,13 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_imm_can_be_a_byte(o)                                                \
 	((o)->code == OINT && is_in_byte((o)->t->number))
 #define is_rel8_shortable(c) ((c) >= IJMP && (c) <= IJG)
+#define is_NO(code)                                                            \
+	((code) > I_XMM_NO_PREFIX_BEGIN && (code) < I_XMM_NO_PREFIX_END)
+#define is_66(code)                                                            \
+	((code) > I_XMM_66_PREFIX_BEGIN && (code) < I_XMM_66_PREFIX_END)
+#define is_F2(code)                                                            \
+	((code) > I_XMM_F2_PREFIX_BEGIN && (code) < I_XMM_F2_PREFIX_END)
+#define is_F3(code)                                                            \
+	((code) > I_XMM_F3_PREFIX_BEGIN && (code) < I_XMM_F3_PREFIX_END)
 
 enum RegCode get_mem_reg(enum RegCode);

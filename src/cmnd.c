@@ -260,34 +260,46 @@ const enum OpsCode RM_R[] = {
 	R_64__RM_32,
 	R_16_32_64__M,
 };
-const enum OpsCode IMM_R[] = {AL__IMM_8,
-							  RAX__IMM_16_32,
-							  RM_8__IMM_8,
-							  RM_16_32_64__IMM_16_32,
-							  RM_16_32_64__IMM_8,
-							  R_8__IMM_8,
-							  R_16_32_64__IMM_16_32_64};
-int is_rm_l(enum OpsCode c) {
-	for (size_t i = 0; i < lenofarr(RM_L); i++)
-		if (c == RM_L[i])
-			return 1;
-	return 0;
-}
-int is_rm_r(enum OpsCode c) {
-	for (size_t i = 0; i < lenofarr(RM_R); i++)
-		if (c == RM_R[i])
-			return 1;
-	return 0;
-}
-int is_imm_r(enum OpsCode c) {
-	for (size_t i = 0; i < lenofarr(IMM_R); i++)
-		if (c == IMM_R[i])
-			return 1;
-	return 0;
-}
+const enum OpsCode IMM_R[] = {
+	AL__IMM_8,	RM_16_32_64__IMM_16_32,	  RM_8__IMM_8,	  RM_16_32_64__IMM_8,
+	R_8__IMM_8, R_16_32_64__IMM_16_32_64, RAX__IMM_16_32,
+};
+const enum OpsCode XM_L[] = {
+	XM_128__X,
+	XM_32__X,
+	XM_64__X,
+	M_64__X,
+};
+const enum OpsCode XM_R[] = {
+	X__XM_128,
+	X__XM_32,
+	X__XM_64,
+	X__M_64,
+};
+const enum OpsCode RM__X_ARR[] = {
+	RM_64__X,
+};
+const enum OpsCode X__RM_ARR[] = {
+	X__RM_64,
+};
 
-// http://ref.x86asm.net/coder64.html
-// https://www.felixcloutier.com/x86/
+int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
+	for (size_t i = 0; i < arr_len; i++)
+		if (c == arr[i])
+			return 1;
+	return 0;
+}
+#define is_rm_l(c) (is_in_opsc((c), RM_L, lenofarr(RM_L)))
+#define is_rm_r(c) (is_in_opsc((c), RM_R, lenofarr(RM_R)))
+#define is_imm_r(c) (is_in_opsc((c), IMM_R, lenofarr(IMM_R)))
+#define is_xm_l(c) (is_in_opsc((c), XM_L, lenofarr(XM_L)))
+#define is_xm_r(c) (is_in_opsc((c), XM_R, lenofarr(XM_R)))
+#define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, lenofarr(RM__X_ARR)))
+#define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
+
+// ССЫЛКИ:
+// * http://ref.x86asm.net/coder64.html
+// * https://www.felixcloutier.com/x86/
 
 // add r8w, 128 does 6641 81c0 8000,adress prefix > so 16-bit prefix > 64-bit
 // lock fs    repne  scas  word  [edi] -> f0 64f2 6766 af
@@ -296,12 +308,12 @@ int is_imm_r(enum OpsCode c) {
 
 // F0 lock
 // 64 65 FS GS Segment Override
-// F2 Repeat String Operation Prefix | Scalar Double-precision Prefix
-// F3 Repeat String Operation Prefix | Scalar Single-precision Prefix
-// 			2E 36 3E 26 Null Prefix in 64-bit Mode
 // 67 Address-size override prefix, when adress 32-bit like [eax] not [rax]
 // - prefix 67 adress prefix does give you a way of taking value from adress of
 // 		32 bit register like [r8d]
+// F2 Repeat String Operation Prefix | Scalar Double-precision Prefix
+// F3 Repeat String Operation Prefix | Scalar Single-precision Prefix
+// 			2E 36 3E 26 Null Prefix in 64-bit Mode
 // 66 16-bit Operand-size override prefix | Precision-size override prefix
 // - prefix 66 is used with all 16 bit ops like add ax, bx or
 //		add word [rax], 255
@@ -607,29 +619,39 @@ const struct Cmnd cmnds[] = {
 	{IOUTPUT, {0xee}, 1, NOT_FIELD, 0, DX__AL},
 	{IOUTPUT, {0xef}, 1, NOT_FIELD, 0, DX__EAX},
 	// xmm
+	// F2 Scalar Double-precision Prefix
+	// F3 Scalar Single-precision Prefix
+	// 66 Precision-size override prefix
 	{IMOVUPS, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_128},
 	{IMOVSS, {0xf3, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_32},
 	{IMOVUPD, {0x66, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_128},
 	{IMOVSD, {0xf2, 0x0f, 0x10}, 3, REG_FIELD, 0, X__XM_64},
+
 	{IMOVUPS, {0x0f, 0x11}, 2, REG_FIELD, 0, XM_128__X},
 	{IMOVSS, {0xf3, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_32__X},
 	{IMOVUPD, {0x66, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_128__X},
 	{IMOVSD, {0xf2, 0x0f, 0x11}, 3, REG_FIELD, 0, XM_64__X},
+
 	{IMOVHLPS, {0x0f, 0x12}, 2, REG_FIELD, 0, X__X},
 	{IMOVLPS, {0x0f, 0x12}, 2, REG_FIELD, 0, X__M_64},
 	{IMOVLPD, {0x66, 0x0f, 0x12}, 3, REG_FIELD, 0, X__M_64},
 	{IMOVDDUP, {0xf2, 0x0f, 0x12}, 3, REG_FIELD, 0, X__XM_64},
 	{IMOVSLDUP, {0xf3, 0x0f, 0x12}, 3, REG_FIELD, 0, X__XM_64},
+
 	{IMOVLPS, {0x0f, 0x13}, 2, REG_FIELD, 0, M_64__X},
 	{IMOVLPS, {0x66, 0x0f, 0x13}, 3, REG_FIELD, 0, M_64__X},
+
 	{IUNPCKLPS, {0x0f, 0x14}, 2, REG_FIELD, 0, X__XM_64},
 	{IUNPCKLPD, {0x66, 0x0f, 0x14}, 3, REG_FIELD, 0, X__XM_128},
+
 	{IUNPCKHPS, {0x0f, 0x15}, 2, REG_FIELD, 0, X__XM_64},
 	{IUNPCKHPD, {0x66, 0x0f, 0x15}, 3, REG_FIELD, 0, X__XM_128},
+
 	{IMOVLHPS, {0x0f, 0x16}, 2, REG_FIELD, 0, X__X},
 	{IMOVHPS, {0x0f, 0x16}, 2, REG_FIELD, 0, X__M_64},
 	{IMOVHPD, {0x66, 0x0f, 0x16}, 3, REG_FIELD, 0, X__M_64},
 	{IMOVSHDUP, {0xf3, 0x0f, 0x16}, 3, REG_FIELD, 0, X__XM_64},
+
 	{IMOVHPS, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
 	{IMOVHPD, {0x66, 0x0f, 0x17}, 3, REG_FIELD, 0, M_64__X},
 };
@@ -909,51 +931,94 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	struct Oper *l, *r;
 	declare_two_ops(i->in, l, r);
-	// {lock}     fs repne scas   word [edi] ->
-	// {f0}   [64 fs][f2   scas] [67   is_r32(r)][66 is_16(r)] af
-	// mov word[r8d], 255 -> 67 6641 c700 ff00
 
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
 	if (is_addr32(l) || is_addr32(r))
 		blist_add(i->cmd, 0x67);
-	// 66 16-bit Operand-size OVERRIRE prefix
-	// mov M_16__SREG dont need cuz its always 16-bit
-	if ((code == EAX__IMM_8 || code == EAX__DX) && is_16(l))
-		blist_add(i->cmd, 0x66);
-	else if ((code == IMM_8__EAX || code == DX__EAX) && is_16(r))
-		blist_add(i->cmd, 0x66);
-	else if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
-			 !(code == IMM_16__IMM_8 || code == DX__EAX))
-		blist_add(i->cmd, 0x66);
+
 	// REX prefixes
 	uc rex = 0b01000000;
-	if (is_64(l) || is_64(r))
-		rex |= REX_W;
-	if (is_rm_l(code)) {
-		if (is_mem(l))
-			rex |= l->rex; // get mem REX's
-		else if (is_r_new(l))
-			rex |= REX_B; // Extension of ModR/M r/m
-		if (is_r_new(r))
-			rex |= REX_R; // Extension of ModR/M reg
-	} else if (is_rm_r(code)) {
-		if (is_mem(r))
-			rex |= r->rex; // get mem REX's
-		else if (is_r_new(r))
-			rex |= REX_B; // Extension of ModR/M r/m
-		if (is_r_new(l))
-			rex |= REX_R; // Extension of ModR/M reg
-	} else if (is_imm_r(code)) {
+
+	// xmm prefixes
+	if (i->in->code > I_XMM_INSTRUCTIONS_BEGIN) {
+		if (is_66(i->in->code))
+			blist_add(i->cmd, 0x66);
+		else if (is_F2(i->in->code))
+			blist_add(i->cmd, 0xf2);
+		else if (is_F3(i->in->code))
+			blist_add(i->cmd, 0xf3);
+
+		// xmm opcodes SUPPOSEDLY never use REX for m64 but for reg64
+		if ((is_reg(l) && is_64(l)) || (is_reg(r) && is_64(r)))
+			rex |= REX_W;
+		if (is_xm_l(code)) {
+			if (is_mem(l))
+				rex |= l->rex; // get mem REX's
+			else if (is_x_new(l))
+				rex |= REX_B; // Extension of ModR/M r/m
+			if (is_x_new(r))
+				rex |= REX_R; // Extension of ModR/M reg
+		} else if (is_xm_r(code)) {
+			if (is_mem(r))
+				rex |= r->rex; // get mem REX's
+			else if (is_x_new(r))
+				rex |= REX_B; // Extension of ModR/M r/m
+			if (is_x_new(l))
+				rex |= REX_R; // Extension of ModR/M reg
+		} else if (is_imm_r(code)) {
+			if (is_xm_l(code)) {
+				if (is_mem(l))
+					rex |= l->rex; // get mem REX's
+				else if (is_x_new(l))
+					rex |= REX_B;	  // Extension of ModR/M r/m
+			} else if (is_x_new(l)) { // SUPPOSED TO BE REG
+				if (i->c->o == PLUS_REGF)
+					rex |= REX_B; // Extension of ModR/M r/m
+				else
+					rex |= REX_R; // Extension of ModR/M reg
+			}
+		} else if (is_rm__x(code)) { // TODO: is_rm__x REX prefs
+		} else if (is_x__rm(code)) { // TODO: is_x__rm REX prefs
+		}
+	} else {
+		// 66 16-bit Operand-size OVERRIRE prefix
+		// mov M_16__SREG dont need cuz its always 16-bit
+		if ((code == EAX__IMM_8 || code == EAX__DX) && is_16(l))
+			blist_add(i->cmd, 0x66);
+		else if ((code == IMM_8__EAX || code == DX__EAX) && is_16(r))
+			blist_add(i->cmd, 0x66);
+		else if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
+				 !(code == IMM_16__IMM_8 || code == DX__EAX))
+			blist_add(i->cmd, 0x66);
+
+		if (is_64(l) || is_64(r))
+			rex |= REX_W;
 		if (is_rm_l(code)) {
 			if (is_mem(l))
 				rex |= l->rex; // get mem REX's
 			else if (is_r_new(l))
-				rex |= REX_B;	  // Extension of ModR/M r/m
-		} else if (is_r_new(l)) { // SUPPOSED TO BE REG
-			if (i->c->o == PLUS_REGF)
 				rex |= REX_B; // Extension of ModR/M r/m
-			else
+			if (is_r_new(r))
 				rex |= REX_R; // Extension of ModR/M reg
+		} else if (is_rm_r(code)) {
+			if (is_mem(r))
+				rex |= r->rex; // get mem REX's
+			else if (is_r_new(r))
+				rex |= REX_B; // Extension of ModR/M r/m
+			if (is_r_new(l))
+				rex |= REX_R; // Extension of ModR/M reg
+		} else if (is_imm_r(code)) {
+			if (is_rm_l(code)) {
+				if (is_mem(l))
+					rex |= l->rex; // get mem REX's
+				else if (is_r_new(l))
+					rex |= REX_B;	  // Extension of ModR/M r/m
+			} else if (is_r_new(l)) { // SUPPOSED TO BE REG
+				if (i->c->o == PLUS_REGF)
+					rex |= REX_B; // Extension of ModR/M r/m
+				else
+					rex |= REX_R; // Extension of ModR/M reg
+			}
 		}
 	}
 	if (rex != 0b01000000)
