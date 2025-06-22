@@ -169,15 +169,21 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идесх0", IJECXZ}, {"идрсх0", IJRCXZ}, {"не", INOT},
 	{"нег", INEG},
 };
-// Single		о
-// Double		д
-// Scalar		с
+// Single		о один
+// Double		д два
+// Scalar		с скалярный
 // Un aligned	нр не ровный
-// Packed		у
-// Duplicate	удв
-// High			в
-// Low			н
-// Unpack		рсп
+// Packed		у упакованный
+// Duplicate	удв удвоить
+// High			в высок
+// Low			н низ
+// Unpack		рсп распаковать
+// Convert		пре преобразовать
+// Compare		срав сравнить
+// Unordered	ну не упорядоченный
+// Integers		ч число
+// Non temp		нв не временный
+// Truncate		о округлять
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},		   {"плюс", IADD},		   {"минс", ISUB},
 	{"проб", ITEST},	   {"срав", ICMP},		   {"или", IOR},
@@ -191,6 +197,27 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"бвуд", IMOVHPD},	   {"бдудв", IMOVDDUP},	   {"бонудв", IMOVSLDUP},
 	{"бовудв", IMOVSHDUP}, {"брспнуо", IUNPCKLPS}, {"брспнуд", IUNPCKLPD},
 	{"брспуо", IUNPCKHPS}, {"брспуд", IUNPCKHPD},
+
+	{"бууо", IMOVAPS},
+	{"бууд", IMOVAPD},
+	{"бнвуо", IMOVNTPS},
+	{"бнвуд", IMOVNTPD},
+	{"сравсо", ICOMISS},
+	{"сравсд", ICOMISD},
+	{"нусравсо", IUCOMISS},
+	{"нусравсд", IUCOMISD},
+	{"преуч2уо", ICVTPI2PS},
+	{"пречс2со", ICVTSI2SS},
+	{"преуч2уд", ICVTPI2PD},
+	{"пресч2сд", ICVTSI2SD},
+	{"преуо2уч", ICVTPS2PI},
+	{"пресо2зч", ICVTSS2SI},
+	{"преуд2уч", ICVTPD2PI},
+	{"пресд2зч", ICVTSD2SI},
+	{"преоуо2уч", ICVTTPS2PI},
+	{"преосо2зч", ICVTTSS2SI},
+	{"преоуд2уч", ICVTTPD2PI},
+	{"преосд2зч", ICVTTSD2SI},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
