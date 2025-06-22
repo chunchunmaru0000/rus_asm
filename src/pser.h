@@ -39,6 +39,7 @@ enum OCode { // operand type codes
 	// ODR // debug registers?
 	// OIOR // i/o registers? are there even these
 	OFPU, // FPU registers and things
+	OMM,  // mm registers
 };
 
 enum RegCode {
@@ -143,6 +144,15 @@ enum RegCode {
 	R_XMM13,
 	R_XMM14,
 	R_XMM15,
+
+	R_MM0,
+	R_MM1,
+	R_MM2,
+	R_MM3,
+	R_MM4,
+	R_MM5,
+	R_MM6,
+	R_MM7,
 };
 
 enum ICode {
@@ -424,6 +434,7 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_f_reg32(rm) ((rm) >= R_EAX && (rm) <= R_R15D)
 #define is_f_reg64(rm) ((rm) >= R_RAX && (rm) <= R_R15)
 #define is_f_xmm(rm) ((rm) >= R_XMM0 && (rm) <= R_XMM15)
+#define is_f_mm(rm) ((rm) >= R_MM0 && (rm) <= R_MM7)
 #define is_f_seg(rm) ((rm) >= R_ES && (rm) <= R_GS)
 
 #define is_fs(o) ((o)->code == OSREG && (o)->rm == R_FS)
@@ -434,6 +445,8 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_imm(o) ((o)->code == OINT || (o)->code == OFPN || (o)->code == OREL)
 #define is_seg(o) ((o)->code == OSREG)
 #define is_xmm(o) ((o)->code == OXMM)
+#define is_mm(o) ((o)->code == OMM)
+#define is_mmm(o) (is_mem((o)) || is_mm((o)))
 #define is_xm(o) (is_xmm((o)) || is_mem((o)))
 #define is_8(o) ((o)->sz == BYTE)
 #define is_16(o) ((o)->sz == WORD)

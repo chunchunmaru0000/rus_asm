@@ -207,12 +207,14 @@ const enum OpsCode XM_R[] = {
 	X__XM_64,
 	X__M_64,
 };
-const enum OpsCode RM__X_ARR[] = {
-	RM_64__X,
-};
-const enum OpsCode X__RM_ARR[] = {
-	X__RM_64,
-};
+// TODO: chech if these are needed
+// const enum OpsCode RM__X_ARR[] = {
+// 	RM_64__X,
+// };
+// const enum OpsCode X__RM_ARR[] = {
+// 	X__RM_64,
+// };
+
 const enum OpsCode RM__R_ARR[] = {
 	RM_8__R_8,
 	RM_16_32_64__R_16_32_64,
@@ -227,10 +229,12 @@ const enum OpsCode R__RM_ARR[] = {
 };
 const enum OpsCode XRM__XR_ARR[] = {
 	X__X, // this one is strange
-	RM_64__X, M_64__X, XM_128__X, XM_32__X, XM_64__X,
+	RM_64__X, M_64__X, XM_128__X, XM_32__X, XM_64__X, M_128__X,
 };
 const enum OpsCode XR__XRM_ARR[] = {
-	X__XM_128, X__XM_32, X__XM_64, X__RM_64, X__M_64,
+	X__XM_128,		X__XM_32,	X__XM_64,		X__RM_64,
+	X__M_64,		X__MMM_64,	X__RM_32_64,	MM__XM_64,
+	R_32_64__XM_32, MM__XM_128, R_32_64__XM_64,
 };
 
 int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
@@ -245,9 +249,8 @@ int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
 #define is_imm_r(c) (is_in_opsc((c), IMM_R, lenofarr(IMM_R)))
 #define is_xm_l(c) (is_in_opsc((c), XM_L, lenofarr(XM_L)))
 #define is_xm_r(c) (is_in_opsc((c), XM_R, lenofarr(XM_R)))
-#define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, lenofarr(RM__X_ARR)))
-#define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
-
+// #define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, lenofarr(RM__X_ARR)))
+// #define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
 #define is_rm__r(c) (is_in_opsc((c), RM__R_ARR, lenofarr(RM__R_ARR)))
 #define is_r__rm(c) (is_in_opsc((c), R__RM_ARR, lenofarr(R__RM_ARR)))
 #define is_xrm__xr(c) (is_in_opsc((c), XRM__XR_ARR, lenofarr(XRM__XR_ARR)))
@@ -673,6 +676,28 @@ const struct Cmnd cmnds[] = {
 	{IMOVSHDUP, {0x0f, 0x16}, 2, REG_FIELD, 0, X__XM_64},
 	{IMOVHPS, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
 	{IMOVHPD, {0x0f, 0x17}, 2, REG_FIELD, 0, M_64__X},
+	{IMOVAPS, {0x0f, 0x28}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOVAPD, {0x0f, 0x28}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOVAPS, {0x0f, 0x29}, 2, REG_FIELD, 0, XM_128__X},
+	{IMOVAPD, {0x0f, 0x29}, 2, REG_FIELD, 0, XM_128__X},
+	{ICVTPI2PS, {0x0f, 0x2a}, 2, REG_FIELD, 0, X__MMM_64},
+	{ICVTSI2SS, {0x0f, 0x2a}, 2, REG_FIELD, 0, X__RM_32_64},
+	{ICVTPI2PD, {0x0f, 0x2a}, 2, REG_FIELD, 0, X__MMM_64},
+	{ICVTSI2SD, {0x0f, 0x2a}, 2, REG_FIELD, 0, X__RM_32_64},
+	{IMOVNTPS, {0x0f, 0x2b}, 2, REG_FIELD, 0, M_128__X},
+	{IMOVNTPD, {0x0f, 0x2b}, 2, REG_FIELD, 0, M_128__X},
+	{ICVTTPS2PI, {0x0f, 0x2c}, 2, REG_FIELD, 0, MM__XM_64},
+	{ICVTTSS2SI, {0x0f, 0x2c}, 2, REG_FIELD, 0, R_32_64__XM_32},
+	{ICVTTPD2PI, {0x0f, 0x2c}, 2, REG_FIELD, 0, MM__XM_128},
+	{ICVTTSD2SI, {0x0f, 0x2c}, 2, REG_FIELD, 0, R_32_64__XM_64},
+	{ICVTPS2PI, {0x0f, 0x2d}, 2, REG_FIELD, 0, MM__XM_64},
+	{ICVTSS2SI, {0x0f, 0x2d}, 2, REG_FIELD, 0, R_32_64__XM_32},
+	{ICVTPD2PI, {0x0f, 0x2d}, 2, REG_FIELD, 0, MM__XM_128},
+	{ICVTSD2SI, {0x0f, 0x2d}, 2, REG_FIELD, 0, R_32_64__XM_64},
+	{IUCOMISS, {0x0f, 0x2e}, 2, REG_FIELD, 0, X__XM_32},
+	{IUCOMISD, {0x0f, 0x2e}, 2, REG_FIELD, 0, X__XM_64},
+	{ICOMISS, {0x0f, 0x2f}, 2, REG_FIELD, 0, X__XM_32},
+	{ICOMISD, {0x0f, 0x2f}, 2, REG_FIELD, 0, X__XM_64},
 };
 
 void get_align(struct Ipcd *i, int size, int align, int value) {
@@ -743,6 +768,22 @@ void get_xm_xm_code(enum OpsCode *code, struct Inst *in, struct Oper *l,
 	} else if (is_mem(l) && is_xmm(r)) {
 		change_mem_size(in, l, sz);
 		*code = xm_x;
+	}
+}
+void get_r3264_xm(enum OpsCode *code, struct Inst *in, struct Oper *l,
+				  struct Oper *r, enum OpsCode oc, uc sz) {
+	if (is_reg(l) && (is_32(l) || is_64(l)) && is_xm(r)) {
+		if (is_mem(r))
+			change_mem_size(in, r, sz);
+		*code = oc;
+	}
+}
+void get_mm_xm(enum OpsCode *code, struct Inst *in, struct Oper *l,
+			   struct Oper *r, enum OpsCode oc, uc sz) {
+	if (is_mm(l) && is_xm(r)) {
+		if (is_mem(r))
+			change_mem_size(in, r, sz);
+		*code = oc;
 	}
 }
 
@@ -920,9 +961,13 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case IMOVUPD:
 	case IUNPCKLPD:
 	case IUNPCKHPD:
+	case IMOVAPS:
+	case IMOVAPD:
 		get_xm_xm_code(&code, in, l, r, X__XM_128, XM_128__X, XWORD);
 		break;
 	case IMOVSS:
+	case IUCOMISS:
+	case ICOMISS:
 		get_xm_xm_code(&code, in, l, r, X__XM_32, XM_32__X, DWORD);
 		break;
 	case IMOVSD_XMM:
@@ -931,6 +976,8 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case IUNPCKLPS:
 	case IUNPCKHPS:
 	case IMOVSHDUP:
+	case IUCOMISD:
+	case ICOMISD:
 		get_xm_xm_code(&code, in, l, r, X__XM_64, XM_64__X, QWORD);
 		break;
 	case IMOVHLPS:
@@ -943,13 +990,37 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case IMOVLPD:
 	case IMOVHPS:
 	case IMOVHPD:
-		if (is_xmm(l) && is_mem(r)) {
-			change_mem_size(in, r, QWORD);
-			code = X__M_64;
-		} else if (is_mem(l) && is_xmm(r)) {
-			change_mem_size(in, l, QWORD);
-			code = M_64__X;
-		}
+		get_xm_xm_code(&code, in, l, r, X__M_64, M_64__X, QWORD);
+		break;
+	case IMOVNTPS:
+	case IMOVNTPD:
+		get_xm_xm_code(&code, in, l, r, OPC_INVALID, M_128__X, XWORD);
+		break;
+	case ICVTSI2SS:
+	case ICVTSI2SD:
+		if (is_xmm(r) && is_rm(l) && (is_32(l) || is_64(l)))
+			code = X__RM_32_64;
+		break;
+	case ICVTPI2PS:
+	case ICVTPI2PD:
+		if (is_xmm(r) && is_mmm(l) && is_64(l))
+			code = X__MMM_64;
+		break;
+	case ICVTTPS2PI:
+	case ICVTPS2PI:
+		get_mm_xm(&code, in, l, r, MM__XM_64, QWORD);
+		break;
+	case ICVTTSS2SI:
+	case ICVTSS2SI:
+		get_r3264_xm(&code, in, l, r, R_32_64__XM_32, DWORD);
+		break;
+	case ICVTTPD2PI:
+	case ICVTPD2PI:
+		get_mm_xm(&code, in, l, r, MM__XM_128, XWORD);
+		break;
+	case ICVTTSD2SI:
+	case ICVTSD2SI:
+		get_r3264_xm(&code, in, l, r, R_32_64__XM_64, QWORD);
 		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
@@ -980,6 +1051,7 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 			blist_add(i->cmd, 0xf3);
 
 		// xmm opcodes SUPPOSEDLY never use REX for m64 but for reg64
+		// TODO: its false
 		if ((is_reg(l) && is_64(l)) || (is_reg(r) && is_64(r)))
 			rex |= REX_W;
 		if (is_xm_l(code)) {
@@ -1008,8 +1080,8 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 				else
 					rex |= REX_R; // Extension of ModR/M reg
 			}
-		} else if (is_rm__x(code)) { // TODO: is_rm__x REX prefs
-		} else if (is_x__rm(code)) { // TODO: is_x__rm REX prefs
+		} else if (is_xrm__xr(code)) { // TODO: is_xrm__xr REX prefs
+		} else if (is_xr__xrm(code)) { // TODO: is_xr__xrm REX prefs
 		}
 	} else {
 		// 66 16-bit Operand-size OVERRIRE prefix

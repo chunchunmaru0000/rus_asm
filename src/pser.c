@@ -32,6 +32,8 @@ int get_reg_field(enum RegCode rm) {
 		f = rm - R_RAX;
 	else if (is_f_xmm(rm))
 		f = rm - R_XMM0;
+	else if (is_f_mm(rm))
+		f = rm - R_MM0;
 	else if (is_f_seg(rm))
 		f = rm - R_ES;
 	if (f > 0b111)
@@ -184,26 +186,46 @@ const struct Word ONE_OPS_WORDS[] = {
 // Integers		ч число
 // Non temp		нв не временный
 // Truncate		о округлять
+// Memory		память
 const struct Word TWO_OPS_WORDS[] = {
-	{"быть", IMOV},		   {"плюс", IADD},		   {"минс", ISUB},
-	{"проб", ITEST},	   {"срав", ICMP},		   {"или", IOR},
-	{"и", IAND},		   {"искл", IXOR},		   {"плюсс", IADC},
-	{"минсп", ISBB},	   {"обмн", IXCHG},		   {"задр", ILEA},
-	{"войти", IENTER},	   {"ввд", IINPUT},		   {"вывд", IOUTPUT},
-
-	{"бнруо", IMOVUPS},	   {"бсо", IMOVSS},		   {"бнруд", IMOVUPD},
-	{"бсд", IMOVSD_XMM},   {"бвн", IMOVHLPS},	   {"бнв", IMOVLHPS},
-	{"бнуо", IMOVLPS},	   {"бнуд", IMOVLPD},	   {"бвуо", IMOVHPS},
-	{"бвуд", IMOVHPD},	   {"бдудв", IMOVDDUP},	   {"бонудв", IMOVSLDUP},
-	{"бовудв", IMOVSHDUP}, {"брспнуо", IUNPCKLPS}, {"брспнуд", IUNPCKLPD},
-	{"брспуо", IUNPCKHPS}, {"брспуд", IUNPCKHPD},
-
+	{"быть", IMOV},
+	{"плюс", IADD},
+	{"минс", ISUB},
+	{"проб", ITEST},
+	{"срав", ICMP},
+	{"или", IOR},
+	{"и", IAND},
+	{"искл", IXOR},
+	{"плюсс", IADC},
+	{"минсп", ISBB},
+	{"обмн", IXCHG},
+	{"задр", ILEA},
+	{"войти", IENTER},
+	{"ввд", IINPUT},
+	{"вывд", IOUTPUT},
+	{"бнруо", IMOVUPS},
+	{"бсо", IMOVSS},
+	{"бнруд", IMOVUPD},
+	{"бсд", IMOVSD_XMM},
+	{"бвн", IMOVHLPS},
+	{"бнв", IMOVLHPS},
+	{"бнуо", IMOVLPS},
+	{"бнуд", IMOVLPD},
+	{"бвуо", IMOVHPS},
+	{"бвуд", IMOVHPD},
+	{"бдудв", IMOVDDUP},
+	{"бонудв", IMOVSLDUP},
+	{"бовудв", IMOVSHDUP},
+	{"брспнуо", IUNPCKLPS},
+	{"брспнуд", IUNPCKLPD},
+	{"брспуо", IUNPCKHPS},
+	{"брспуд", IUNPCKHPD},
 	{"бууо", IMOVAPS},
 	{"бууд", IMOVAPD},
 	{"бнвуо", IMOVNTPS},
 	{"бнвуд", IMOVNTPD},
-	{"сравсо", ICOMISS},
-	{"сравсд", ICOMISD},
+	{"супчсо", ICOMISS},
+	{"супчсд", ICOMISD},
 	{"нусравсо", IUCOMISS},
 	{"нусравсд", IUCOMISD},
 	{"преуч2уо", ICVTPI2PS},
@@ -272,6 +294,11 @@ const struct Reg XMM_REGS[] = {
 	{R_XMM12, "э12"},	{R_XMM13, "э13"},	{R_XMM14, "э14"},
 	{R_XMM15, "э15"},
 };
+// mm
+const struct Reg MM_REGS[] = {
+	{R_MM0, "мм0"}, {R_MM1, "мм1"}, {R_MM2, "мм2"}, {R_MM3, "мм3"},
+	{R_MM4, "мм4"}, {R_MM5, "мм5"}, {R_MM6, "мм6"}, {R_MM7, "мм7"},
+};
 // ymm - ю
 // zmm - я
 
@@ -336,7 +363,7 @@ int search_size(struct Pser *p, struct Oper **o, char *v) {
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
 			*o = expression(p);
-			if ((*o)->code == OREG)
+			if (is_reg(*o) || is_xmm(*o) || is_mm(*o))
 				ee_token(p->f, (*o)->t, CANT_CHANGE_REG_SZ);
 			(*o)->sz = 1 << i;
 			(*o)->forsed_sz = 1;
@@ -604,6 +631,8 @@ struct Oper *expression(struct Pser *p) {
 			;
 		else if (search_some_reg(v, lenofarr(SEG_REGS), SEG_REGS, o, OSREG,
 								 WORD))
+			;
+		else if (search_some_reg(v, lenofarr(MM_REGS), MM_REGS, o, OMM, QWORD))
 			;
 		else if (search_size(p, &o, v) || search_defn(p, &o, v)) {
 			plist_free(sib);
