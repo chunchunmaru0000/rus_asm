@@ -191,30 +191,7 @@ const enum OpsCode RM_R[] = {
 	R_64__RM_32,
 	R_16_32_64__M,
 };
-const enum OpsCode IMM_R[] = {
-	AL__IMM_8,	RM_16_32_64__IMM_16_32,	  RM_8__IMM_8,	  RM_16_32_64__IMM_8,
-	R_8__IMM_8, R_16_32_64__IMM_16_32_64, RAX__IMM_16_32,
-};
-const enum OpsCode XM_L[] = {
-	XM_128__X,
-	XM_32__X,
-	XM_64__X,
-	M_64__X,
-};
-const enum OpsCode XM_R[] = {
-	X__XM_128,
-	X__XM_32,
-	X__XM_64,
-	X__M_64,
-};
-// TODO: chech if these are needed
-// const enum OpsCode RM__X_ARR[] = {
-// 	RM_64__X,
-// };
-// const enum OpsCode X__RM_ARR[] = {
-// 	X__RM_64,
-// };
-
+// this doesnt have imm so its needed
 const enum OpsCode RM__R_ARR[] = {
 	RM_8__R_8,
 	RM_16_32_64__R_16_32_64,
@@ -227,15 +204,31 @@ const enum OpsCode R__RM_ARR[] = {
 	SREG__RM_16,   R_16_32_64__RM_16_32_64__IMM_8,
 	R_16_32_64__M,
 };
+const enum OpsCode IMM_R[] = {
+	AL__IMM_8,	RM_16_32_64__IMM_16_32,	  RM_8__IMM_8,	  RM_16_32_64__IMM_8,
+	R_8__IMM_8, R_16_32_64__IMM_16_32_64, RAX__IMM_16_32,
+};
+
+const enum OpsCode XM_L[] = {
+	X__X, XM_128__X, XM_32__X, XM_64__X, M_128__X, M_64__X,
+};
+const enum OpsCode XM_R[] = {
+	X__XM_128,	 X__XM_32,	X__XM_64,	X__M_64,		X__MMM_64,
+	X__RM_32_64, MM__XM_64, MM__XM_128, R_32_64__XM_32, R_32_64__XM_64,
+};
+// these are needed for checking qword mem rex
+const enum OpsCode X__RM_ARR[] = {
+	X__RM_32_64,
+};
+// const enum OpsCode RM__X_ARR[] i beleive there is no such a thing
 const enum OpsCode XRM__XR_ARR[] = {
-	X__X, // this one is strange
-	RM_64__X, M_64__X, XM_128__X, XM_32__X, XM_64__X, M_128__X,
+	X__X, XM_128__X, XM_32__X, XM_64__X, M_128__X, M_64__X,
 };
 const enum OpsCode XR__XRM_ARR[] = {
-	X__XM_128,		X__XM_32,	X__XM_64,		X__RM_64,
-	X__M_64,		X__MMM_64,	X__RM_32_64,	MM__XM_64,
-	R_32_64__XM_32, MM__XM_128, R_32_64__XM_64,
+	X__XM_128,	 X__XM_32,	X__XM_64,	X__M_64,		X__MMM_64,
+	X__RM_32_64, MM__XM_64, MM__XM_128, R_32_64__XM_32, R_32_64__XM_64,
 };
+// TODO: are (XM_L and XRM__XR_ARR) and (XM_R and XR__XRM_ARR) equal
 
 int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
 	for (size_t i = 0; i < arr_len; i++)
@@ -249,8 +242,7 @@ int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
 #define is_imm_r(c) (is_in_opsc((c), IMM_R, lenofarr(IMM_R)))
 #define is_xm_l(c) (is_in_opsc((c), XM_L, lenofarr(XM_L)))
 #define is_xm_r(c) (is_in_opsc((c), XM_R, lenofarr(XM_R)))
-// #define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, lenofarr(RM__X_ARR)))
-// #define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
+#define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, lenofarr(X__RM_ARR)))
 #define is_rm__r(c) (is_in_opsc((c), RM__R_ARR, lenofarr(RM__R_ARR)))
 #define is_r__rm(c) (is_in_opsc((c), R__RM_ARR, lenofarr(R__RM_ARR)))
 #define is_xrm__xr(c) (is_in_opsc((c), XRM__XR_ARR, lenofarr(XRM__XR_ARR)))
@@ -998,12 +990,12 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 		break;
 	case ICVTSI2SS:
 	case ICVTSI2SD:
-		if (is_xmm(r) && is_rm(l) && (is_32(l) || is_64(l)))
+		if (is_xmm(l) && is_rm(r) && (is_32(r) || is_64(r)))
 			code = X__RM_32_64;
 		break;
 	case ICVTPI2PS:
 	case ICVTPI2PD:
-		if (is_xmm(r) && is_mmm(l) && is_64(l))
+		if (is_xmm(l) && is_mmm(r) && is_64(r))
 			code = X__MMM_64;
 		break;
 	case ICVTTPS2PI:
@@ -1052,37 +1044,39 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 
 		// xmm opcodes SUPPOSEDLY never use REX for m64 but for reg64
 		// TODO: its false
-		if ((is_reg(l) && is_64(l)) || (is_reg(r) && is_64(r)))
+		if ((is_reg(l) && is_64(l)) || (is_reg(r) && is_64(r)) ||
+			(is_x__rm(code) && is_64(r)))
 			rex |= REX_W;
 		if (is_xm_l(code)) {
 			if (is_mem(l))
 				rex |= l->rex; // get mem REX's
-			else if (is_x_new(l))
+			else if (is_xr_new(l))
 				rex |= REX_B; // Extension of ModR/M r/m
-			if (is_x_new(r))
+			if (is_xr_new(r))
 				rex |= REX_R; // Extension of ModR/M reg
 		} else if (is_xm_r(code)) {
 			if (is_mem(r))
 				rex |= r->rex; // get mem REX's
-			else if (is_x_new(r))
+			else if (is_xr_new(r))
 				rex |= REX_B; // Extension of ModR/M r/m
-			if (is_x_new(l))
+			if (is_xr_new(l))
 				rex |= REX_R; // Extension of ModR/M reg
 		} else if (is_imm_r(code)) {
 			if (is_xm_l(code)) {
 				if (is_mem(l))
 					rex |= l->rex; // get mem REX's
-				else if (is_x_new(l))
-					rex |= REX_B;	  // Extension of ModR/M r/m
-			} else if (is_x_new(l)) { // SUPPOSED TO BE REG
+				else if (is_xr_new(l))
+					rex |= REX_B;	   // Extension of ModR/M r/m
+			} else if (is_xr_new(l)) { // SUPPOSED TO BE REG
 				if (i->c->o == PLUS_REGF)
 					rex |= REX_B; // Extension of ModR/M r/m
 				else
 					rex |= REX_R; // Extension of ModR/M reg
 			}
-		} else if (is_xrm__xr(code)) { // TODO: is_xrm__xr REX prefs
-		} else if (is_xr__xrm(code)) { // TODO: is_xr__xrm REX prefs
 		}
+		// else if (is_xrm__xr(code)) {
+		// } else if (is_xr__xrm(code)) {
+		// } // TODO: not sure
 	} else {
 		// 66 16-bit Operand-size OVERRIRE prefix
 		// mov M_16__SREG dont need cuz its always 16-bit

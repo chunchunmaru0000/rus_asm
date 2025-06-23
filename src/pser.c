@@ -229,7 +229,7 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"нусравсо", IUCOMISS},
 	{"нусравсд", IUCOMISD},
 	{"преуч2уо", ICVTPI2PS},
-	{"пречс2со", ICVTSI2SS},
+	{"пресч2со", ICVTSI2SS},
 	{"преуч2уд", ICVTPI2PD},
 	{"пресч2сд", ICVTSI2SD},
 	{"преуо2уч", ICVTPS2PI},

@@ -428,6 +428,7 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 						   ((o)->rm >= R_R8B && (o)->rm <= R_R15B)))
 #define is_x_new(o)                                                            \
 	((o)->code == OXMM && ((o)->rm >= R_XMM8 && (o)->rm <= R_XMM15))
+#define is_xr_new(o) (is_x_new((o)) || is_r_new((o)))
 
 #define is_f_reg8(rm) ((rm) >= R_AL && (rm) <= R_R15B)
 #define is_f_reg16(rm) ((rm) >= R_AX && (rm) <= R_R15W)

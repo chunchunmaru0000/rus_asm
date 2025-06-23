@@ -91,8 +91,7 @@ enum OpsCode {
 	MM__XM_128,
 	R_32_64__XM_64,
 
-	RM_64__X,
-	X__RM_64,
+//	X__RM_64,
 };
 
 #define NOT_FIELD 0
