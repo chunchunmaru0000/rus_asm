@@ -187,6 +187,16 @@ const struct Word ONE_OPS_WORDS[] = {
 // Non temp		нв не временный
 // Truncate		о округлять
 // Memory		память
+// Round		окр
+// Blend		смш
+// Align		рвн
+// Extract		извл
+// Insert		вств
+// Dot Product	спр скалярное произведение
+// SAD			сумар
+// Multiple		м
+// Explicit		я
+// Return		в воздать
 const struct Word TWO_OPS_WORDS[] = {
 	{"быть", IMOV},
 	{"плюс", IADD},
@@ -203,6 +213,7 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"войти", IENTER},
 	{"ввд", IINPUT},
 	{"вывд", IOUTPUT},
+
 	{"бнруо", IMOVUPS},
 	{"бсо", IMOVSS},
 	{"бнруд", IMOVUPD},
@@ -240,6 +251,29 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"преосо2зч", ICVTTSS2SI},
 	{"преоуд2уч", ICVTTPD2PI},
 	{"преосд2зч", ICVTTSD2SI},
+	{"окруо", IROUNDPS},
+	{"окруд", IROUNDPD},
+	{"окрсо", IROUNDSS},
+	{"окрсд", IROUNDSD},
+	{"смшуо", IBLENDPS},
+	{"смшуд", IBLENDPD},
+	{"усмшд", IPBLENDW},
+	{"урвнп_мм", IPALIGNR_MM},
+	{"урвнп", IPALIGNR},
+	{"уизвлб", IPEXTRB},
+	{"уизвлд", IPEXTRW},
+	{"уизвл", IPEXTRDQ},
+	{"извлуо", IEXTRACTPS},
+	{"увствб", IPINSRB},
+	{"вствуо", IINSERTPS},
+	{"увтсв", IPINSRDQ},
+	{"спруо", IDPPS},
+	{"спруд", IDPPD},
+	{"мусумарбд", IMPSADBW},
+	{"усравям", IPCMPESTRM},
+	{"усравяи", IPCMPESTRI},
+	{"усравням", IPCMPISTRM},
+	{"усравняи", IPCMPISTRI},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
