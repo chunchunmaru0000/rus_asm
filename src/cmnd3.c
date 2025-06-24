@@ -1,4 +1,5 @@
 #include "cmnd.h"
+#include <stdio.h>
 
 void get_tri_ops_code(struct Ipcd *i) {
 	i->l = plist_get(i->in->os, 0);
@@ -16,7 +17,7 @@ const char *const TRI_OPS_DIDNT_EXISTS =
 
 void fill_tri_ops_cmd_and_data(struct Ipcd *i) {
 	const struct Cmnd *c = i->c;
-	struct Oper *l = i->l, *r = i->r, *o = i->o;
+	struct Oper *l = i->l, *r = i->r, *o = i->o, *rm, *reg;
 	uc modrm = 0;
 
 	blat(i->cmd, (uc *)c->cmd, c->len);
@@ -24,19 +25,34 @@ void fill_tri_ops_cmd_and_data(struct Ipcd *i) {
 		//  2. REG_FIELD r indicates that the ModR/M byte contains a
 		//  register
 		//  - operand and an r/m operand
-		if (is_r__rm(c->opsc)) {
-			modrm += r->mod << 6;				// mod
-			modrm += get_reg_field(l->rm) << 3; // r
-			modrm += get_reg_field(r->rm);		// rm
-			blist_add(i->cmd, modrm);
-			if (is_mem(r))
-				add_mem(i, r);
-			if (is_imm(o)) // i beleive that o is always imm
-				add_imm_data(i, o);
-			else
-				ee(i->in->f, i->in->p, "не imm эээ");
-		} else
+		if (is_r__rm(c->opsc) || is_xr__xrm(c->opsc)) {
+			reg = l;
+			rm = r;
+		} else if (is_rm__r(c->opsc) || is_xrm__xr(c->opsc)) {
+			reg = r;
+			rm = l;
+			// modrm += l->mod << 6;				// mod
+			// modrm += get_reg_field(r->rm) << 3; // r
+			// modrm += get_reg_field(l->rm);		// rm
+			// blist_add(i->cmd, modrm);
+			// if (is_mem(l))
+			// 	add_mem(i, l);
+		} else {
+			printf("\t%d\n", c->opsc);
 			ee(i->in->f, i->in->p, "REG_FIELD ЭЭЭ");
+		}
+
+		modrm += rm->mod << 6;				  // mod
+		modrm += get_reg_field(reg->rm) << 3; // r
+		modrm += get_reg_field(rm->rm);		  // rm
+		blist_add(i->cmd, modrm);
+		if (is_mem(rm))
+			add_mem(i, rm);
+
+		if (is_imm(o)) // i beleive that o is always imm
+			add_imm_data(i, o);
+		else
+			ee(i->in->f, i->in->p, "не imm эээ");
 	} else
 		ee(i->in->f, i->in->p, TRI_OPS_DIDNT_EXISTS);
 }
@@ -150,15 +166,12 @@ enum OpsCode get_tri_opscode(struct Ipcd *i) {
 		}
 		break;
 	case IPINSRDQ:
-		if (!(is_xmm(l) && is_imm(o)))
+		if (!(is_xmm(l) && is_rm(r) && is_imm(o)))
 			break;
 		change_imm_size(in, o, BYTE);
-		if (is_reg(r) && (is_32(r) || is_64(r)))
-			code = X__RM_32_64__IMM_8;
-		else if (is_mem(r)) {
-			change_mem_size(in, r, WORD);
-			code = X__RM_32_64__IMM_8;
-		}
+		if (r->sz < DWORD)
+			ee(in->f, in->p, EXPEXTED_DWORD_OR_QWORD);
+		code = X__RM_32_64__IMM_8;
 		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);

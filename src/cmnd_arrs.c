@@ -75,12 +75,29 @@ const enum OpsCode RM__X_ARR[] = {
 };
 
 const enum OpsCode XRM__XR_ARR[] = {
-	X__X, XM_128__X, XM_32__X, XM_64__X, M_128__X, M_64__X,
+	X__X,
+	XM_128__X,
+	XM_32__X,
+	XM_64__X,
+	M_128__X,
+	M_64__X,
+
+	RM_32__X__IMM_8,
+	R_32_64_M_16__X__IMM_8,
+	RM_32_64__X__IMM_8,
+	R_32_64_M_8__X__IMM_8,
 };
 const enum OpsCode XR__XRM_ARR[] = {
-	X__XM_128,		X__XM_32,		X__XM_64,	X__M_64,
-	X__MMM_64,		X__RM_32_64,	MM__XM_64,	MM__XM_128,
-	R_32_64__XM_32, R_32_64__XM_64, MM__MMM_64,
+	X__XM_128,		  X__XM_32,
+	X__XM_64,		  X__M_64,
+	X__MMM_64,		  X__RM_32_64,
+	MM__XM_64,		  MM__XM_128,
+	R_32_64__XM_32,	  R_32_64__XM_64,
+	MM__MMM_64,
+
+	X__XM_128__IMM_8, X__R_32_64_M_8__IMM_8,
+	X__XM_32__IMM_8,  X__R_32_64_M_16__IMM_8,
+	X__XM_64__IMM_8,  X__RM_32_64__IMM_8,
 };
 // TODO: are (XM_L and XRM__XR_ARR) and (XM_R and XR__XRM_ARR) equal
 

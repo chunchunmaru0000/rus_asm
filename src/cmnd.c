@@ -523,7 +523,7 @@ const struct Cmnd cmnds3[] = {
 	{IPEXTRDQ, {0x0f, 0x3a, 0x16}, 3, REG_FIELD, 0, RM_32_64__X__IMM_8},
 	{IEXTRACTPS, {0x0f, 0x3a, 0x17}, 3, REG_FIELD, 0, RM_32__X__IMM_8},
 	{IPINSRB, {0x0f, 0x3a, 0x20}, 3, REG_FIELD, 0, X__R_32_64_M_8__IMM_8},
-	{IINSERTPS, {0x0f, 0x3a, 0x21}, 3, REG_FIELD, 0, X__R_32_64_M_16__IMM_8},
+	{IINSERTPS, {0x0f, 0x3a, 0x21}, 3, REG_FIELD, 0, X__XM_32__IMM_8},
 	{IPINSRDQ, {0x0f, 0x3a, 0x22}, 3, REG_FIELD, 0, X__RM_32_64__IMM_8},
 	{IMPSADBW, {0x0f, 0x3a, 0x42}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
 	{IPCMPESTRM, {0x0f, 0x3a, 0x60}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
@@ -582,8 +582,8 @@ const char *const WARN_IMM_SIZE_WILL_BE_CHANGED =
 	"поддерживает числа таких размеров, поэтому скорее всего размер числа "
 	"будет урезан.";
 const char *const WARN_CHANGE_MEM_SIZE =
-	"Размер адресанта не был равен размеру регистра, но при "
-	"этом был явно указан, его размер будет изменен под размер регистра.";
+	"Размер адресанта не был верен, но при "
+	"этом был явно указан, его размер будет изменен.";
 const char *const WARN_CHANGE_IMM_SIZE =
 	"Размер числа был явно указан но будет изменен.";
 const char *const ERR_WRONG_OPS_FOR_THIS_INST =
@@ -593,18 +593,18 @@ const char *const ERR_WRONG_BYTE_REG =
 	"Данная инструкция не поддерживает регистры размером байт.";
 
 void change_mem_size(struct Inst *in, struct Oper *o, uc sz) {
-	if (o->forsed_sz)
+	if (o->forsed_sz && o->sz != sz)
 		pw(in->f, in->p, WARN_CHANGE_MEM_SIZE);
 	o->sz = sz;
 }
 void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
-	if (o->forsed_sz)
+	if (o->forsed_sz && o->sz != sz)
 		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 	o->sz = sz;
 }
 int try_change_imm_to_byte(struct Inst *in, struct Oper *o) {
 	if (is_imm_can_be_a_byte(o)) {
-		if (o->forsed_sz)
+		if (o->forsed_sz && o->sz != BYTE)
 			pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 		o->sz = BYTE;
 		return 1;

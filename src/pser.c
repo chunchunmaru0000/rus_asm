@@ -251,28 +251,20 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"преосо2зч", ICVTTSS2SI},
 	{"преоуд2уч", ICVTTPD2PI},
 	{"преосд2зч", ICVTTSD2SI},
-	{"окруо", IROUNDPS},
-	{"окруд", IROUNDPD},
-	{"окрсо", IROUNDSS},
-	{"окрсд", IROUNDSD},
-	{"смшуо", IBLENDPS},
-	{"смшуд", IBLENDPD},
-	{"усмшд", IPBLENDW},
+
 	{"урвнп_мм", IPALIGNR_MM},
 	{"урвнп", IPALIGNR},
-	{"уизвлб", IPEXTRB},
-	{"уизвлд", IPEXTRW},
-	{"уизвл", IPEXTRDQ},
-	{"извлуо", IEXTRACTPS},
-	{"увствб", IPINSRB},
-	{"вствуо", IINSERTPS},
-	{"увтсв", IPINSRDQ},
 	{"спруо", IDPPS},
 	{"спруд", IDPPD},
-	{"мусумарбд", IMPSADBW},
-	{"усравям", IPCMPESTRM},
-	{"усравяи", IPCMPESTRI},
-	{"усравням", IPCMPISTRM},
+};
+const struct Word TRI_OPS_WORDS[] = {
+	{"окруо", IROUNDPS},	  {"окруд", IROUNDPD},	   {"окрсо", IROUNDSS},
+	{"окрсд", IROUNDSD},	  {"смшуо", IBLENDPS},	   {"смшуд", IBLENDPD},
+
+	{"усмшд", IPBLENDW},	  {"уизвлб", IPEXTRB},	   {"уизвлд", IPEXTRW},
+	{"уизвл", IPEXTRDQ},	  {"извлуо", IEXTRACTPS},  {"увствб", IPINSRB},
+	{"вствуо", IINSERTPS},	  {"увтсв", IPINSRDQ},	   {"мусумарбд", IMPSADBW},
+	{"усравям", IPCMPESTRM},  {"усравяи", IPCMPESTRI}, {"усравням", IPCMPISTRM},
 	{"усравняи", IPCMPISTRI},
 };
 // seg
@@ -374,10 +366,10 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 
 struct Oper *expression(struct Pser *);
 
-enum ICode two_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
+enum ICode n_ops_i(struct Pser *p, int n, struct PList *os, enum ICode code) {
 	next_get(p, 0); // skip instruction
-	plist_add(os, expression(p));
-	plist_add(os, expression(p));
+	for (int i = 0; i < n; i++)
+		plist_add(os, expression(p));
 	return code;
 }
 
@@ -816,12 +808,6 @@ enum ICode label_i(struct Pser *p, struct PList *os) {
 	return ILABEL;
 }
 
-enum ICode one_ops_i(struct Pser *p, struct PList *os, enum ICode code) {
-	next_get(p, 0); // skip instruction
-	plist_add(os, expression(p));
-	return code;
-}
-
 char *INVALID_SIZE_NOT_FOUND =
 	"Ожидался размер операнда: <байт> <дбайт> <чбайт> <вбайт>.";
 char *INVALID_SIZE_OF_FPN = "Неверный размер для числа с плавающей точкой, "
@@ -1024,7 +1010,7 @@ int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 		}
 	for (i = 0; i < lenofarr(TWO_OPS_WORDS); i++)
 		if (sc(view, TWO_OPS_WORDS[i].view)) {
-			*c = two_ops_i(p, os, TWO_OPS_WORDS[i].inst);
+			*c = n_ops_i(p, 2, os, TWO_OPS_WORDS[i].inst);
 			return 1;
 		}
 	for (i = 0; i < lenofarr(ZERO_OPS_WORDS); i++)
@@ -1035,7 +1021,12 @@ int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 		}
 	for (i = 0; i < lenofarr(ONE_OPS_WORDS); i++)
 		if (sc(view, ONE_OPS_WORDS[i].view)) {
-			*c = one_ops_i(p, os, ONE_OPS_WORDS[i].inst);
+			*c = n_ops_i(p, 1, os, ONE_OPS_WORDS[i].inst);
+			return 1;
+		}
+	for (i = 0; i < lenofarr(TRI_OPS_WORDS); i++)
+		if (sc(view, TRI_OPS_WORDS[i].view)) {
+			*c = n_ops_i(p, 3, os, TRI_OPS_WORDS[i].inst);
 			return 1;
 		}
 	return 0;
@@ -1073,9 +1064,9 @@ struct Inst *get_inst(struct Pser *p) {
 		else
 			ee_token(p->f, cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 	} else if (cur->code == INC)
-		code = one_ops_i(p, os, IINC);
+		code = n_ops_i(p, 1, os, IINC);
 	else if (cur->code == DEC)
-		code = one_ops_i(p, os, IDEC);
+		code = n_ops_i(p, 1, os, IDEC);
 	else
 		ee_token(p->f, cur, "НЕИЗВЕСТНАЯ КОМАНДА");
 
