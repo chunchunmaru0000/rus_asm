@@ -152,8 +152,7 @@ void add_mem(struct Ipcd *i, struct Oper *m) {
 // - prefix 66 is used with all 16 bit ops like add ax, bx or
 //		add word [rax], 255
 // REX prefixes
-
-const struct Cmnd cmnds[] = {
+const struct Cmnd cmnds0[] = {
 	{INOP, {0x90}, 1, NOT_FIELD, 0, OPC_INVALID},
 	//
 	{IRET, {0xc3}, 1, NOT_FIELD, 0, OPC_INVALID},
@@ -214,7 +213,8 @@ const struct Cmnd cmnds[] = {
 	{IUSEGS, {0x65}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IREPNZ, {0xf2}, 1, NOT_FIELD, 0, OPC_INVALID},
 	{IREP, {0xf3}, 1, NOT_FIELD, 0, OPC_INVALID},
-
+};
+const struct Cmnd cmnds1[] = {
 	{INOT, {0xf6}, 1, NUM_FIELD, 2, __RM_8},
 	{INEG, {0xf6}, 1, NUM_FIELD, 3, __RM_8},
 	{INOT, {0xf7}, 1, NUM_FIELD, 2, __RM_16_32_64},
@@ -278,9 +278,6 @@ const struct Cmnd cmnds[] = {
 	{ILOOP, {0xe2}, 1, NOT_FIELD, 0, __REL_8},
 	{IJECXZ, {0x67, 0xe3}, 2, NOT_FIELD, 0, __REL_8},
 	{IJRCXZ, {0xe3}, 1, NOT_FIELD, 0, __REL_8},
-	// mul imul div idiv
-	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
-	{IIMUL, {0x6b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_8},
 	{IMUL, {0xf6}, 1, NUM_FIELD, 4, __RM_8},
 	{IIMUL, {0xf6}, 1, NUM_FIELD, 5, __RM_8},
 	{IDIV, {0xf6}, 1, NUM_FIELD, 6, __RM_8},
@@ -289,6 +286,36 @@ const struct Cmnd cmnds[] = {
 	{IIMUL, {0xf7}, 1, NUM_FIELD, 5, __RM_16_32_64},
 	{IDIV, {0xf7}, 1, NUM_FIELD, 6, __RM_16_32_64},
 	{IIDIV, {0xf7}, 1, NUM_FIELD, 7, __RM_16_32_64},
+	{IROL1, {0xd0}, 1, NUM_FIELD, 0, __RM_8},
+	{IROR1, {0xd0}, 1, NUM_FIELD, 1, __RM_8},
+	{IRCL1, {0xd0}, 1, NUM_FIELD, 2, __RM_8},
+	{IRCR1, {0xd0}, 1, NUM_FIELD, 3, __RM_8},
+	{ISHL1, {0xd0}, 1, NUM_FIELD, 4, __RM_8},
+	{ISHR1, {0xd0}, 1, NUM_FIELD, 5, __RM_8},
+	{ISAR1, {0xd0}, 1, NUM_FIELD, 7, __RM_8},
+	{IROL1, {0xd1}, 1, NUM_FIELD, 0, __RM_16_32_64},
+	{IROR1, {0xd1}, 1, NUM_FIELD, 1, __RM_16_32_64},
+	{IRCL1, {0xd1}, 1, NUM_FIELD, 2, __RM_16_32_64},
+	{IRCR1, {0xd1}, 1, NUM_FIELD, 3, __RM_16_32_64},
+	{ISHL1, {0xd1}, 1, NUM_FIELD, 4, __RM_16_32_64},
+	{ISHR1, {0xd1}, 1, NUM_FIELD, 5, __RM_16_32_64},
+	{ISAR1, {0xd1}, 1, NUM_FIELD, 7, __RM_16_32_64},
+	{IROL, {0xd2}, 1, NUM_FIELD, 0, __RM_8},
+	{IROR, {0xd2}, 1, NUM_FIELD, 1, __RM_8},
+	{IRCL, {0xd2}, 1, NUM_FIELD, 2, __RM_8},
+	{IRCR, {0xd2}, 1, NUM_FIELD, 3, __RM_8},
+	{ISHL, {0xd2}, 1, NUM_FIELD, 4, __RM_8},
+	{ISHR, {0xd2}, 1, NUM_FIELD, 5, __RM_8},
+	{ISAR, {0xd2}, 1, NUM_FIELD, 7, __RM_8},
+	{IROL, {0xd3}, 1, NUM_FIELD, 0, __RM_16_32_64},
+	{IROR, {0xd3}, 1, NUM_FIELD, 1, __RM_16_32_64},
+	{IRCL, {0xd3}, 1, NUM_FIELD, 2, __RM_16_32_64},
+	{IRCR, {0xd3}, 1, NUM_FIELD, 3, __RM_16_32_64},
+	{ISHL, {0xd3}, 1, NUM_FIELD, 4, __RM_16_32_64},
+	{ISHR, {0xd3}, 1, NUM_FIELD, 5, __RM_16_32_64},
+	{ISAR, {0xd3}, 1, NUM_FIELD, 7, __RM_16_32_64},
+};
+const struct Cmnd cmnds2[] = {
 	{IIMUL, {0x0f, 0xaf}, 2, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
 	// add
 	{IADD, {0x00}, 1, REG_FIELD, 0, RM_8__R_8},
@@ -411,34 +438,6 @@ const struct Cmnd cmnds[] = {
 	{ISHL, {0xc1}, 1, NUM_FIELD, 4, RM_16_32_64__IMM_8},
 	{ISHR, {0xc1}, 1, NUM_FIELD, 5, RM_16_32_64__IMM_8},
 	{ISAR, {0xc1}, 1, NUM_FIELD, 7, RM_16_32_64__IMM_8},
-	{IROL1, {0xd0}, 1, NUM_FIELD, 0, __RM_8},
-	{IROR1, {0xd0}, 1, NUM_FIELD, 1, __RM_8},
-	{IRCL1, {0xd0}, 1, NUM_FIELD, 2, __RM_8},
-	{IRCR1, {0xd0}, 1, NUM_FIELD, 3, __RM_8},
-	{ISHL1, {0xd0}, 1, NUM_FIELD, 4, __RM_8},
-	{ISHR1, {0xd0}, 1, NUM_FIELD, 5, __RM_8},
-	{ISAR1, {0xd0}, 1, NUM_FIELD, 7, __RM_8},
-	{IROL1, {0xd1}, 1, NUM_FIELD, 0, __RM_16_32_64},
-	{IROR1, {0xd1}, 1, NUM_FIELD, 1, __RM_16_32_64},
-	{IRCL1, {0xd1}, 1, NUM_FIELD, 2, __RM_16_32_64},
-	{IRCR1, {0xd1}, 1, NUM_FIELD, 3, __RM_16_32_64},
-	{ISHL1, {0xd1}, 1, NUM_FIELD, 4, __RM_16_32_64},
-	{ISHR1, {0xd1}, 1, NUM_FIELD, 5, __RM_16_32_64},
-	{ISAR1, {0xd1}, 1, NUM_FIELD, 7, __RM_16_32_64},
-	{IROL, {0xd2}, 1, NUM_FIELD, 0, __RM_8},
-	{IROR, {0xd2}, 1, NUM_FIELD, 1, __RM_8},
-	{IRCL, {0xd2}, 1, NUM_FIELD, 2, __RM_8},
-	{IRCR, {0xd2}, 1, NUM_FIELD, 3, __RM_8},
-	{ISHL, {0xd2}, 1, NUM_FIELD, 4, __RM_8},
-	{ISHR, {0xd2}, 1, NUM_FIELD, 5, __RM_8},
-	{ISAR, {0xd2}, 1, NUM_FIELD, 7, __RM_8},
-	{IROL, {0xd3}, 1, NUM_FIELD, 0, __RM_16_32_64},
-	{IROR, {0xd3}, 1, NUM_FIELD, 1, __RM_16_32_64},
-	{IRCL, {0xd3}, 1, NUM_FIELD, 2, __RM_16_32_64},
-	{IRCR, {0xd3}, 1, NUM_FIELD, 3, __RM_16_32_64},
-	{ISHL, {0xd3}, 1, NUM_FIELD, 4, __RM_16_32_64},
-	{ISHR, {0xd3}, 1, NUM_FIELD, 5, __RM_16_32_64},
-	{ISAR, {0xd3}, 1, NUM_FIELD, 7, __RM_16_32_64},
 	// some
 	{IXCHG, {0x86}, 1, REG_FIELD, 0, R_8__RM_8},
 	{IXCHG, {0x87}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64},
@@ -454,9 +453,6 @@ const struct Cmnd cmnds[] = {
 	{IOUTPUT, {0xee}, 1, NOT_FIELD, 0, DX__AL},
 	{IOUTPUT, {0xef}, 1, NOT_FIELD, 0, DX__EAX},
 	// xmm
-	// F2 Scalar Double-precision Prefix
-	// F3 Scalar Single-precision Prefix
-	// 66 Precision-size override prefix
 	{IMOVUPS, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_128},
 	{IMOVSS, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_32},
 	{IMOVUPD, {0x0f, 0x10}, 2, REG_FIELD, 0, X__XM_128},
@@ -505,14 +501,24 @@ const struct Cmnd cmnds[] = {
 	{ICOMISS, {0x0f, 0x2f}, 2, REG_FIELD, 0, X__XM_32},
 	{ICOMISD, {0x0f, 0x2f}, 2, REG_FIELD, 0, X__XM_64},
 };
+const struct Cmnd cmnds3[] = {
+	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
+	{IIMUL, {0x6b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_8},
+};
+
+const long cmnds0_len = lenofarr(cmnds0);
+const long cmnds1_len = lenofarr(cmnds1);
+const long cmnds2_len = lenofarr(cmnds2);
+const long cmnds3_len = lenofarr(cmnds3);
 
 const char *const WRONG_INST_OPS =
 	"Для данной инструкции и выражений не было найдено подходящего кода, "
 	"возможно выражения были неверные.";
 
-const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
+const struct Cmnd *get_cmnd(struct Ipcd *i, const struct Cmnd cmnds[],
+							const long cmnds_len, enum OpsCode code) {
 	const struct Cmnd *c = 0, *ct;
-	for (size_t j = 0; j < lenofarr(cmnds); j++) {
+	for (long j = 0; j < cmnds_len; j++) {
 		ct = cmnds + j;
 		if (ct->inst == i->in->code && ct->opsc == code) {
 			c = ct;
@@ -528,7 +534,8 @@ const struct Cmnd *get_cmnd(struct Ipcd *i, enum OpsCode code) {
 }
 
 void get_zero_ops_code(struct Ipcd *i) {
-	const struct Cmnd *c = get_cmnd(i, OPC_INVALID);
+	// TODO: could preopaably optimize OPC_INVALID but not sure for varops
+	const struct Cmnd *c = get_cmnd(i, cmnds0, cmnds0_len, OPC_INVALID);
 	blat(i->cmd, (uc *)c->cmd, c->len);
 }
 
@@ -537,7 +544,7 @@ void get_align(struct Ipcd *i, int size, int align, int value) {
 	// but im not sure, maybe there is a better way to align
 	// TODO: see if there is better nop for align
 	if (value == -1)
-		value = ((const struct Cmnd *)cmnds)->cmd[0]; // nop
+		value = ((const struct Cmnd *)cmnds0)->cmd[0]; // nop
 	int len = (align - (size % align)) % align;
 
 	for (int j = 0; j < len; j++)

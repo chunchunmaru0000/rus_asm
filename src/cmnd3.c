@@ -2,7 +2,7 @@
 
 void get_tri_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_tri_opscode(i->in);
-	i->c = get_cmnd(i, code);
+	i->c = get_cmnd(i, cmnds3, cmnds3_len, code);
 	get_tri_ops_prefs(i, code);
 	fill_tri_ops_cmd_and_data(i);
 }

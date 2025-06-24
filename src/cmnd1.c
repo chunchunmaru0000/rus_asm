@@ -12,7 +12,7 @@ const char *const ERR_REG_NOT_16_OR_64 =
 
 void get_one_ops_code(struct Ipcd *i) {
 	enum OpsCode code = get_one_opscode(i->in);
-	i->c = get_cmnd(i, code);
+	i->c = get_cmnd(i, cmnds1, cmnds1_len, code);
 	get_one_ops_prefs(i, code);
 	fill_one_ops_cmd_and_data(i);
 }

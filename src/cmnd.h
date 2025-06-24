@@ -149,15 +149,23 @@ void get_align(struct Ipcd *, int, int, int);
 #define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)
 // private
 // * shared
-extern const struct Cmnd cmnds[];
-const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
+extern const struct Cmnd cmnds0[];
+extern const struct Cmnd cmnds1[];
+extern const struct Cmnd cmnds2[];
+extern const struct Cmnd cmnds3[];
+extern const long cmnds0_len;
+extern const long cmnds1_len;
+extern const long cmnds2_len;
+extern const long cmnds3_len;
+
+const struct Cmnd *get_cmnd(struct Ipcd *, const struct Cmnd[], const long,
+							enum OpsCode);
 void add_sib(struct BList *, struct Oper *);
 void add_disp(struct Ipcd *, struct Oper *, uc);
 void add_imm_data(struct Ipcd *, struct Oper *);
 void add_mem(struct Ipcd *, struct Oper *m);
 // * ___
 int is_in_opsc(enum OpsCode, const enum OpsCode[], size_t);
-
 extern const enum OpsCode RM_L[];
 extern const enum OpsCode RM_R[];
 extern const enum OpsCode RM__R_ARR[];
