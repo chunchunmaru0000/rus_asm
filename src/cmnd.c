@@ -38,6 +38,8 @@ const char *const OPS_CODE_INVALID =
 	"неверной.";
 const char *const OPS_SIZE_WRONG =
 	"Неверное количество выражений для инструкции.";
+const char *const EXPEXTED_DWORD_OR_QWORD =
+	"Ожидалось выражения размера <чбайт> или <вбайт>.";
 
 void (*gets[])(struct Ipcd *) = {
 	get_zero_ops_code,
@@ -599,6 +601,15 @@ void change_imm_size(struct Inst *in, struct Oper *o, uc sz) {
 	if (o->forsed_sz)
 		pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
 	o->sz = sz;
+}
+int try_change_imm_to_byte(struct Inst *in, struct Oper *o) {
+	if (is_imm_can_be_a_byte(o)) {
+		if (o->forsed_sz)
+			pw(in->f, in->p, WARN_CHANGE_IMM_SIZE);
+		o->sz = BYTE;
+		return 1;
+	}
+	return 0;
 }
 
 #define change_size_lr(in, l, r) (change_imm_size((in), (r), (l)->sz))

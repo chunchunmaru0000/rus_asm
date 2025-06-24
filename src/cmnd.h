@@ -18,6 +18,7 @@ extern const char *const WARN_IMM_SIZE_WILL_BE_CHANGED;
 extern const char *const WARN_CHANGE_IMM_SIZE;
 extern const char *const MEM_IMM_SIZE_QWORD;
 extern const char *const ERR_WRONG_BYTE_REG;
+extern const char *const EXPEXTED_DWORD_OR_QWORD;
 
 // for label and maybe variables that have a string view and ptr to value
 struct Plov {		   // Pointer Label Of Value
@@ -154,6 +155,10 @@ struct Ipcd {
 	struct BList *data;
 	const struct Cmnd *c;
 	uc debug;
+
+	struct Oper *l;
+	struct Oper *r;
+	struct Oper *o;
 };
 // public
 void get_ops_code(struct Ipcd *);
@@ -218,25 +223,21 @@ void change_imm_size(struct Inst *in, struct Oper *o, uc sz);
 void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm);
 void warn_change_to_eq_size_lr(struct Inst *i, struct Oper *l, struct Oper *r);
 int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r);
+int try_change_imm_to_byte(struct Inst *in, struct Oper *o);
 // * 0
 void get_zero_ops_code(struct Ipcd *);
 // * 1
 void get_one_ops_code(struct Ipcd *);
-enum OpsCode get_one_opscode(struct Inst *);
+enum OpsCode get_one_opscode(struct Ipcd *);
 void get_one_ops_prefs(struct Ipcd *, enum OpsCode);
 void fill_one_ops_cmd_and_data(struct Ipcd *);
 // * 2
-#define declare_two_ops(in, l, r)                                              \
-	do {                                                                       \
-		(l) = plist_get(in->os, 0);                                            \
-		(r) = plist_get(in->os, 1);                                            \
-	} while (0);
 void get_two_ops_code(struct Ipcd *);
-enum OpsCode get_two_opscode(struct Inst *);
+enum OpsCode get_two_opscode(struct Ipcd *);
 void get_two_ops_prefs(struct Ipcd *, enum OpsCode);
 void fill_two_ops_cmd_and_data(struct Ipcd *);
 // * 3
 void get_tri_ops_code(struct Ipcd *);
-enum OpsCode get_tri_opscode(struct Inst *);
+enum OpsCode get_tri_opscode(struct Ipcd *);
 void get_tri_ops_prefs(struct Ipcd *, enum OpsCode);
 void fill_tri_ops_cmd_and_data(struct Ipcd *);

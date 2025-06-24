@@ -1,16 +1,18 @@
 #include "cmnd.h"
 
 void get_two_ops_code(struct Ipcd *i) {
-	enum OpsCode code = get_two_opscode(i->in);
+	i->l = plist_get(i->in->os, 0);
+	i->r = plist_get(i->in->os, 1);
+
+	enum OpsCode code = get_two_opscode(i);
 	i->c = get_cmnd(i, cmnds2, cmnds2_len, code);
 	get_two_ops_prefs(i, code);
 	fill_two_ops_cmd_and_data(i);
 }
 
 void fill_two_ops_cmd_and_data(struct Ipcd *i) {
-	struct Oper *l, *r;
+	struct Oper *l = i->l, *r = i->r;
 	const struct Cmnd *c = i->c;
-	declare_two_ops(i->in, l, r);
 	uc modrm = 0;
 
 	blat(i->cmd, (uc *)c->cmd, c->len);
@@ -116,9 +118,9 @@ void get_mm_mmm(enum OpsCode *code, struct Inst *in, struct Oper *l,
 // TODO: for example
 // зумн ебх ебх 2 ; работает
 // зумн ебх 2     ; ошибка, но опкод то один
-enum OpsCode get_two_opscode(struct Inst *in) {
-	struct Oper *l, *r;
-	declare_two_ops(in, l, r);
+enum OpsCode get_two_opscode(struct Ipcd *i) {
+	struct Oper *l = i->l, *r = i->r;
+	struct Inst *in = i->in;
 
 	enum OpsCode code = OPC_INVALID;
 	switch (in->code) {
@@ -363,8 +365,7 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 }
 
 void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
-	struct Oper *l, *r;
-	declare_two_ops(i->in, l, r);
+	struct Oper *l = i->l, *r = i->r;
 
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
 	if (is_addr32(l) || is_addr32(r))

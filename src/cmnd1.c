@@ -1,7 +1,5 @@
 #include "cmnd.h"
 
-#define get_first_o(in) (plist_get((in)->os, 0))
-
 const char *const WARN_CHANGE_IMM_32_SIZE =
 	"Размер выражения не был равен чбайт, но при "
 	"этом был явно указан, его размер будет изменен под чбайт.";
@@ -11,15 +9,19 @@ const char *const ERR_REG_NOT_16_OR_64 =
 	"и вбайт.";
 
 void get_one_ops_code(struct Ipcd *i) {
-	enum OpsCode code = get_one_opscode(i->in);
+	i->o = plist_get(i->in->os, 0);
+
+	enum OpsCode code = get_one_opscode(i);
 	i->c = get_cmnd(i, cmnds1, cmnds1_len, code);
 	get_one_ops_prefs(i, code);
 	fill_one_ops_cmd_and_data(i);
 }
 
-enum OpsCode get_one_opscode(struct Inst *in) {
+enum OpsCode get_one_opscode(struct Ipcd *i) {
 	enum OpsCode code = OPC_INVALID;
-	struct Oper *o = get_first_o(in);
+	struct Inst *in = i->in;
+	struct Oper *o = i->o;
+
 	switch (in->code) {
 	case ILOOPNZ:
 	case ILOOPZ:
@@ -138,7 +140,7 @@ enum OpsCode get_one_opscode(struct Inst *in) {
 }
 
 void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
-	struct Oper *o = get_first_o(i->in);
+	struct Oper *o = i->o;
 	// 67 Address-size OVERRIRE prefix, when adress 32-bit like [eax]
 	if (is_addr32(o))
 		blist_add(i->cmd, 0x67);
@@ -161,7 +163,7 @@ void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 
 void fill_one_ops_cmd_and_data(struct Ipcd *i) {
 	const struct Cmnd *c = i->c;
-	struct Oper *o = get_first_o(i->in);
+	struct Oper *o = i->o;
 	uc modrm = 0;
 
 	blat(i->cmd, (uc *)c->cmd, c->len);
