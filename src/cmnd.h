@@ -12,6 +12,12 @@ extern const char *const REGS_SIZES_NOT_MATCH;
 extern const char *const MEM_REG_SIZES_NOT_MATCH;
 extern const char *const REG_MEM_IMM_SIZES_NOT_MATCH;
 extern const char *const UNKNOWN_LABEL;
+extern const char *const ERR_WRONG_OPS_FOR_THIS_INST;
+extern const char *const OPS_CODE_INVALID;
+extern const char *const WARN_IMM_SIZE_WILL_BE_CHANGED;
+extern const char *const WARN_CHANGE_IMM_SIZE;
+extern const char *const MEM_IMM_SIZE_QWORD;
+extern const char *const ERR_WRONG_BYTE_REG;
 
 // for label and maybe variables that have a string view and ptr to value
 struct Plov {		   // Pointer Label Of Value
@@ -90,8 +96,6 @@ enum OpsCode {
 	R_32_64__XM_32,
 	MM__XM_128,
 	R_32_64__XM_64,
-
-//	X__RM_64,
 };
 
 #define NOT_FIELD 0
@@ -139,7 +143,77 @@ struct Ipcd {
 	const struct Cmnd *c;
 	uc debug;
 };
+// public
 void get_ops_code(struct Ipcd *);
 void get_align(struct Ipcd *, int, int, int);
-
 #define is_rel(c) ((c) == __REL_8 || (c) == __REL_32)
+// private
+// * shared
+extern const struct Cmnd cmnds[];
+const struct Cmnd *get_cmnd(struct Ipcd *, enum OpsCode);
+void add_sib(struct BList *, struct Oper *);
+void add_disp(struct Ipcd *, struct Oper *, uc);
+void add_imm_data(struct Ipcd *, struct Oper *);
+void add_mem(struct Ipcd *, struct Oper *m);
+// * ___
+int is_in_opsc(enum OpsCode, const enum OpsCode[], size_t);
+
+extern const enum OpsCode RM_L[];
+extern const enum OpsCode RM_R[];
+extern const enum OpsCode RM__R_ARR[];
+extern const enum OpsCode R__RM_ARR[];
+extern const enum OpsCode IMM_R[];
+extern const enum OpsCode XM_L[];
+extern const enum OpsCode XM_R[];
+extern const enum OpsCode X__RM_ARR[];
+extern const enum OpsCode XRM__XR_ARR[];
+extern const enum OpsCode XR__XRM_ARR[];
+extern const long RM_L___LEN;
+extern const long RM_R___LEN;
+extern const long RM__R_ARR___LEN;
+extern const long R__RM_ARR___LEN;
+extern const long IMM_R___LEN;
+extern const long XM_L___LEN;
+extern const long XM_R___LEN;
+extern const long X__RM_ARR___LEN;
+extern const long XRM__XR_ARR___LEN;
+extern const long XR__XRM_ARR___LEN;
+#define is_rm_l(c) (is_in_opsc((c), RM_L, RM_L___LEN))
+#define is_rm_r(c) (is_in_opsc((c), RM_R, RM_R___LEN))
+#define is_rm__r(c) (is_in_opsc((c), RM__R_ARR, RM__R_ARR___LEN))
+#define is_r__rm(c) (is_in_opsc((c), R__RM_ARR, R__RM_ARR___LEN))
+#define is_xm_l(c) (is_in_opsc((c), XM_L, XM_L___LEN))
+#define is_xm_r(c) (is_in_opsc((c), XM_R, XM_R___LEN))
+#define is_xrm__xr(c) (is_in_opsc((c), XRM__XR_ARR, XRM__XR_ARR___LEN))
+#define is_xr__xrm(c) (is_in_opsc((c), XR__XRM_ARR, XR__XRM_ARR___LEN))
+#define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, X__RM_ARR___LEN))
+#define is_imm_r(c) (is_in_opsc((c), IMM_R, IMM_R___LEN))
+// * change, warn
+void change_mem_size(struct Inst *in, struct Oper *o, uc sz);
+void change_imm_size(struct Inst *in, struct Oper *o, uc sz);
+#define change_size_lr(in, l, r) (change_imm_size((in), (r), (l)->sz))
+void change_m_sz(struct Inst *in, struct Oper *r, struct Oper *rm);
+void warn_change_to_eq_size_lr(struct Inst *i, struct Oper *l, struct Oper *r);
+int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r);
+// * 0
+void get_zero_ops_code(struct Ipcd *);
+// * 1
+void get_one_ops_code(struct Ipcd *);
+enum OpsCode get_one_opscode(struct Inst *);
+void get_one_ops_prefs(struct Ipcd *, enum OpsCode);
+void fill_one_ops_cmd_and_data(struct Ipcd *);
+// * 2
+#define declare_two_ops(in, l, r)                                              \
+	do {                                                                       \
+		(l) = plist_get(in->os, 0);                                            \
+		(r) = plist_get(in->os, 1);                                            \
+	} while (0);
+void get_two_ops_code(struct Ipcd *);
+enum OpsCode get_two_opscode(struct Inst *);
+void get_two_ops_prefs(struct Ipcd *, enum OpsCode);
+void fill_two_ops_cmd_and_data(struct Ipcd *);
+// * 3
+void get_tri_ops_code(struct Ipcd *);
+enum OpsCode get_tri_opscode(struct Inst *);
+void get_tri_ops_prefs(struct Ipcd *, enum OpsCode);
+void fill_tri_ops_cmd_and_data(struct Ipcd *);

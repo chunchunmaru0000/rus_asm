@@ -13,7 +13,9 @@
 	#rm тест1
 
 асм:
-	gcc main.c flgs.c gner.c cmnd.c lbel.c pser.c lsts.c tzer.c -o асм
+	gcc main.c flgs.c gner.c \
+	cmnd.c cmnd_arrs.c cmnd1.c cmnd2.c cmnd3.c \
+	lbel.c pser.c lsts.c tzer.c -o асм
 
 
 WARNS := 0
