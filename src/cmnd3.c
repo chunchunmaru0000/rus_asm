@@ -31,16 +31,8 @@ void fill_tri_ops_cmd_and_data(struct Ipcd *i) {
 		} else if (is_rm__r(c->opsc) || is_xrm__xr(c->opsc)) {
 			reg = r;
 			rm = l;
-			// modrm += l->mod << 6;				// mod
-			// modrm += get_reg_field(r->rm) << 3; // r
-			// modrm += get_reg_field(l->rm);		// rm
-			// blist_add(i->cmd, modrm);
-			// if (is_mem(l))
-			// 	add_mem(i, l);
-		} else {
-			printf("\t%d\n", c->opsc);
+		} else
 			ee(i->in->f, i->in->p, "REG_FIELD ЭЭЭ");
-		}
 
 		modrm += rm->mod << 6;				  // mod
 		modrm += get_reg_field(reg->rm) << 3; // r
