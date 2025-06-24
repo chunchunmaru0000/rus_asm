@@ -946,12 +946,28 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 	return code;
 }
 
-// TODO: redefine its important
+// TODO: is ir possible to do better str search
 enum ICode define_pd(struct Pser *p) {
-	struct Defn *d = malloc(sizeof(struct Defn));
-	d->view = next_get(p, 0)->view;
+	struct Defn *d;
+	char *view = next_get(p, 0)->view;
 	next_get(p, 0); // skip name token
-	d->value = expression(p);
+	struct Oper *value = expression(p);
+
+	for (long i = 0; i < p->ds->size; i++) {
+		d = plist_get(p->ds, i);
+
+		if (sc(view, d->view)) {
+			// expression can be freed here cuz it doesnt holds pointers that
+			// it mallocs, it only borrows them
+			free(d->value);
+			d->value = value;
+			return INONE;
+		}
+	}
+
+	d = malloc(sizeof(struct Defn));
+	d->view = view;
+	d->value = value;
 	plist_add(p->ds, d);
 	return INONE;
 }
