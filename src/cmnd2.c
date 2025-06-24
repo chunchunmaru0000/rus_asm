@@ -104,6 +104,14 @@ void get_mm_xm(enum OpsCode *code, struct Inst *in, struct Oper *l,
 		*code = oc;
 	}
 }
+void get_mm_mmm(enum OpsCode *code, struct Inst *in, struct Oper *l,
+				struct Oper *r, enum OpsCode oc, uc sz) {
+	if (is_mm(l) && is_mmm(r)) {
+		if (is_mem(r))
+			change_mem_size(in, r, sz);
+		*code = oc;
+	}
+}
 
 // TODO: for example
 // зумн ебх ебх 2 ; работает
@@ -281,6 +289,9 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case IUNPCKHPD:
 	case IMOVAPS:
 	case IMOVAPD:
+	case IPALIGNR:
+	case IDPPS:
+	case IDPPD:
 		get_xm_xm_code(&code, in, l, r, X__XM_128, XM_128__X, XWORD);
 		break;
 	case IMOVSS:
@@ -340,6 +351,9 @@ enum OpsCode get_two_opscode(struct Inst *in) {
 	case ICVTSD2SI:
 		get_r3264_xm(&code, in, l, r, R_32_64__XM_64, QWORD);
 		break;
+	case IPALIGNR_MM:
+		get_mm_mmm(&code, in, l, r, MM__MMM_64, QWORD);
+		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}
@@ -368,10 +382,8 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 		else if (is_F3(i->in->code))
 			blist_add(i->cmd, 0xf3);
 
-		// xmm opcodes SUPPOSEDLY never use REX for m64 but for reg64
-		// TODO: its false
 		if ((is_reg(l) && is_64(l)) || (is_reg(r) && is_64(r)) ||
-			(is_x__rm(code) && is_64(r)))
+			(is_x__rm(code) && is_64(r)) || (is_rm__x(code) && is_64(l)))
 			rex |= REX_W;
 		if (is_xm_l(code)) {
 			if (is_mem(l))

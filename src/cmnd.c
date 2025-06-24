@@ -500,10 +500,34 @@ const struct Cmnd cmnds2[] = {
 	{IUCOMISD, {0x0f, 0x2e}, 2, REG_FIELD, 0, X__XM_64},
 	{ICOMISS, {0x0f, 0x2f}, 2, REG_FIELD, 0, X__XM_32},
 	{ICOMISD, {0x0f, 0x2f}, 2, REG_FIELD, 0, X__XM_64},
+	{IPALIGNR_MM, {0x0f, 0x3a, 0x0f}, 3, REG_FIELD, 0, MM__MMM_64},
+	{IPALIGNR, {0x0f, 0x3a, 0x0f}, 3, REG_FIELD, 0, X__XM_128},
+	{IDPPS, {0x0f, 0x3a, 0x40}, 3, REG_FIELD, 0, X__XM_128},
+	{IDPPD, {0x0f, 0x3a, 0x41}, 3, REG_FIELD, 0, X__XM_128},
 };
 const struct Cmnd cmnds3[] = {
 	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
 	{IIMUL, {0x6b}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_8},
+
+	{IROUNDPS, {0x0f, 0x3a, 0x08}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IROUNDPD, {0x0f, 0x3a, 0x09}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IROUNDSS, {0x0f, 0x3a, 0x0a}, 3, REG_FIELD, 0, X__XM_32__IMM_8},
+	{IROUNDSD, {0x0f, 0x3a, 0x0b}, 3, REG_FIELD, 0, X__XM_64__IMM_8},
+	{IBLENDPS, {0x0f, 0x3a, 0x0c}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IBLENDPD, {0x0f, 0x3a, 0x0d}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPBLENDW, {0x0f, 0x3a, 0x0e}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPEXTRB, {0x0f, 0x3a, 0x14}, 3, REG_FIELD, 0, R_32_64_M_8__X__IMM_8},
+	{IPEXTRW, {0x0f, 0x3a, 0x15}, 3, REG_FIELD, 0, R_32_64_M_16__X__IMM_8},
+	{IPEXTRDQ, {0x0f, 0x3a, 0x16}, 3, REG_FIELD, 0, RM_32_64__X__IMM_8},
+	{IEXTRACTPS, {0x0f, 0x3a, 0x17}, 3, REG_FIELD, 0, RM_32__X__IMM_8},
+	{IPINSRB, {0x0f, 0x3a, 0x20}, 3, REG_FIELD, 0, X__R_32_64_M_8__IMM_8},
+	{IINSERTPS, {0x0f, 0x3a, 0x21}, 3, REG_FIELD, 0, X__R_32_64_M_16__IMM_8},
+	{IPINSRDQ, {0x0f, 0x3a, 0x22}, 3, REG_FIELD, 0, X__RM_32_64__IMM_8},
+	{IMPSADBW, {0x0f, 0x3a, 0x42}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPCMPESTRM, {0x0f, 0x3a, 0x60}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPCMPESTRI, {0x0f, 0x3a, 0x61}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPCMPISTRM, {0x0f, 0x3a, 0x62}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPCMPISTRI, {0x0f, 0x3a, 0x63}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
 };
 
 const long cmnds0_len = lenofarr(cmnds0);

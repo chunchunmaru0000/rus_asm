@@ -66,6 +66,43 @@ enum OpsCode get_tri_opscode(struct Inst *in) {
 						   : R_16_32_64__RM_16_32_64__IMM_16_32;
 		}
 		break;
+	case IROUNDPS:
+	case IROUNDPD:
+	case IBLENDPS:
+	case IBLENDPD:
+	case IPBLENDW:
+	case IPCMPESTRM:
+	case IPCMPESTRI:
+	case IPCMPISTRM:
+	case IPCMPISTRI:
+
+		break;
+	case IROUNDSS:
+		break;
+	case IROUNDSD:
+
+		break;
+	case IPEXTRB:
+		break;
+	case IPEXTRW:
+
+		break;
+	case IPEXTRDQ:
+
+		break;
+	case IEXTRACTPS:
+
+		break;
+	case IPINSRB:
+		break;
+	case IINSERTPS:
+
+		break;
+	case IPINSRDQ:
+
+		break;
+	case IMPSADBW:
+		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}

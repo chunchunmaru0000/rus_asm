@@ -96,6 +96,18 @@ enum OpsCode {
 	R_32_64__XM_32,
 	MM__XM_128,
 	R_32_64__XM_64,
+
+	MM__MMM_64,
+	X__XM_128__IMM_8,
+	X__XM_32__IMM_8,
+	X__XM_64__IMM_8,
+	R_32_64_M_8__X__IMM_8,
+	R_32_64_M_16__X__IMM_8,
+	RM_32_64__X__IMM_8,
+	RM_32__X__IMM_8,
+	X__R_32_64_M_8__IMM_8,
+	X__R_32_64_M_16__IMM_8,
+	X__RM_32_64__IMM_8,
 };
 
 #define NOT_FIELD 0
@@ -174,6 +186,7 @@ extern const enum OpsCode IMM_R[];
 extern const enum OpsCode XM_L[];
 extern const enum OpsCode XM_R[];
 extern const enum OpsCode X__RM_ARR[];
+extern const enum OpsCode RM__X_ARR[];
 extern const enum OpsCode XRM__XR_ARR[];
 extern const enum OpsCode XR__XRM_ARR[];
 extern const long RM_L___LEN;
@@ -184,6 +197,7 @@ extern const long IMM_R___LEN;
 extern const long XM_L___LEN;
 extern const long XM_R___LEN;
 extern const long X__RM_ARR___LEN;
+extern const long RM__X_ARR___LEN;
 extern const long XRM__XR_ARR___LEN;
 extern const long XR__XRM_ARR___LEN;
 #define is_rm_l(c) (is_in_opsc((c), RM_L, RM_L___LEN))
@@ -195,6 +209,7 @@ extern const long XR__XRM_ARR___LEN;
 #define is_xrm__xr(c) (is_in_opsc((c), XRM__XR_ARR, XRM__XR_ARR___LEN))
 #define is_xr__xrm(c) (is_in_opsc((c), XR__XRM_ARR, XR__XRM_ARR___LEN))
 #define is_x__rm(c) (is_in_opsc((c), X__RM_ARR, X__RM_ARR___LEN))
+#define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, RM__X_ARR___LEN))
 #define is_imm_r(c) (is_in_opsc((c), IMM_R, IMM_R___LEN))
 // * change, warn
 void change_mem_size(struct Inst *in, struct Oper *o, uc sz);
