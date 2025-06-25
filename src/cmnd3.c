@@ -1,5 +1,4 @@
 #include "cmnd.h"
-#include <stdio.h>
 
 void get_tri_ops_code(struct Ipcd *i) {
 	i->l = plist_get(i->in->os, 0);
@@ -90,6 +89,9 @@ enum OpsCode get_tri_opscode(struct Ipcd *i) {
 	case IPCMPISTRM:
 	case IPCMPISTRI:
 	case IMPSADBW:
+	case IPSHUFLW:
+	case IPSHUFHW:
+	case IPSHUFD:
 		c_x_xm_i(&code, i, XWORD, X__XM_128__IMM_8);
 		break;
 	case IROUNDSS:

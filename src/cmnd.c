@@ -530,6 +530,9 @@ const struct Cmnd cmnds3[] = {
 	{IPCMPESTRI, {0x0f, 0x3a, 0x61}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
 	{IPCMPISTRM, {0x0f, 0x3a, 0x62}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
 	{IPCMPISTRI, {0x0f, 0x3a, 0x63}, 3, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPSHUFLW, {0x0f, 0x70}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPSHUFHW, {0x0f, 0x70}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
+	{IPSHUFD, {0x0f, 0x70}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
 };
 
 const long cmnds0_len = lenofarr(cmnds0);
