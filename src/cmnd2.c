@@ -294,11 +294,73 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 	case IPALIGNR:
 	case IDPPS:
 	case IDPPD:
+	case ISQRTPS:
+	case ISQRTPD:
+	case IRSQRTPS:
+	case IRCPPS:
+	case IANDPS:
+	case IANDPD:
+	case IANDNPS:
+	case IANDNPD:
+	case IORPS:
+	case IORPD:
+	case IXORPS:
+	case IXORPD:
+	case IADDPS:
+	case IADDPD:
+	case IMULPS:
+	case IMULPD:
+	case ICVTPS2PD:
+	case ICVTPD2PS:
+	case ICVTDQ2PS:
+	case ICVTPS2DQ:
+	case ICVTTPS2DQ:
+	case ISUBPS:
+	case ISUBPD:
+	case IMINPS:
+	case IMINPD:
+	case IDIVPS:
+	case IDIVPD:
+	case IMAXPS:
+	case IMAXPD:
+	case IPUNPCKLBW:
+	case IPUNPCKLWD:
+	case IPUNPCKLDQ:
+	case IPACKSSWB:
+	case IPCMPGTB:
+	case IPCMPGTW:
+	case IPCMPGTD:
+	case IPACKUSWB:
+	case IPUNPCKHBW:
+	case IPUNPCKHWD:
+	case IPUNPCKHDQ:
+	case IPACKSSDW:
+	case IPUNPCKLQDQ:
+	case IPUNPCKHQDQ:
+	case IPCMPEQB:
+	case IPCMPEQW:
+	case IPCMPEQD:
+	case IHADDPD:
+	case IHADDPS:
+	case IHSUBPD:
+	case IHSUBPS:
+	case IMOVDQA:
+	case IMOVDQU:
 		get_xm_xm_code(&code, in, l, r, X__XM_128, XM_128__X, XWORD);
 		break;
 	case IMOVSS:
 	case IUCOMISS:
 	case ICOMISS:
+	case ISQRTSS:
+	case IRSQRTSS:
+	case IRCPSS:
+	case IADDSS:
+	case IMULSS:
+	case ICVTSS2SD:
+	case ISUBSS:
+	case IMINSS:
+	case IDIVSS:
+	case IMAXSS:
 		get_xm_xm_code(&code, in, l, r, X__XM_32, XM_32__X, DWORD);
 		break;
 	case IMOVSD_XMM:
@@ -309,6 +371,14 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 	case IMOVSHDUP:
 	case IUCOMISD:
 	case ICOMISD:
+	case ISQRTSD:
+	case IADDSD:
+	case IMULSD:
+	case ICVTSD2SS:
+	case ISUBSD:
+	case IMINSD:
+	case IDIVSD:
+	case IMAXSD:
 		get_xm_xm_code(&code, in, l, r, X__XM_64, XM_64__X, QWORD);
 		break;
 	case IMOVHLPS:
@@ -331,6 +401,28 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 	case ICVTSI2SD:
 		if (is_xmm(l) && is_rm(r) && (is_32(r) || is_64(r)))
 			code = X__RM_32_64;
+		break;
+	case IMOVMSKPS:
+	case IMOVMSKPD:
+		if (is_reg(l) && (is_32(l) || is_64(l)) && is_xmm(r))
+			code = R_32_64__X;
+		break;
+	case IPSRLW:
+	case IPSRAW:
+	case IPSLLW:
+	case IPSRLD:
+	case IPSRAD:
+	case IPSLLD:
+	case IPSRLQ:
+	case IPSRLDQ:
+	case IPSLLQ:
+	case IPSLLDQ:
+		if (!is_xmm(l))
+			break;
+		if (is_imm(r)) {
+			change_imm_size(in, r, BYTE);
+			code = X__IMM_8;
+		}
 		break;
 	case ICVTPI2PS:
 	case ICVTPI2PD:
