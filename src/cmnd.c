@@ -571,7 +571,7 @@ const struct Cmnd cmnds2[] = {
 	{IPUNPCKLQDQ, {0x0f, 0x6c}, 2, REG_FIELD, 0, X__XM_128},
 	{IPUNPCKHQDQ, {0x0f, 0x6d}, 2, REG_FIELD, 0, X__XM_128},
 	
-	{IMOVDQA, {0x0f, 0x6e}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOVDQA, {0x0f, 0x6f}, 2, REG_FIELD, 0, X__XM_128},
 	{IMOVDQU, {0x0f, 0x6f}, 2, REG_FIELD, 0, X__XM_128},
 	
 	{IPSRLW, {0x0f, 0x71}, 2, NUM_FIELD, 2, X__IMM_8},
@@ -581,7 +581,7 @@ const struct Cmnd cmnds2[] = {
 	{IPSRAD, {0x0f, 0x72}, 2, NUM_FIELD, 4, X__IMM_8},
 	{IPSLLD, {0x0f, 0x72}, 2, NUM_FIELD, 6, X__IMM_8},
 	{IPSRLQ, {0x0f, 0x73}, 2, NUM_FIELD, 2, X__IMM_8},
-	{IPSRLDQ, {0x0f, 0x73}, 2, NUM_FIELD, 4, X__IMM_8},
+	{IPSRLDQ, {0x0f, 0x73}, 2, NUM_FIELD, 3, X__IMM_8},
 	{IPSLLQ, {0x0f, 0x73}, 2, NUM_FIELD, 6, X__IMM_8},
 	{IPSLLDQ, {0x0f, 0x73}, 2, NUM_FIELD, 7, X__IMM_8},
 	
