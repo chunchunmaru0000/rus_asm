@@ -344,14 +344,7 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"гминсуо", IHSUBPS},
 	{"бытьэ", IMOV_XMM},
 
-	{"сравуо", ICMPPS},
-	{"сравсо", ICMPSS},
-	{"сравуд", ICMPPD},
-	{"сравсдэ", ICMPSD_XMM},
 	{"бнвч", IMOVNTI},
-	{"увстврд", IPINSRW},
-	{"тасуо", ISHUFPS},
-	{"тасуд", ISHUFPD},
 	{"плюсминсуд", IADDSUBPD},
 	{"плюсминсуо", IADDSUBPS},
 	{"уплюсв", IPADDQ},
@@ -407,6 +400,10 @@ const struct Word TRI_OPS_WORDS[] = {
 	{"усравняи", IPCMPISTRI},
 
 	{"утаснд", IPSHUFLW},	  {"утасвд", IPSHUFHW},	   {"утасч", IPSHUFD},
+
+	{"сравуо", ICMPPS},		  {"сравсо", ICMPSS},	   {"сравуд", ICMPPD},
+	{"сравсдэ", ICMPSD_XMM},  {"увстврд", IPINSRW},	   {"тасуо", ISHUFPS},
+	{"тасуд", ISHUFPD},
 };
 // seg
 const struct Reg SEG_REGS[] = {{R_CS, "кс"},	 {R_DS, "дс"}, {R_ES, "ес"},
