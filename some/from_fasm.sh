@@ -67,7 +67,7 @@ dict=(
     "minsd минмсд"
     "minpd минмуд"
     "minss минмсо"
-    "minps минумо"
+    "minps минмуо"
     "subsd минссд"
     "subpd минсуд"
     "subss минссо"

@@ -92,12 +92,18 @@ enum OpsCode get_tri_opscode(struct Ipcd *i) {
 	case IPSHUFLW:
 	case IPSHUFHW:
 	case IPSHUFD:
+	case ISHUFPD:
+	case ICMPPS:
+	case ICMPPD:
+	case ISHUFPS:
 		c_x_xm_i(&code, i, XWORD, X__XM_128__IMM_8);
 		break;
 	case IROUNDSS:
+	case ICMPSS:
 		c_x_xm_i(&code, i, DWORD, X__XM_32__IMM_8);
 		break;
 	case IROUNDSD:
+	case ICMPSD_XMM:
 		c_x_xm_i(&code, i, QWORD, X__XM_64__IMM_8);
 		break;
 	case IPEXTRB:
@@ -149,6 +155,17 @@ enum OpsCode get_tri_opscode(struct Ipcd *i) {
 		else if (is_mem(r)) {
 			change_mem_size(in, r, BYTE);
 			code = X__R_32_64_M_8__IMM_8;
+		}
+		break;
+	case IPINSRW:
+		if (!(is_xmm(l) && is_imm(o)))
+			break;
+		change_imm_size(in, o, BYTE);
+		if (is_reg(r) && (is_32(r) || is_64(r)))
+			code = X__R_32_64_M_16__IMM_8;
+		else if (is_mem(r)) {
+			change_mem_size(in, r, WORD);
+			code = X__R_32_64_M_16__IMM_8;
 		}
 		break;
 	case IINSERTPS:

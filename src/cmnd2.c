@@ -361,6 +361,44 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 	case IHSUBPS:
 	case IMOVDQA:
 	case IMOVDQU:
+	case IADDSUBPD:
+	case IADDSUBPS:
+	case IPADDQ:
+	case IPMULLW:
+	case IPSUBUSB:
+	case IPSUBUSW:
+	case IPMINUB:
+	case IPAND:
+	case IPADDUSB:
+	case IPADDUSW:
+	case IPMAXUB:
+	case IPANDN:
+	case IPAVGB:
+	case IPAVGW:
+	case IPMULHUW:
+	case IPMULHW:
+	case ICVTPD2DQ:
+	case ICVTTPD2DQ:
+	case ICVTDQ2PD:
+	case IPSUBSB:
+	case IPSUBSW:
+	case IPMINSW:
+	case IPOR:
+	case IPADDSB:
+	case IPADDSW:
+	case IPMAXSW:
+	case IPXOR:
+	case ILDDQU:
+	case IPMULUDQ:
+	case IPMADDWD:
+	case IPSADBW:
+	case IPSUBB:
+	case IPSUBW:
+	case IPSUBD:
+	case IPSUBQ:
+	case IPADDB:
+	case IPADDW:
+	case IPADDD:
 		get_xm_xm_code(&code, in, l, r, X__XM_128, XM_128__X, XWORD);
 		break;
 	case IMOVSS:
@@ -398,6 +436,7 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 		break;
 	case IMOVHLPS:
 	case IMOVLHPS:
+	case IMASKMOVDQU:
 		// here OPC_INVALID grants that if is_mem(l) then invalid ops code
 		if (!is_mem(r))
 			get_xm_xm_code(&code, in, l, r, X__X, OPC_INVALID, 0);
@@ -410,6 +449,7 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 		break;
 	case IMOVNTPS:
 	case IMOVNTPD:
+	case IMOVNTDQ:
 		get_xm_xm_code(&code, in, l, r, OPC_INVALID, M_128__X, XWORD);
 		break;
 	case ICVTSI2SS:
@@ -419,6 +459,7 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 		break;
 	case IMOVMSKPS:
 	case IMOVMSKPD:
+	case IPMOVMSKB:
 		if (is_reg(l) && (is_32(l) || is_64(l)) && is_xmm(r))
 			code = R_32_64__X;
 		break;
@@ -471,6 +512,12 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 		break;
 	case IPALIGNR_MM:
 		get_mm_mmm(&code, in, l, r, MM__MMM_64, QWORD);
+		break;
+	case IMOVNTI:
+		if (is_mem(l) && is_reg(r) && r->sz >= DWORD) {
+			warn_change_to_eq_size_lr(in, l, r);
+			code = M_32_64__R_32_64;
+		}
 		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);

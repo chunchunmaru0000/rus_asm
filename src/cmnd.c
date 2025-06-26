@@ -593,18 +593,60 @@ const struct Cmnd cmnds2[] = {
 	{IMOV_XMM, {0x0f, 0x7e}, 2, REG_FIELD, 0, X__XM_64},
 	{IMOVDQA, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
 	{IMOVDQU, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
+	{IMOVNTI, {0x0f, 0xc3}, 2, REG_FIELD, 0, M_32_64__R_32_64},
 
+	{IADDSUBPD, {0x0f, 0xd0}, 2, REG_FIELD, 0, X__XM_128},
+	{IADDSUBPS, {0x0f, 0xd0}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSRLW, {0x0f, 0xd1}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSRLD, {0x0f, 0xd2}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSRLQ, {0x0f, 0xd3}, 2, REG_FIELD, 0, X__XM_128},
-
+	{IPADDQ, {0x0f, 0xd4}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMULLW, {0x0f, 0xd5}, 2, REG_FIELD, 0, X__XM_128},
 	{IMOV_XMM, {0x0f, 0xd6}, 2, REG_FIELD, 0, XM_64__X},
-
+	// {IMOVQ2DQ, {0x0f, 0xd6}, 2, REG_FIELD, 0, X__MM},
+	// {IMOVDQ2Q, {0x0f, 0xd6}, 2, REG_FIELD, 0, MM__X},
+	{IPMOVMSKB, {0x0f, 0xd7}, 2, REG_FIELD, 0, R_32_64__X},
+	{IPSUBUSB, {0x0f, 0xd8}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSUBUSW, {0x0f, 0xd9}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMINUB, {0x0f, 0xda}, 2, REG_FIELD, 0, X__XM_128},
+	{IPAND, {0x0f, 0xdb}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDUSB, {0x0f, 0xdc}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDUSW, {0x0f, 0xdd}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMAXUB, {0x0f, 0xde}, 2, REG_FIELD, 0, X__XM_128},
+	{IPANDN, {0x0f, 0xdf}, 2, REG_FIELD, 0, X__XM_128},
+	{IPAVGB, {0x0f, 0xe0}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSRAW, {0x0f, 0xe1}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSRAD, {0x0f, 0xe2}, 2, REG_FIELD, 0, X__XM_128},
+	{IPAVGW, {0x0f, 0xe3}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMULHUW, {0x0f, 0xe4}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMULHW, {0x0f, 0xe5}, 2, REG_FIELD, 0, X__XM_128},
+	{ICVTPD2DQ, {0x0f, 0xe6}, 2, REG_FIELD, 0, X__XM_128},
+	{ICVTTPD2DQ, {0x0f, 0xe6}, 2, REG_FIELD, 0, X__XM_128},
+	{ICVTDQ2PD, {0x0f, 0xe6}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOVNTDQ, {0x0f, 0xe7}, 2, REG_FIELD, 0, M_128__X},
+	{IPSUBSB, {0x0f, 0xe8}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSUBSW, {0x0f, 0xe9}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMINSW, {0x0f, 0xea}, 2, REG_FIELD, 0, X__XM_128},
+	{IPOR, {0x0f, 0xeb}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDSB, {0x0f, 0xec}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDSW, {0x0f, 0xed}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMAXSW, {0x0f, 0xee}, 2, REG_FIELD, 0, X__XM_128},
+	{IPXOR, {0x0f, 0xef}, 2, REG_FIELD, 0, X__XM_128},
+	{ILDDQU, {0x0f, 0xf0}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSLLW, {0x0f, 0xf1}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSLLD, {0x0f, 0xf2}, 2, REG_FIELD, 0, X__XM_128},
 	{IPSLLQ, {0x0f, 0xf3}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMULUDQ, {0x0f, 0xf4}, 2, REG_FIELD, 0, X__XM_128},
+	{IPMADDWD, {0x0f, 0xf5}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSADBW, {0x0f, 0xf6}, 2, REG_FIELD, 0, X__XM_128},
+	{IMASKMOVDQU, {0x0f, 0xf7}, 2, REG_FIELD, 0, X__X},
+	{IPSUBB, {0x0f, 0xf8}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSUBW, {0x0f, 0xf9}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSUBD, {0x0f, 0xfa}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSUBQ, {0x0f, 0xfb}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDB, {0x0f, 0xfc}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDW, {0x0f, 0xfd}, 2, REG_FIELD, 0, X__XM_128},
+	{IPADDD, {0x0f, 0xfe}, 2, REG_FIELD, 0, X__XM_128},
 };
 const struct Cmnd cmnds3[] = {
 	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
@@ -632,6 +674,14 @@ const struct Cmnd cmnds3[] = {
 	{IPSHUFLW, {0x0f, 0x70}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
 	{IPSHUFHW, {0x0f, 0x70}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
 	{IPSHUFD, {0x0f, 0x70}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
+
+	{ICMPPS, {0x0f, 0xc2}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
+	{ICMPSS, {0x0f, 0xc2}, 2, REG_FIELD, 0, X__XM_32__IMM_8},
+	{ICMPPD, {0x0f, 0xc2}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
+	{ICMPSD_XMM, {0x0f, 0xc2}, 2, REG_FIELD, 0, X__XM_64__IMM_8},
+	{IPINSRW, {0x0f, 0xc4}, 2, REG_FIELD, 0, X__R_32_64_M_16__IMM_8},
+	{ISHUFPS, {0x0f, 0xc6}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
+	{ISHUFPD, {0x0f, 0xc6}, 2, REG_FIELD, 0, X__XM_128__IMM_8},
 };
 
 const long cmnds0_len = lenofarr(cmnds0);
@@ -662,7 +712,7 @@ const struct Cmnd *get_cmnd(struct Ipcd *i, const struct Cmnd cmnds[],
 }
 
 void get_zero_ops_code(struct Ipcd *i) {
-	// TODO: could preopaably optimize OPC_INVALID but not sure for varops
+	// TODO: could propably optimize OPC_INVALID but not sure for varops
 	const struct Cmnd *c = get_cmnd(i, cmnds0, cmnds0_len, OPC_INVALID);
 	blat(i->cmd, (uc *)c->cmd, c->len);
 }

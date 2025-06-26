@@ -3,7 +3,7 @@
 const enum OpsCode RM_L[] = {
 	RM_8__R_8,			RM_16_32_64__R_16_32_64,
 	RM_8__IMM_8,		RM_16_32_64__IMM_16_32,
-	RM_16_32_64__IMM_8,
+	RM_16_32_64__IMM_8, M_32_64__R_32_64,
 };
 const enum OpsCode RM_R[] = {
 	R_8__RM_8,
@@ -16,10 +16,8 @@ const enum OpsCode RM_R[] = {
 };
 // this doesnt have imm so its needed
 const enum OpsCode RM__R_ARR[] = {
-	RM_8__R_8,
-	RM_16_32_64__R_16_32_64,
-	M_16__SREG,
-	R_16_32_64__SREG,
+	RM_8__R_8,		  RM_16_32_64__R_16_32_64, M_16__SREG,
+	R_16_32_64__SREG, M_32_64__R_32_64,
 };
 const enum OpsCode R__RM_ARR[] = {
 	R_8__RM_8,	   R_16_32_64__RM_16_32_64,
