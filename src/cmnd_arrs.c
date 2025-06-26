@@ -41,6 +41,7 @@ const enum OpsCode XM_L[] = {
 
 	RM_32__X__IMM_8,	R_32_64_M_16__X__IMM_8,
 	RM_32_64__X__IMM_8, R_32_64_M_8__X__IMM_8,
+	RM_32_64__X,
 };
 const enum OpsCode XM_R[] = {
 	X__IMM_8,		  R_32_64__X,
@@ -64,16 +65,15 @@ const enum OpsCode X__RM_ARR[] = {
 	X__R_32_64_M_16__IMM_8,
 };
 const enum OpsCode RM__X_ARR[] = {
-	RM_32__X__IMM_8,
-	R_32_64_M_16__X__IMM_8,
-	RM_32_64__X__IMM_8,
-	R_32_64_M_8__X__IMM_8,
+	RM_32__X__IMM_8,	R_32_64_M_16__X__IMM_8,
+	RM_32_64__X__IMM_8, R_32_64_M_8__X__IMM_8,
+	RM_32_64__X,
 };
 
 const enum OpsCode XRM__XR_ARR[] = {
 	XM_32__X,			XM_64__X,
 	M_128__X,			M_64__X,
-	XM_128__X,
+	XM_128__X,			RM_32_64__X,
 
 	RM_32__X__IMM_8,	R_32_64_M_16__X__IMM_8,
 	RM_32_64__X__IMM_8, R_32_64_M_8__X__IMM_8,

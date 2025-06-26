@@ -88,6 +88,8 @@ dict=(
     "rcpps оуо"
     "orpd илиуд"
     "orps илиуо"
+    "movq бытьэ"
+    "movd бытьэ"
     
     "pcmpistri усравняи"
     "pcmpistrm усравням"

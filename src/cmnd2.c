@@ -285,6 +285,21 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 			}
 		}
 		break;
+	case IMOV_XMM:
+		if (is_xmm(l) && is_rm(r) && (is_32(r) || is_64(r)))
+			code = X__RM_32_64;
+		else if (is_rm(l) && (is_32(l) || is_64(l)) && is_xmm(r))
+			code = RM_32_64__X;
+		else if (is_xmm(l) && is_xm(r)) {
+			if (is_mem(r))
+				change_mem_size(in, r, DWORD);
+			code = X__XM_64;
+		} else if (is_xm(l) && is_xmm(r)) {
+			if (is_mem(l))
+				change_mem_size(in, l, DWORD);
+			code = XM_64__X;
+		}
+		break;
 	case IMOVUPS:
 	case IMOVUPD:
 	case IUNPCKLPD:
@@ -456,6 +471,9 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 	return code;
 }
 
+#define get_mov_xmm_pref(o)                                                    \
+	((o) == X__RM_32_64 || (o) == RM_32_64__X ? 0x66 : 0xf3)
+
 void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	struct Oper *l = i->l, *r = i->r;
 
@@ -467,13 +485,20 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	uc rex = 0b01000000;
 
 	// xmm prefixes
-	if (i->in->code > I_XMM_INSTRUCTIONS_BEGIN) {
-		if (is_66(i->in->code))
-			blist_add(i->cmd, 0x66);
-		else if (is_F2(i->in->code))
-			blist_add(i->cmd, 0xf2);
-		else if (is_F3(i->in->code))
-			blist_add(i->cmd, 0xf3);
+	enum ICode in_code = i->in->code;
+	if (in_code > I_XMM_INSTRUCTIONS_BEGIN) {
+		uc xmm_pref = 0x00;
+		if (in_code == IMOV_XMM)
+			xmm_pref = get_mov_xmm_pref(i->c->opsc);
+		else if (is_66(in_code))
+			xmm_pref = 0x66;
+		else if (is_F2(in_code))
+			xmm_pref = 0xf2;
+		else if (is_F3(in_code))
+			xmm_pref = 0xf3;
+
+		if (xmm_pref)
+			blist_add(i->cmd, xmm_pref);
 
 		if ((is_reg(l) && is_64(l)) || (is_reg(r) && is_64(r)) ||
 			(is_x__rm(code) && is_64(r)) || (is_rm__x(code) && is_64(l)))

@@ -570,10 +570,9 @@ const struct Cmnd cmnds2[] = {
 	{IPACKSSDW, {0x0f, 0x6b}, 2, REG_FIELD, 0, X__XM_128},
 	{IPUNPCKLQDQ, {0x0f, 0x6c}, 2, REG_FIELD, 0, X__XM_128},
 	{IPUNPCKHQDQ, {0x0f, 0x6d}, 2, REG_FIELD, 0, X__XM_128},
-	
+	{IMOV_XMM, {0x0f, 0x6e}, 2, REG_FIELD, 0, X__RM_32_64},
 	{IMOVDQA, {0x0f, 0x6f}, 2, REG_FIELD, 0, X__XM_128},
 	{IMOVDQU, {0x0f, 0x6f}, 2, REG_FIELD, 0, X__XM_128},
-	
 	{IPSRLW, {0x0f, 0x71}, 2, NUM_FIELD, 2, X__IMM_8},
 	{IPSRAW, {0x0f, 0x71}, 2, NUM_FIELD, 4, X__IMM_8},
 	{IPSLLW, {0x0f, 0x71}, 2, NUM_FIELD, 6, X__IMM_8},
@@ -584,7 +583,6 @@ const struct Cmnd cmnds2[] = {
 	{IPSRLDQ, {0x0f, 0x73}, 2, NUM_FIELD, 3, X__IMM_8},
 	{IPSLLQ, {0x0f, 0x73}, 2, NUM_FIELD, 6, X__IMM_8},
 	{IPSLLDQ, {0x0f, 0x73}, 2, NUM_FIELD, 7, X__IMM_8},
-	
 	{IPCMPEQB, {0x0f, 0x74}, 2, REG_FIELD, 0, X__XM_128},
 	{IPCMPEQW, {0x0f, 0x75}, 2, REG_FIELD, 0, X__XM_128},
 	{IPCMPEQD, {0x0f, 0x76}, 2, REG_FIELD, 0, X__XM_128},
@@ -592,9 +590,12 @@ const struct Cmnd cmnds2[] = {
 	{IHADDPS, {0x0f, 0x7c}, 2, REG_FIELD, 0, X__XM_128},
 	{IHSUBPD, {0x0f, 0x7d}, 2, REG_FIELD, 0, X__XM_128},
 	{IHSUBPS, {0x0f, 0x7d}, 2, REG_FIELD, 0, X__XM_128},
+	{IMOV_XMM, {0x0f, 0x7e}, 2, REG_FIELD, 0, RM_32_64__X},
+	{IMOV_XMM, {0x0f, 0x7e}, 2, REG_FIELD, 0, X__XM_64},
+	{IMOVDQA, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
+	{IMOVDQU, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
 
-	{IMOVDQA, {0x0f, 0x6e}, 2, REG_FIELD, 0, XM_128__X},
-	{IMOVDQU, {0x0f, 0x6f}, 2, REG_FIELD, 0, XM_128__X},
+	{IMOV_XMM, {0x0f, 0xd6}, 2, REG_FIELD, 0, XM_64__X},
 };
 const struct Cmnd cmnds3[] = {
 	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
