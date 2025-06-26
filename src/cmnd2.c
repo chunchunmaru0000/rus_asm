@@ -429,12 +429,21 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 	case IPSRAD:
 	case IPSLLD:
 	case IPSRLQ:
-	case IPSRLDQ:
 	case IPSLLQ:
-	case IPSLLDQ:
 		if (!is_xmm(l))
 			break;
 		if (is_imm(r)) {
+			change_imm_size(in, r, BYTE);
+			code = X__IMM_8;
+		} else if (is_xm(r)) {
+			if (is_mem(r))
+				change_mem_size(in, r, XWORD);
+			code = X__XM_128;
+		}
+		break;
+	case IPSRLDQ:
+	case IPSLLDQ:
+		if (is_xmm(l) && is_imm(r)) {
 			change_imm_size(in, r, BYTE);
 			code = X__IMM_8;
 		}

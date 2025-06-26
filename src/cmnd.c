@@ -506,7 +506,6 @@ const struct Cmnd cmnds2[] = {
 	{IPALIGNR, {0x0f, 0x3a, 0x0f}, 3, REG_FIELD, 0, X__XM_128},
 	{IDPPS, {0x0f, 0x3a, 0x40}, 3, REG_FIELD, 0, X__XM_128},
 	{IDPPD, {0x0f, 0x3a, 0x41}, 3, REG_FIELD, 0, X__XM_128},
-
 	{IMOVMSKPS, {0x0f, 0x50}, 2, REG_FIELD, 0, R_32_64__X},
 	{IMOVMSKPD, {0x0f, 0x50}, 2, REG_FIELD, 0, R_32_64__X},
 	{ISQRTPS, {0x0f, 0x51}, 2, REG_FIELD, 0, X__XM_128},
@@ -595,7 +594,17 @@ const struct Cmnd cmnds2[] = {
 	{IMOVDQA, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
 	{IMOVDQU, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
 
+	{IPSRLW, {0x0f, 0xd1}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSRLD, {0x0f, 0xd2}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSRLQ, {0x0f, 0xd3}, 2, REG_FIELD, 0, X__XM_128},
+
 	{IMOV_XMM, {0x0f, 0xd6}, 2, REG_FIELD, 0, XM_64__X},
+
+	{IPSRAW, {0x0f, 0xe1}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSRAD, {0x0f, 0xe2}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSLLW, {0x0f, 0xf1}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSLLD, {0x0f, 0xf2}, 2, REG_FIELD, 0, X__XM_128},
+	{IPSLLQ, {0x0f, 0xf3}, 2, REG_FIELD, 0, X__XM_128},
 };
 const struct Cmnd cmnds3[] = {
 	{IIMUL, {0x69}, 1, REG_FIELD, 0, R_16_32_64__RM_16_32_64__IMM_16_32},
