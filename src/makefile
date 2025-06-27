@@ -43,3 +43,7 @@ all: $(BS)
 	rm -rf $(BUILD)
 	rm тест
 	rm тест_заглавными
+
+t:
+	gcc test.c -o test
+	./test

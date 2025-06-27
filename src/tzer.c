@@ -121,18 +121,20 @@ enum TCode next_line(struct Tzer *t, struct Token *token) {
 const char *const TOO_MUCH_DOTS = "Слишком много точек на одно не целое число";
 
 enum TCode num_token(struct Tzer *t, struct Token *token) {
-	uc c = cur(t), n, fpn = 0;
+	uc c = cur(t), n;
 	long start_pos = t->pos, num_len;
 	enum TCode code = INT;
 	char *num_view;
 
 	int base = 10, minus_flag = 1;
-	uint64_t value = 0;
+	uint64_t value = 0, mnt = 0;
+	double mnt_len_10_pow = 1;
 
 	if (c == '-') {
 		minus_flag = -1;
 		c = next(t);
-	}
+	} else if (c == '+')
+		c = next(t);
 	while (c == '0')
 		c = next(t);
 	n = get(t, 1);
@@ -154,17 +156,40 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 		c = next(t);
 	}
 
-	// TODO: _ in decimal nums
 	if (base == 10) {
-		while ((c >= '0' && c <= '9') || (c == '.' && !fpn)) {
-			if (c == '.') {
-				if (fpn)
-					ee(t->f, t->p, TOO_MUCH_DOTS);
-				fpn++;
-				code = REAL;
+		while (c != '.' && c) {
+			if (c == '_') {
+				c = next(t);
+				continue;
 			}
+			if (c < '0' || c > '9') {
+				token->number = value * minus_flag;
+				goto __parsed;
+			}
+			value *= 10;
+			value += c - '0';
 			c = next(t);
 		}
+		if (c == '.')
+			c = next(t);
+		else {
+			token->number = value * minus_flag;
+			goto __parsed;
+		}
+		code = REAL;
+		while (c) {
+			if (c == '_') {
+				c = next(t);
+				continue;
+			}
+			if (c < '0' || c > '9')
+				break;
+			mnt *= 10;
+			mnt += c - '0';
+			c = next(t);
+			mnt_len_10_pow *= 10.0;
+		}
+		token->fpn = (value + mnt / mnt_len_10_pow) * minus_flag;
 	} else if (base == 2) {
 		while (c == '_' || c == '0' || c == '1') {
 			if (c != '_') {
@@ -232,19 +257,12 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 		}
 		token->number = value * minus_flag;
 	}
-
+__parsed:
 	num_len = t->pos - start_pos;
 	num_view = malloc(num_len + 1);
 	num_view[num_len] = 0;
 	strncpy(num_view, &t->f->code[start_pos], num_len);
 	// printf("\t\tnum_view: %s value: %lx\n", num_view, value);
-
-	if (base == 10) {
-		if (code == INT)
-			token->number = atol(num_view);
-		else
-			token->fpn = atof(num_view);
-	}
 
 	token->view = num_view;
 	return code;
