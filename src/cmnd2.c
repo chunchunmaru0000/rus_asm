@@ -586,9 +586,6 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 					rex |= REX_R; // Extension of ModR/M reg
 			}
 		}
-		// else if (is_xrm__xr(code)) {
-		// } else if (is_xr__xrm(code)) {
-		// } // TODO: not sure
 	} else {
 		// 66 16-bit Operand-size OVERRIRE prefix
 		// mov M_16__SREG dont need cuz its always 16-bit

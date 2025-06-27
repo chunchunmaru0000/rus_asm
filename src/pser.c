@@ -143,16 +143,24 @@ const struct Word ZERO_OPS_WORDS[] = {
 // less			м 	меньше
 // greater		б	больше
 
-// TODO: make xmm
 // TODO: make segments addresation, like cs:123
 // TODO: make AVX
 // TODO: make FPU
+// TODO: make mm
 // TODO: make string ops with 32-bit addressation
 const struct Word ONE_OPS_WORDS[] = {
 	{"зов", ICALL},		{"идти", IJMP},		{"прер", IINT},
 	{"выт", IPOP},		{"толк", IPUSH},	{"идтиф", IJMPF},
 	{"зовф", ICALLF},	{"увлч", IINC},		{"умнш", IDEC},
-	{"воздф", IRETF},	{"возд", IRET},		{"иди", IJO},
+	{"воздф", IRETF},	{"возд", IRET},		{"дел", IDIV},
+	{"здел", IIDIV},	{"умн", IMUL},		{"врщл1", IROL1},
+	{"врщп1", IROR1},	{"врсл1", IRCL1},	{"врсп1", IRCR1},
+	{"сдвл1", ISHL1},	{"сдал1", ISHL1},	{"сдвп1", ISHR1},
+	{"сдап1", ISAR1},	{"цклн0", ILOOPNZ}, {"цклнр", ILOOPNZ},
+	{"цкл0", ILOOPZ},	{"цклр", ILOOPZ},	{"цкл", ILOOP},
+	{"идесх0", IJECXZ}, {"идрсх0", IJRCXZ}, {"не", INOT},
+	{"нег", INEG},
+
 	{"идни", IJNO},		{"идп", IJB},		{"иднвр", IJB},
 	{"идс", IJB},		{"иднп", IJNB},		{"идвр", IJNB},
 	{"иднс", IJNB},		{"ид0", IJE},		{"идр", IJE},
@@ -162,14 +170,18 @@ const struct Word ONE_OPS_WORDS[] = {
 	{"идчр", IJP},		{"иднч", IJNP},		{"иднч", IJNP},
 	{"идм", IJL},		{"иднбр", IJL},		{"иднм", IJNL},
 	{"идбр", IJNL},		{"идмр", IJLE},		{"иднб", IJLE},
-	{"иднмр", IJG},		{"идб", IJG},		{"дел", IDIV},
-	{"здел", IIDIV},	{"умн", IMUL},		{"врщл1", IROL1},
-	{"врщп1", IROR1},	{"врсл1", IRCL1},	{"врсп1", IRCR1},
-	{"сдвл1", ISHL1},	{"сдал1", ISHL1},	{"сдвп1", ISHR1},
-	{"сдап1", ISAR1},	{"цклн0", ILOOPNZ}, {"цклнр", ILOOPNZ},
-	{"цкл0", ILOOPZ},	{"цклр", ILOOPZ},	{"цкл", ILOOP},
-	{"идесх0", IJECXZ}, {"идрсх0", IJRCXZ}, {"не", INOT},
-	{"нег", INEG},
+	{"иднмр", IJG},		{"идб", IJG},		{"иди", IJO},
+
+	{"устни", ISETNO},	{"устп", ISETB},	{"устнвр", ISETB},
+	{"устс", ISETB},	{"устнп", ISETNB},	{"уствр", ISETNB},
+	{"устнс", ISETNB},	{"уст0", ISETE},	{"устр", ISETE},
+	{"устн0", ISETNE},	{"устнр", ISETNE},	{"устпр", ISETBE},
+	{"устнв", ISETBE},	{"устнпр", ISETA},	{"уств", ISETA},
+	{"устз", ISETS},	{"устнз", ISETNS},	{"устч", ISETP},
+	{"устчр", ISETP},	{"устнч", ISETNP},	{"устнч", ISETNP},
+	{"устм", ISETL},	{"устнбр", ISETL},	{"устнм", ISETNL},
+	{"устбр", ISETNL},	{"устмр", ISETLE},	{"устнб", ISETLE},
+	{"устнмр", ISETG},	{"устб", ISETG},	{"усти", ISETO},
 };
 // Single		о один
 // Double		д два
@@ -215,6 +227,37 @@ const struct Word TWO_OPS_WORDS[] = {
 	{"войти", IENTER},
 	{"ввд", IINPUT},
 	{"вывд", IOUTPUT},
+
+	{"сбытьни", ICMOVNO},
+	{"сбытьп", ICMOVB},
+	{"сбытьнвр", ICMOVB},
+	{"сбытьс", ICMOVB},
+	{"сбытьнп", ICMOVNB},
+	{"сбытьвр", ICMOVNB},
+	{"сбытьнс", ICMOVNB},
+	{"сбыть0", ICMOVE},
+	{"сбытьр", ICMOVE},
+	{"сбытьн0", ICMOVNE},
+	{"сбытьнр", ICMOVNE},
+	{"сбытьпр", ICMOVBE},
+	{"сбытьнв", ICMOVBE},
+	{"сбытьнпр", ICMOVA},
+	{"сбытьв", ICMOVA},
+	{"сбытьз", ICMOVS},
+	{"сбытьнз", ICMOVNS},
+	{"сбытьч", ICMOVP},
+	{"сбытьчр", ICMOVP},
+	{"сбытьнч", ICMOVNP},
+	{"сбытьнч", ICMOVNP},
+	{"сбытьм", ICMOVL},
+	{"сбытьнбр", ICMOVL},
+	{"сбытьнм", ICMOVNL},
+	{"сбытьбр", ICMOVNL},
+	{"сбытьмр", ICMOVLE},
+	{"сбытьнб", ICMOVLE},
+	{"сбытьнмр", ICMOVG},
+	{"сбытьб", ICMOVG},
+	{"сбытьи", ICMOVO},
 
 	{"бнруо", IMOVUPS},
 	{"бсо", IMOVSS},
