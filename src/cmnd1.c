@@ -131,6 +131,28 @@ enum OpsCode get_one_opscode(struct Ipcd *i) {
 			}
 		}
 		break;
+	case ISETO:
+	case ISETNO:
+	case ISETB:
+	case ISETNB:
+	case ISETE:
+	case ISETNE:
+	case ISETBE:
+	case ISETA:
+	case ISETS:
+	case ISETNS:
+	case ISETP:
+	case ISETNP:
+	case ISETL:
+	case ISETNL:
+	case ISETLE:
+	case ISETG:
+		if (is_mem(o)) {
+			change_mem_size(in, o, BYTE);
+			code = __RM_8;
+		} else if (is_reg(o) && is_8(o))
+			code = __RM_8;
+		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}

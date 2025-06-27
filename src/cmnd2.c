@@ -300,6 +300,30 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 			code = XM_64__X;
 		}
 		break;
+	case ICMOVO:
+	case ICMOVNO:
+	case ICMOVB:
+	case ICMOVNB:
+	case ICMOVE:
+	case ICMOVNE:
+	case ICMOVBE:
+	case ICMOVA:
+	case ICMOVS:
+	case ICMOVNS:
+	case ICMOVP:
+	case ICMOVNP:
+	case ICMOVL:
+	case ICMOVNL:
+	case ICMOVLE:
+	case ICMOVG:
+		if (!(is_reg(l) && is_rm(r)) && !is_8(l))
+			break;
+		if (is_mem(r)) {
+			change_mem_size(in, r, l->sz);
+			code = R_16_32_64__RM_16_32_64;
+		} else if (l->sz == r->sz)
+			code = R_16_32_64__RM_16_32_64;
+		break;
 	case IMOVUPS:
 	case IMOVUPD:
 	case IUNPCKLPD:
