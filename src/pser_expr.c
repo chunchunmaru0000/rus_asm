@@ -87,7 +87,7 @@ int search_defn(struct Pser *p, struct Oper **o, char *v) {
 	for (uint32_t i = 0; i < p->ds->size; i++) {
 		d = plist_get(p->ds, i);
 		if (sc(v, d->view)) {
-			free(*o); // free o that was malloced in expression before
+			// free(*o); // free o that was malloced in expression before
 
 			// i dont really know why but its needed cuz if
 			// вот чето 123
@@ -96,7 +96,8 @@ int search_defn(struct Pser *p, struct Oper **o, char *v) {
 			// it will reassign чето to е8, cuz i dunno but just
 			// cope the Oper solves it i really didnt found
 			// where ot does assigns smtng to Oper
-			*o = copy_oper(d->value);
+			//*o = copy_oper(d->value);
+			memcpy(*o, d->value, sizeof(struct Oper));
 			// *o = d->value;
 			return 1;
 		}
