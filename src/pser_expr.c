@@ -54,6 +54,8 @@ const char *STR_RESERVED = "запас";
 int search_size(struct Pser *p, struct Oper **o, char *v) {
 	for (uint32_t i = 0; i < lenofarr(STRS_SIZES); i++)
 		if (sc(v, STRS_SIZES[i])) {
+			free(*o); // free o that was malloced in expression before
+
 			*o = expression(p);
 			if (is_reg(*o) || is_xmm(*o) || is_mm(*o))
 				ee_token(p->f, (*o)->t, CANT_CHANGE_REG_SZ);
@@ -73,12 +75,29 @@ int is_size_word(char *v) {
 	return 0;
 }
 
+// og - original
+struct Oper *copy_oper(struct Oper *og) {
+	struct Oper *o = malloc(sizeof(struct Oper));
+	memcpy(o, og, sizeof(struct Oper));
+	return o;
+}
+
 int search_defn(struct Pser *p, struct Oper **o, char *v) {
 	struct Defn *d;
 	for (uint32_t i = 0; i < p->ds->size; i++) {
 		d = plist_get(p->ds, i);
 		if (sc(v, d->view)) {
-			*o = d->value;
+			free(*o); // free o that was malloced in expression before
+
+			// i dont really know why but its needed cuz if
+			// вот чето 123
+			// быть (рсп чето) е8
+			// быть (рсп чето) е9
+			// it will reassign чето to е8, cuz i dunno but just
+			// cope the Oper solves it i really didnt found
+			// where ot does assigns smtng to Oper
+			*o = copy_oper(d->value);
+			// *o = d->value;
 			return 1;
 		}
 	}

@@ -4,6 +4,12 @@
 	chmod +x тест
 	./тест
 
+асм:
+	gcc main.c flgs.c gner.c \
+	cmnd.c cmnd_arrs.c cmnd1.c cmnd2.c cmnd3.c \
+	lbel.c pser.c pser_expr.c pser_wrds.c lsts.c tzer.c -o \
+	асм
+
 1: асм
 	fasm test.asm
 	./асм тест1.асм тест1
@@ -12,18 +18,8 @@
 	#rm test
 	#rm тест1
 
-асм:
-	gcc main.c flgs.c gner.c \
-	cmnd.c cmnd_arrs.c cmnd1.c cmnd2.c cmnd3.c \
-	lbel.c pser.c pser_expr.c pser_wrds.c lsts.c tzer.c -o \
-	асм
-
-asm:
-	gcc -g main.c flgs.c gner.c \
-	cmnd.c cmnd_arrs.c cmnd1.c cmnd2.c cmnd3.c \
-	lbel.c pser.c lsts.c tzer.c -o \
-	асм
-
+bg: асм
+	./асм тест2.асм тест2
 
 WARNS := 0
 DEBUG := 0

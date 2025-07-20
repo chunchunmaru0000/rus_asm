@@ -57,6 +57,7 @@ struct Oper { // operand
 	char *rel_view;
 	int disp; // displacement
 };
+
 struct Oper *expression(struct Pser *);
 void print_oper(struct Oper *);
 int get_reg_field(enum RegCode);
@@ -64,11 +65,6 @@ int get_reg_field(enum RegCode);
 struct Defn {
 	char *view;
 	void *value;
-};
-
-struct DefOp {
-	char *view;
-	struct Oper *oper;
 };
 
 struct Word {
