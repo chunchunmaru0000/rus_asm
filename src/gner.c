@@ -191,7 +191,7 @@ const char *const ERR_ZERO_SEGMENTS =
 	"требуется хотя бы один участок.";
 
 void assert_phs_not_zero(struct Gner *g, struct Inst *in) {
-	if (g->eps->phs->size == 0)
+	if (g->eps->phs->size == 0 || g->eps->phs_c == 0)
 		ee(in->f, in->p, ERR_ZERO_SEGMENTS);
 }
 
