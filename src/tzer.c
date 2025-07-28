@@ -493,6 +493,8 @@ enum TCode com_token(struct Tzer *t, struct Token *token, uc is_long) {
 	if (is_long) {
 		next(t);
 		while ((cur(t) != ';' || get(t, 1) != ';') && cur(t) != '\0') {
+			if (cur(t) == '\n')
+				start_line(t);
 			next(t);
 			com_len++;
 		}
