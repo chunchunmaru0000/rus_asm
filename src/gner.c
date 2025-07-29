@@ -437,10 +437,13 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		in = plist_get(g->is, i);
 		g->pos = i;
 		code = in->code;
+		ipcd->in = in;
 		blist_clear(cmd);
 		blist_clear(data);
 
-		ipcd->in = in;
+		if (code > ISEGMENT)
+			assert_phs_not_zero(g, in);
+
 		if (code > IDATA) {
 			get_ops_code(ipcd);
 
@@ -454,7 +457,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
 
 			// TODO: check if its valid, why it was in the loop
-			assert_phs_not_zero(g, in);
 			// so here is has a list of denfs with usages relative to data size
 			adjust_plist_of_usages(g, ipcd->not_plovs, cmd->size, data->size);
 			goto gen_Linux_ELF_86_64_text_first_loop_end;
@@ -469,7 +471,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
 
-			assert_phs_not_zero(g, in);
 			ph = plist_get(g->eps->phs, *phs_c - 1);
 			l->addr = g->eps->phs_cur_sz + ph->vaddr;
 			l->rel_addr = g->text->size;
@@ -590,7 +591,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			plist_clear_items_free(g->jmps);
 			break;
 		case IEOI:
-			assert_phs_not_zero(g, in);
 			phl = g->eps->phs->st[*phs_c - 1];
 			phl->memsz = g->eps->phs->size == 1
 							 ? (int64_t)phl->memsz + g->text->size

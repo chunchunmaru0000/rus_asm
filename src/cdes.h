@@ -130,10 +130,9 @@ enum RegCode {
 enum ICode {
 	// directives
 	INONE,
-	IEOI, // end of instructions
 	IENTRY,
 	ISEGMENT,
-	ISECTION,
+	IEOI, // end of instructions
 	ILABEL,
 	ILET,
 	IINCLUDE,
