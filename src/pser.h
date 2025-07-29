@@ -1,5 +1,6 @@
 #include "cdes.h"
 #include "tzer.h"
+#include "lbel.h"
 #include <stdint.h>
 
 #define RESERVED -1
@@ -61,11 +62,6 @@ struct Oper { // operand
 struct Oper *expression(struct Pser *);
 void print_oper(struct Oper *);
 int get_reg_field(enum RegCode);
-
-struct Defn {
-	char *view;
-	void *value;
-};
 
 struct Word {
 	char *view;

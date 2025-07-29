@@ -61,13 +61,6 @@ void get_ops_code(struct Ipcd *i) {
 	}
 }
 
-struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut) {
-	struct Defn *np = malloc(sizeof(struct Defn));
-	np->view = view;
-	np->value = new_usage(place, ut);
-	return np;
-}
-
 // doesnt changes ModR/M byte
 void add_sib(struct BList *cmd, struct Oper *o) {
 	uc sib = o->scale << 6;

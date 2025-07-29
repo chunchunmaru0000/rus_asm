@@ -164,9 +164,15 @@ char *EXPEXTED_INT_FOR_RESERVED_TIMES =
 	"\n\tзапас значение раз.";
 char *INVALID_INT_FOR_RESERVED_TIMES =
 	"Число означающее количество раз значений не может быть меньше 1.";
+char *LABEL_ADDR_CANT_BE_LESS_THAN_DWORD =
+	"Размер метки не может быть меньше 4-х байт.";
+
+// zero
+const long ZERO = 0;
 
 enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
+	struct PList *not_plovs = new_plist(1);
 	struct Token *c = next_get(p, 0), *name; // skip let word
 	enum ICode code = ILET;
 	long value;
@@ -228,10 +234,29 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				}
 				continue;
 			}
+
 			size = old_sz;
 			d = is_defn(p, c->view);
-			if (!d)
-				break; // break if ID is not size or defn
+
+			if (!d) {
+				if (size < DWORD)
+					ee_token(p->f, c, LABEL_ADDR_CANT_BE_LESS_THAN_DWORD);
+
+				#include <stdio.h>
+				printf("here %s\n", c->view);
+
+				// add not plov cuz its may be a label
+				d = new_not_plov(c->view, data->size, ADDR);
+				((struct Usage *)(d->value))->place = data->size;
+				((struct Usage *)(d->value))->cmd_end = size;
+				plist_add(not_plovs, d);
+
+				// zero the future place of an address by size of size
+				blat(data, (uc *)&ZERO, size);
+
+				continue;
+			}
+
 			o = d->value;
 			if (o->code == OINT)
 				blat(data, (uc *)&o->t->number, size);
@@ -266,7 +291,10 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 
 	if (code == ILET)
 		plist_add(os, name);
+
 	plist_add(os, data);
+	plist_add(os, not_plovs);
+
 	return code;
 }
 

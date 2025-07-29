@@ -379,6 +379,36 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp) {
 	}
 }
 
+void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
+							uint32_t start_off, uint32_t data_off) {
+	uint32_t i;
+	struct Plov *l;
+	struct ELFPH *ph;
+	struct Usage *usage;
+	struct Defn *not_plov;
+
+	for (i = 0; i < not_plovs->size; i++) {
+		not_plov = plist_get(not_plovs, i);
+		usage = not_plov->value;
+		l = find_label(g, not_plov->view);
+
+		usage->hc = g->eps->phs_c;
+		usage->ic = g->pos;
+		usage->place += (uint64_t)(g->text->size) + start_off;
+
+		ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
+		uint64_t ph_start = ph->offset - g->eps->all_h_sz * (g->eps->phs_c > 1);
+		// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
+
+		// data->size or size of it
+		usage->cmd_end += usage->place - ph_start + data_off;
+
+		plist_add(l->us, usage);
+	}
+
+	plist_clear_items_free(not_plovs);
+}
+
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz, li, ui, uj;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
@@ -393,7 +423,6 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	// make
 	struct Plov *l;
 	struct Usage *usage;
-	struct Defn *not_plov;
 	struct Jump *jmp, *tjmp;
 
 	struct Ipcd *ipcd = malloc(sizeof(struct Ipcd));
@@ -424,33 +453,19 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			if (ipcd->not_plovs->size == 0)
 				goto gen_Linux_ELF_86_64_text_first_loop_end;
 
+			// TODO: check if its valid, why it was in the loop
+			assert_phs_not_zero(g, in);
 			// so here is has a list of denfs with usages relative to data size
-			for (j = 0; j < ipcd->not_plovs->size; j++) {
-				assert_phs_not_zero(g, in);
-
-				not_plov = plist_get(ipcd->not_plovs, j);
-				usage = not_plov->value;
-				l = find_label(g, not_plov->view);
-
-				usage->hc = *phs_c;
-				usage->ic = g->pos;
-				usage->place += (uint64_t)(g->text->size) + cmd->size;
-
-				ph = plist_get(g->eps->phs, *phs_c - 1);
-				uint64_t ph_start =
-					ph->offset - g->eps->all_h_sz * (*phs_c > 1);
-				// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
-				usage->cmd_end =
-					(g->text->size - ph_start) + cmd->size + data->size;
-
-				plist_add(l->us, usage);
-			}
-			plist_clear_items_free(ipcd->not_plovs);
+			adjust_plist_of_usages(g, ipcd->not_plovs, cmd->size, data->size);
 			goto gen_Linux_ELF_86_64_text_first_loop_end;
 		}
 		switch (code) {
 		case ILABEL:
+			//   _ - name
 		case ILET:
+			//   _ - data
+			//   _ - not_plovs
+
 			tok = plist_get(in->os, 0);
 			l = find_label(g, tok->view);
 
@@ -509,11 +524,20 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 				printf("метка[%s]\t[0x%08lx]\n", l->label, l->addr);
 
 			if (code == ILET) {
+				adjust_plist_of_usages(g, plist_get(in->os, 2), 0, 0);
+				plist_free(plist_get(in->os, 2));
+
 				data_bl = plist_get(in->os, 1);
 				blat(data, data_bl->st, data_bl->size);
 			}
 			break;
 		case IDATA:
+			//   _ - data
+			//   _ - not_plovs
+
+			adjust_plist_of_usages(g, plist_get(in->os, 1), 0, 0);
+			plist_free(plist_get(in->os, 1));
+
 			data_bl = plist_get(in->os, 0);
 			blat(data, data_bl->st, data_bl->size);
 			break;

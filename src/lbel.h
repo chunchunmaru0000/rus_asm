@@ -1,10 +1,16 @@
-#include "pser.h"
+#include <stdint.h>
 
 enum UT { // Usage Type
 	ADDR,
 	REL_ADDR, // 32
 	REL_ADDR_8,
 };
+
+struct Defn {
+	char *view;
+	void *value;
+};
+
 
 struct Usage {
 	uint64_t place;
@@ -14,3 +20,4 @@ struct Usage {
 	uint64_t ic; // instruction counter
 };
 struct Usage *new_usage(uint64_t, enum UT);
+struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut);
