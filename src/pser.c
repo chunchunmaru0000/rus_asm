@@ -242,9 +242,6 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				if (size < DWORD)
 					ee_token(p->f, c, LABEL_ADDR_CANT_BE_LESS_THAN_DWORD);
 
-				#include <stdio.h>
-				printf("here %s\n", c->view);
-
 				// add not plov cuz its may be a label
 				d = new_not_plov(c->view, data->size, ADDR);
 				((struct Usage *)(d->value))->place = data->size;
