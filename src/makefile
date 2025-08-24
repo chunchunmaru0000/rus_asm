@@ -11,9 +11,9 @@
 	асм
 
 1: асм
-	fasm test.asm
+	#fasm test.asm
 	./асм тест1.асм тест1
-	xxd test
+	#xxd test
 	xxd тест1
 	#rm test
 	#rm тест1
