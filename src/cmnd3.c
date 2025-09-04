@@ -187,6 +187,8 @@ enum OpsCode get_tri_opscode(struct Ipcd *i) {
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}
+	if (code == OPC_INVALID)
+		ee(in->f, in->p, OPS_CODE_INVALID);
 	return code;
 }
 
