@@ -1,7 +1,6 @@
 #include "cmnd.h"
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 const char *const WRONG_FST_OPER =
 	"НЕДОСТУПНЫЙ ТИП ПЕРВОГО ОПЕРАНДА НА ДАНЫЙ МОМЕНТ.";
@@ -808,4 +807,50 @@ int warn_change_size_lr(struct Inst *in, struct Oper *l, struct Oper *r) {
 		return 1;
 	}
 	return 0;
+}
+
+struct PList *get_all_ops_codes(enum ICode code) {
+	const struct Cmnd *cmnd;
+	struct PList *all_ops_codes = new_plist(32);
+	long ops_code;
+	uint32_t i;
+
+#define take_ops_on_arr(num)                                                   \
+	for (i = 0; i < cmnds##num##_len; i++) {                                   \
+		cmnd = cmnds##num + i;                                                 \
+		if (cmnd->inst == code) {                                              \
+			ops_code = cmnd->opsc;                                             \
+			plist_add(all_ops_codes, (void *)ops_code);                        \
+		}                                                                      \
+	}
+	take_ops_on_arr(1);
+	take_ops_on_arr(2);
+	take_ops_on_arr(3);
+
+	return all_ops_codes;
+}
+
+const char *const OPS_CODE_INVALID_ =
+	"Не удалось определисть типы выражений для инструкции, возможно она или "
+	"операнды были неверны.";
+const char *const AND_POSSIBLE_ARE =
+	"Вот возможные типы операндов для данной инструкции:\n";
+
+void ee_with_inst_code(struct Inst *in) {
+	struct PList *all_ops_codes = get_all_ops_codes(in->code);
+	const char *opsc_text;
+	uint32_t i;
+
+	fprintf(stderr, "%s%s:%d:%d %sОШИБКА: %s\n", COLOR_WHITE, in->f->path,
+			in->p->line, in->p->col, COLOR_RED, OPS_CODE_INVALID_);
+	print_source_line(in->f->code, in->p->line, COLOR_LIGHT_RED);
+	fprintf(stderr, "%s%s", COLOR_GREEN, AND_POSSIBLE_ARE);
+
+	for (i = 0; i < all_ops_codes->size; i++) {
+		opsc_text = get_ops_text((long)plist_get(all_ops_codes, i));
+		printf("  * %s\n", opsc_text);
+	}
+
+	printf("%s", COLOR_RESET);
+	exit(1);
 }

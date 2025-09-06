@@ -221,6 +221,8 @@ extern const long XR__XRM_ARR___LEN;
 #define is_rm__x(c) (is_in_opsc((c), RM__X_ARR, RM__X_ARR___LEN))
 #define is_imm_r(c) (is_in_opsc((c), IMM_R, IMM_R___LEN))
 // * change, warn
+const char *get_ops_text(enum OpsCode opsc);
+void ee_with_inst_code(struct Inst *in);
 void change_mem_size(struct Inst *in, struct Oper *o, uc sz);
 void change_imm_size(struct Inst *in, struct Oper *o, uc sz);
 #define change_size_lr(in, l, r) (change_imm_size((in), (r), (l)->sz))

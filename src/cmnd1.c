@@ -157,7 +157,7 @@ enum OpsCode get_one_opscode(struct Ipcd *i) {
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}
 	if (code == OPC_INVALID)
-		ee(in->f, in->p, OPS_CODE_INVALID);
+		ee_with_inst_code(in);
 	return code;
 }
 // TODO: в ассемблере когда OPS_CODE_INVALID сделать там же вместе вывод листа

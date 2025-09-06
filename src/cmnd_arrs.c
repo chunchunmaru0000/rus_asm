@@ -109,3 +109,98 @@ int is_in_opsc(enum OpsCode c, const enum OpsCode arr[], size_t arr_len) {
 			return 1;
 	return 0;
 }
+
+struct OpsCodeText {
+	enum OpsCode code;
+	const char *text;
+};
+
+const struct OpsCodeText OPS_CODES_TEXTS[] = {
+	{OPC_INVALID, ""},
+	{__REL_8, ""},
+	{__REL_32, ""},
+	{__IMM_8, ""},
+	{__IMM_16, ""},
+	{__IMM_32, ""},
+	{__R_16_64, ""},
+	{__RM_16_64, ""},
+	{__GS, ""},
+	{__FS, ""},
+	{__RM_8, ""},
+	{__RM_16_32_64, ""},
+	{RM_8__R_8, "р/п8 р8"},
+	{RM_16_32_64__R_16_32_64, ""},
+	{R_8__RM_8, ""},
+	{R_16_32_64__RM_16_32_64, ""},
+	{AL__IMM_8, ""},
+	{RAX__IMM_16_32, ""},
+	{RM_8__IMM_8, ""},
+	{RM_16_32_64__IMM_16_32, ""},
+	{RM_16_32_64__IMM_8, ""},
+	{M_16__SREG, ""},
+	{R_16_32_64__SREG, ""},
+	{SREG__RM_16, ""},
+	{AL__MOFFS_8, ""},
+	{RAX__MOFFS_16_32_64, ""},
+	{MOFFS_8__AL, ""},
+	{MOFFS_16_32_64__RAX, ""},
+	{R_8__IMM_8, ""},
+	{R_16_32_64__IMM_16_32_64, ""},
+	{R_16_32_64__RM_16_32_64__IMM_16_32, ""},
+	{R_16_32_64__RM_16_32_64__IMM_8, ""},
+	{R_64__RM_32, ""},
+	{R_16_32_64__RAX, ""},
+	{R_16_32_64__M, ""},
+	{IMM_16__IMM_8, ""},
+	{EAX__IMM_8, ""},
+	{IMM_8__AL, ""},
+	{IMM_8__EAX, ""},
+	{AL__DX, ""},
+	{EAX__DX, ""},
+	{DX__AL, ""},
+	{DX__EAX, ""},
+	{X__XM_128, ""},
+	{X__XM_32, ""},
+	{X__XM_64, ""},
+	{XM_128__X, ""},
+	{XM_32__X, ""},
+	{XM_64__X, ""},
+	{X__M_64, ""},
+	{M_64__X, ""},
+	{X__X, ""},
+	{X__MMM_64, ""},
+	{X__RM_32_64, ""},
+	{M_128__X, ""},
+	{MM__XM_64, ""},
+	{R_32_64__XM_32, ""},
+	{MM__XM_128, ""},
+	{R_32_64__XM_64, ""},
+	{MM__MMM_64, ""},
+	{X__XM_128__IMM_8, ""},
+	{X__XM_32__IMM_8, ""},
+	{X__XM_64__IMM_8, ""},
+	{R_32_64_M_8__X__IMM_8, ""},
+	{R_32_64_M_16__X__IMM_8, ""},
+	{RM_32_64__X__IMM_8, ""},
+	{RM_32__X__IMM_8, ""},
+	{X__R_32_64_M_8__IMM_8, ""},
+	{X__R_32_64_M_16__IMM_8, ""},
+	{X__RM_32_64__IMM_8, ""},
+	{X__IMM_8, ""},
+	{R_32_64__X, ""},
+	{RM_32_64__X, ""},
+	{M_32_64__R_32_64, ""},
+};
+
+const char *get_ops_text(enum OpsCode opsc) {
+	const struct OpsCodeText *ct;
+
+	for (size_t i = 0; i < lenofarr(OPS_CODES_TEXTS); i++) {
+		ct = OPS_CODES_TEXTS + i;
+
+		if (ct->code == opsc)
+			return ct->text;
+	}
+
+	exit(222);
+}
