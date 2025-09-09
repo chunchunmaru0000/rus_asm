@@ -160,10 +160,6 @@ enum OpsCode get_one_opscode(struct Ipcd *i) {
 		ee_with_inst_code(in);
 	return code;
 }
-// TODO: в ассемблере когда OPS_CODE_INVALID сделать там же вместе вывод листа
-// всех доступных
-// кодов операндов для данной инструкции, для этого нужен будет список где как
-// каждый тип операнда расписан
 
 void get_one_ops_prefs(struct Ipcd *i, enum OpsCode ops) {
 	struct Oper *o = i->o;

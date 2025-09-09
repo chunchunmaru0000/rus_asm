@@ -409,6 +409,8 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 	plist_clear_items_free(not_plovs);
 }
 
+// TODO: complex expressions especially with labels
+// TODO: not change int size when forsed
 void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	long i, j, last_text_sz, li, ui, uj;
 	struct BList *cmd = new_blist(16), *data = new_blist(16);
