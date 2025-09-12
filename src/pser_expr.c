@@ -296,7 +296,12 @@ struct Oper *expression(struct Pser *p) {
 	case ID:
 		v = t0->view;
 		ot = t0;
-		if (search_reg(v, arr_l(E_REGS), E_REGS, o, DWORD))
+		if (sc(t0->view, STR__HERE)) {
+			code = HERE;
+			ot = t0;
+			o->sz = DWORD;
+			break;
+		} else if (search_reg(v, arr_l(E_REGS), E_REGS, o, DWORD))
 			;
 		else if (search_reg(v, arr_l(R_REGS), R_REGS, o, QWORD))
 			;

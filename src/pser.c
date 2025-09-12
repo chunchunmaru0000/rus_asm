@@ -98,6 +98,8 @@ const char *STR_SEG_X = "исп";
 const char *STR_EOF = "_КОНЕЦ_ФАЙЛА_";
 const char *STR_LET = "пусть";
 const char *STR_ALIGN = "равнять";
+// some words
+const char *const STR__HERE = "_ЗДЕСЬ";
 
 uc cont_str(char *view, const char **strs, long strs_len) {
 	for (int i = 0; i < strs_len; i++)
