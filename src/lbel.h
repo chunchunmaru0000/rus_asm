@@ -4,13 +4,13 @@ enum UT { // Usage Type
 	ADDR,
 	REL_ADDR, // 32
 	REL_ADDR_8,
+	HERE,
 };
 
 struct Defn {
 	char *view;
 	void *value;
 };
-
 
 struct Usage {
 	uint64_t place;

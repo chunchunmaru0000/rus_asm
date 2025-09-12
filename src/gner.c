@@ -279,7 +279,7 @@ struct Jump *new_jmp(struct Gner *g, struct Ipcd *ipcd, struct Plov *l,
 }
 
 void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
-	int i, ui, uj;
+	uint32_t i, ui, uj;
 	struct Plov *l;
 	struct Jump *tjmp;
 	struct Usage *usage;
@@ -348,7 +348,7 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp) {
 	// ipcd hves recompiled jmp unstruction and jmp holds old jmp size
 	int shorter = jmp->size - inst_size(ipcd);
 	jmp->size = inst_size(ipcd);
-	printf("\tg->text->size: %ld\tshorter: %d\tjmp->addr: %d\n", g->text->size,
+	printf("\tg->text->size: %d\tshorter: %d\tjmp->addr: %d\n", g->text->size,
 		   shorter, jmp->addr);
 	if (!shorter)
 		return;

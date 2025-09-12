@@ -296,19 +296,19 @@ struct Oper *expression(struct Pser *p) {
 	case ID:
 		v = t0->view;
 		ot = t0;
-		if (search_reg(v, loa(E_REGS), E_REGS, o, DWORD))
+		if (search_reg(v, arr_l(E_REGS), E_REGS, o, DWORD))
 			;
-		else if (search_reg(v, loa(R_REGS), R_REGS, o, QWORD))
+		else if (search_reg(v, arr_l(R_REGS), R_REGS, o, QWORD))
 			;
-		else if (search_reg(v, loa(W_REGS), W_REGS, o, WORD))
+		else if (search_reg(v, arr_l(W_REGS), W_REGS, o, WORD))
 			;
-		else if (search_reg(v, loa(B_REGS), B_REGS, o, BYTE))
+		else if (search_reg(v, arr_l(B_REGS), B_REGS, o, BYTE))
 			;
-		else if (search_some_reg(v, loa(XMM_REGS), XMM_REGS, o, OXMM, XWORD))
+		else if (search_some_reg(v, arr_l(XMM_REGS), XMM_REGS, o, OXMM, XWORD))
 			;
-		else if (search_some_reg(v, loa(SEG_REGS), SEG_REGS, o, OSREG, WORD))
+		else if (search_some_reg(v, arr_l(SEG_REGS), SEG_REGS, o, OSREG, WORD))
 			;
-		else if (search_some_reg(v, loa(MM_REGS), MM_REGS, o, OMM, QWORD))
+		else if (search_some_reg(v, arr_l(MM_REGS), MM_REGS, o, OMM, QWORD))
 			;
 		else if (search_size(p, &o, v) || search_defn(p, &o, v)) {
 			plist_free(sib);

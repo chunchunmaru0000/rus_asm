@@ -278,9 +278,9 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		} else {
 			if (p->debug) {
 				if (code == ILET)
-					printf("пусть %s будет %ld байт\n", name->view, data->size);
+					printf("пусть %s будет %d байт\n", name->view, data->size);
 				else
-					printf("пусть %ld байт\n", data->size);
+					printf("пусть %d байт\n", data->size);
 			}
 			break;
 		}
@@ -359,7 +359,7 @@ enum ICode include_pd(struct Pser *p, struct PList *os) {
 
 int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 	size_t i;
-	for (i = 0; i < loa(VAR_OPS_WORDS); i++)
+	for (i = 0; i < arr_l(VAR_OPS_WORDS); i++)
 		if (sc(view, VAR_OPS_WORDS[i].view)) {
 			struct Token *cur = next_get(p, 0);
 			while (cur->code != SLASHN && cur->code != SEP && cur->code != EF) {
@@ -371,23 +371,23 @@ int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 			*c = VAR_OPS_WORDS[i].inst;
 			return 1;
 		}
-	for (i = 0; i < loa(TWO_OPS_WORDS); i++)
+	for (i = 0; i < arr_l(TWO_OPS_WORDS); i++)
 		if (sc(view, TWO_OPS_WORDS[i].view)) {
 			*c = n_ops_i(p, 2, os, TWO_OPS_WORDS[i].inst);
 			return 1;
 		}
-	for (i = 0; i < loa(ZERO_OPS_WORDS); i++)
+	for (i = 0; i < arr_l(ZERO_OPS_WORDS); i++)
 		if (sc(view, ZERO_OPS_WORDS[i].view)) {
 			next_get(p, 0);
 			*c = ZERO_OPS_WORDS[i].inst;
 			return 1;
 		}
-	for (i = 0; i < loa(ONE_OPS_WORDS); i++)
+	for (i = 0; i < arr_l(ONE_OPS_WORDS); i++)
 		if (sc(view, ONE_OPS_WORDS[i].view)) {
 			*c = n_ops_i(p, 1, os, ONE_OPS_WORDS[i].inst);
 			return 1;
 		}
-	for (i = 0; i < loa(TRI_OPS_WORDS); i++)
+	for (i = 0; i < arr_l(TRI_OPS_WORDS); i++)
 		if (sc(view, TRI_OPS_WORDS[i].view)) {
 			*c = n_ops_i(p, 3, os, TRI_OPS_WORDS[i].inst);
 			return 1;

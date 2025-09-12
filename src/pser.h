@@ -1,6 +1,6 @@
 #include "cdes.h"
-#include "tzer.h"
 #include "lbel.h"
+#include "tzer.h"
 #include <stdint.h>
 
 #define RESERVED -1
@@ -94,7 +94,7 @@ extern const uint32_t ZERO_OPS_WORDS_LEN;
 extern const uint32_t ONE_OPS_WORDS_LEN;
 extern const uint32_t TRI_OPS_WORDS_LEN;
 
-#define loa(arr) (arr##_LEN)
+#define arr_l(arr) (arr##_LEN)
 
 struct Inst {
 	enum ICode code;

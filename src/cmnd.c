@@ -53,9 +53,9 @@ void get_ops_code(struct Ipcd *i) {
 	(gets[i->in->os->size])(i);
 
 	if (0b10 & i->debug) {
-		printf("### команда %ld байт: ", i->cmd->size);
+		printf("### команда %d байт: ", i->cmd->size);
 		blist_print(i->cmd);
-		printf("### данные  %ld байт: ", i->data->size);
+		printf("### данные  %d байт: ", i->data->size);
 		blist_print(i->data);
 	}
 }
