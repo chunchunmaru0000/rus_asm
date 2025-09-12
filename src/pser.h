@@ -48,6 +48,7 @@ struct Oper { // operand
 	enum RegCode rm; // OMEM and rsp then does SIB, mod 00 and rbp does rel
 	uc mem_sz; // size of regs in addr DWORD or QWORD, DWORD means 0x67 flag
 	uc rex;
+	enum RelFlags rel_flags;
 	// ---SIB---
 	enum RegCode base;
 	enum RegCode index;

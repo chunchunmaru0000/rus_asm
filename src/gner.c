@@ -165,7 +165,9 @@ void gen_Linux_ELF_86_64_prolog(struct Gner *g) {
 
 struct Plov *find_label(struct Gner *g, char *s) {
 	struct Plov *l;
-	for (long i = 0; i < g->lps->size; i++) {
+	uint32_t i;
+
+	for (i = 0; i < g->lps->size; i++) {
 		l = g->lps->st[i];
 		if (sc(l->label, s))
 			return l;
@@ -203,6 +205,9 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l) {
 	int rel_addr = -129, is_shorted = UNSHORTABLE;
 
 	if (is_imm(oper)) {
+		if (oper->rel_flags == RF_HERE)
+			return UNSHORTABLE;
+
 		if (oper->code == OREL) {
 			assert_phs_not_zero(g, i->in);
 
@@ -388,21 +393,26 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 	struct Defn *not_plov;
 
 	for (i = 0; i < not_plovs->size; i++) {
+		ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
+		uint64_t ph_start = ph->offset - g->eps->all_h_sz * (g->eps->phs_c > 1);
+		// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
+
 		not_plov = plist_get(not_plovs, i);
 		usage = not_plov->value;
-		l = find_label(g, not_plov->view);
 
 		usage->hc = g->eps->phs_c;
 		usage->ic = g->pos;
 		usage->place += (uint64_t)(g->text->size) + start_off;
 
-		ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
-		uint64_t ph_start = ph->offset - g->eps->all_h_sz * (g->eps->phs_c > 1);
-		// phs_counter == 1 ? 0 : ph->offset - all_h_sz;
-
 		// data->size or size of it
 		usage->cmd_end += usage->place - ph_start + data_off;
 
+		if (usage->type == HERE_ADDR) {
+			plist_add(g->heres, usage);
+			continue;
+		}
+
+		l = find_label(g, not_plov->view);
 		plist_add(l->us, usage);
 	}
 

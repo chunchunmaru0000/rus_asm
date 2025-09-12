@@ -252,6 +252,7 @@ struct Oper *expression(struct Pser *p) {
 	o->rex = 0;
 	o->forsed_sz = 0;
 	o->sz = DWORD;
+	o->rel_flags = RF_NONE;
 
 	struct PList *sib = new_plist(4);
 	enum OCode code, *cp = &code;
@@ -297,7 +298,8 @@ struct Oper *expression(struct Pser *p) {
 		v = t0->view;
 		ot = t0;
 		if (sc(t0->view, STR__HERE)) {
-			code = HERE;
+			code = OREL;
+			o->rel_flags = RF_HERE;
 			ot = t0;
 			o->sz = DWORD;
 			break;

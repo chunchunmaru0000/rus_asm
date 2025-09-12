@@ -39,6 +39,9 @@ const char *const OPS_SIZE_WRONG =
 	"Неверное количество выражений для инструкции.";
 const char *const EXPEXTED_DWORD_OR_QWORD =
 	"Ожидалось выражения размера <чбайт> или <вбайт>.";
+const char *const _HERE_CANT_BE_USED_AS_REL =
+	"Операнд _ЗДЕСЬ не может использоваться как относительный адрес, потому "
+	"что логически он будет просто равен всегда 0, используйте просто 0.";
 
 void (*gets[])(struct Ipcd *) = {
 	get_zero_ops_code,
@@ -70,6 +73,9 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 
 void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 	if (o->disp_is_rel_flag) {
+		if (o->rel_flags == RF_HERE)
+			ee(i->in->f, o->t->p, _HERE_CANT_BE_USED_AS_REL);
+
 		struct Defn *np = new_not_plov(o->rel_view, i->data->size, REL_ADDR);
 		plist_add(i->not_plovs, np);
 		uint64_t some_value = 0x72656c; // rel
@@ -79,13 +85,22 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 }
 
 void add_imm_data(struct Ipcd *i, struct Oper *o) {
+	enum UT usage_type;
+	struct Defn *np;
+
 	if (o->code == OREL) {
-		enum UT ut = is_rel(i->c->opsc) ? REL_ADDR : ADDR;
-		if (ut == REL_ADDR && o->sz == BYTE)
-			ut = REL_ADDR_8;
-		struct Defn *np = new_not_plov(o->t->view, i->data->size, ut);
+		if (is_rel(i->c->opsc)) {
+			if (o->rel_flags == RF_HERE)
+				ee(i->in->f, o->t->p, _HERE_CANT_BE_USED_AS_REL);
+
+			usage_type = o->sz == BYTE ? REL_ADDR_8 : REL_ADDR;
+		} else {
+			usage_type = o->rel_flags == RF_HERE ? HERE_ADDR : ADDR;
+		}
+
+		np = new_not_plov(o->t->view, i->data->size, usage_type);
 		plist_add(i->not_plovs, np);
-		uint64_t some_value = 0x72656c; // rel
+		uint64_t some_value = 0x6c6572; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
 	} else if (o->code == OINT)
 		blat(i->data, (uc *)&o->t->number, o->sz);
