@@ -74,6 +74,7 @@ struct Gner {
 	uint64_t pie;
 	struct ELFH *elfh;
 	struct PList *lps; // labels plovs
+	struct PList *heres; // list of _HERE usages
 	struct Ephs *eps;
 	// struct PList *phs;	// program headers
 	struct PList *jmps; // jmps

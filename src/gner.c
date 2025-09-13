@@ -308,7 +308,7 @@ void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
 		for (ui = 0; ui < l->us->size; ui++) {
 			usage = plist_get(l->us, ui);
 
-			if (usage->ic > jmp->ipos) {
+			if (usage->ipos > jmp->ipos) {
 				for (uj = ui; uj < l->us->size; uj++) {
 					usage = plist_get(l->us, uj);
 
@@ -316,7 +316,7 @@ void shift_left_on_shorter(struct Gner *g, struct Jump *jmp, int shorter) {
 					usage->cmd_end -= shorter;
 				}
 				goto exit_shift_labels_loop;
-			} else if (usage->ic == jmp->ipos) {
+			} else if (usage->ipos == jmp->ipos) {
 				usage->place = jmp->addr + 1;
 				usage->type = REL_ADDR_8;
 				printf("\t%s usage->place: %ld\n", l->label, usage->place);
@@ -401,19 +401,19 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 		usage = not_plov->value;
 
 		usage->hc = g->eps->phs_c;
-		usage->ic = g->pos;
+		usage->ipos = g->pos;
 		usage->place += (uint64_t)(g->text->size) + start_off;
 
-		// data->size or size of it
-		usage->cmd_end += usage->place - ph_start + data_off;
-
 		if (usage->type == HERE_ADDR) {
+			ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
+			usage->cmd_end = g->eps->phs_cur_sz + ph->vaddr;
 			plist_add(g->heres, usage);
-			continue;
+		} else {
+			// data->size or size of it
+			usage->cmd_end += usage->place - ph_start + data_off;
+			l = find_label(g, not_plov->view);
+			plist_add(l->us, usage);
 		}
-
-		l = find_label(g, not_plov->view);
-		plist_add(l->us, usage);
 	}
 
 	plist_clear_items_free(not_plovs);
@@ -436,6 +436,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 	struct Plov *l;
 	struct Usage *usage;
 	struct Jump *jmp, *tjmp;
+	uc *usage_place;
 
 	struct Ipcd *ipcd = malloc(sizeof(struct Ipcd));
 	ipcd->data = data;
@@ -510,7 +511,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 					for (ui = 0; ui < l->us->size; ui++) {
 						usage = plist_get(l->us, ui);
 
-						if (usage->ic >= jmp->ipos) {
+						if (usage->ipos >= jmp->ipos) {
 							for (uj = ui; uj < l->us->size; uj++)
 								free(plist_get(l->us, uj));
 							l->us->size = ui;
@@ -526,6 +527,17 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 						for (uj = ui; uj < g->jmps->size; uj++)
 							free(plist_get(g->jmps, uj));
 						g->jmps->size = ui;
+						break;
+					}
+				}
+
+				for (ui = 0; ui < g->heres->size; ui++) {
+					usage = plist_get(g->heres, ui);
+
+					if (usage->ipos >= jmp->ipos) {
+						for (uj = ui; uj < g->heres->size; uj++)
+							free(plist_get(g->heres, uj));
+						g->heres->size = ui;
 						break;
 					}
 				}
@@ -628,8 +640,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		//}
 	}
 
-	phs_c = 0;
-	for (i = 0; i < g->is->size; i++) {
+	for (i = 0, phs_c = 0; i < g->is->size; i++) {
 		g->pos = i;
 		in = plist_get(g->is, i);
 		if (in->code == ILABEL || in->code == ILET) {
@@ -639,7 +650,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			for (j = 0; j < l->us->size; j++) {
 				usage = plist_get(l->us, j);
-				uc *usage_place = g->text->st + usage->place;
+				usage_place = g->text->st + usage->place;
 
 				if (usage->type == ADDR) {
 					memcpy(usage_place, &l->addr, DWORD);
@@ -655,7 +666,7 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 						if (!is_in_byte(rel_addr)) {
 							if (g->debug)
 								printf("было то %d;\n", rel_addr);
-							in = plist_get(g->is, usage->ic);
+							in = plist_get(g->is, usage->ipos);
 							ee(in->f, in->p, TOO_BIG_TO_BE_REL_8);
 						}
 						memcpy(usage_place, &rel_addr, BYTE);
@@ -668,5 +679,12 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			g->elfh->entry = l->addr;
 		} else if (in->code == ISEGMENT)
 			phs_c++;
+	}
+
+	for (i = 0, phs_c = 0; i < g->heres->size; i++) {
+		usage = plist_get(g->heres, i);
+		usage_place = g->text->st + usage->place;
+		// usage->cmd_end in g->heres is addr of the usage
+		memcpy(usage_place, &usage->cmd_end, DWORD);
 	}
 }
