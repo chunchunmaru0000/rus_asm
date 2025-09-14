@@ -16,6 +16,7 @@ struct Gner *new_gner(struct PList *is, enum Target t, uc debug) {
 
 	g->pie = 0x400000;
 	g->lps = new_plist(5);
+	g->heres = new_plist(8);
 	g->jmps = new_plist(8);
 	g->shs = new_plist(1);
 	// g->phs = new_plist(3);
@@ -453,6 +454,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 		ipcd->in = in;
 		blist_clear(cmd);
 		blist_clear(data);
+
+		// printf("#INFO. ipos = %ld\n", i);
+		// print_source_line(in->f->code, in->p->line, COLOR_GAY);
 
 		if (code > ISEGMENT)
 			assert_phs_not_zero(g, in);

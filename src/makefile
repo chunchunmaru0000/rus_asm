@@ -4,6 +4,9 @@
 	chmod +x тест
 	./тест
 
+d: асм
+	./асм тест.асм тест -о 1
+
 асм:
 	gcc main.c flgs.c gner.c \
 	cmnd.c cmnd_arrs.c cmnd1.c cmnd2.c cmnd3.c \
