@@ -5,6 +5,7 @@ enum UT { // Usage Type
 	REL_ADDR, // 32
 	REL_ADDR_8,
 	HERE_ADDR,
+	LET_HERE_ADDR,
 };
 
 struct Defn {

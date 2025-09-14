@@ -388,6 +388,7 @@ void recompile_loop(struct Gner *g, struct Ipcd *ipcd, struct Jump *jmp) {
 void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 							uint32_t start_off, uint32_t data_off) {
 	uint32_t i;
+	uint64_t initial_place;
 	struct Plov *l;
 	struct ELFPH *ph;
 	struct Usage *usage;
@@ -400,6 +401,7 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 
 		not_plov = plist_get(not_plovs, i);
 		usage = not_plov->value;
+		initial_place = usage->place;
 
 		usage->hc = g->eps->phs_c;
 		usage->ipos = g->pos;
@@ -408,6 +410,10 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 		if (usage->type == HERE_ADDR) {
 			ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
 			usage->cmd_end = g->eps->phs_cur_sz + ph->vaddr;
+			plist_add(g->heres, usage);
+		} else if (usage->type == LET_HERE_ADDR) {
+			ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
+			usage->cmd_end = g->eps->phs_cur_sz + ph->vaddr + initial_place;
 			plist_add(g->heres, usage);
 		} else {
 			// data->size or size of it

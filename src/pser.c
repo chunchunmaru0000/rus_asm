@@ -168,6 +168,8 @@ char *INVALID_INT_FOR_RESERVED_TIMES =
 	"Число означающее количество раз значений не может быть меньше 1.";
 char *LABEL_ADDR_CANT_BE_LESS_THAN_DWORD =
 	"Размер метки не может быть меньше 4-х байт.";
+char *HERE_ADDR_CANT_BE_LESS_THAN_DWORD =
+	"Размер операнда '_ЗДЕСЬ' не может быть меньше 4-х байт.";
 
 // zero
 const long ZERO = 0;
@@ -216,8 +218,18 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 		}
 		if (c->code == ID) {
 			old_sz = size;
-			size = is_size_word(c->view);
-			if (size) {
+			if (sc(STR__HERE, c->view)) {
+				if (size < DWORD)
+					ee_token(p->f, c, HERE_ADDR_CANT_BE_LESS_THAN_DWORD);
+
+				d = new_not_plov(c->view, data->size, LET_HERE_ADDR);
+				plist_add(not_plovs, d);
+
+				value = 0x0000000065726568;
+				blat(data, (uc *)&value, size);
+				continue;
+			}
+			if ((size = is_size_word(c->view))) {
 				if (size == RESERVED) {
 					size = old_sz;
 					next_get(p, 0); // skip запас word
@@ -238,15 +250,13 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 			}
 
 			size = old_sz;
-			d = is_defn(p, c->view);
-
-			if (!d) {
+			if (!(d = is_defn(p, c->view))) {
 				if (size < DWORD)
 					ee_token(p->f, c, LABEL_ADDR_CANT_BE_LESS_THAN_DWORD);
 
 				// add not plov cuz its may be a label
 				d = new_not_plov(c->view, data->size, ADDR);
-				((struct Usage *)(d->value))->place = data->size;
+				//((struct Usage *)(d->value))->place = data->size;
 				((struct Usage *)(d->value))->cmd_end = size;
 				plist_add(not_plovs, d);
 
