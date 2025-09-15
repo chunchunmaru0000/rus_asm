@@ -100,6 +100,7 @@ const char *STR_LET = "пусть";
 const char *STR_ALIGN = "равнять";
 // some words
 const char *const STR__HERE = "_ЗДЕСЬ";
+const char *const STR__TUT = "_ТУТ";
 
 uc cont_str(char *view, const char **strs, long strs_len) {
 	for (int i = 0; i < strs_len; i++)
@@ -222,10 +223,21 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 				if (size < DWORD)
 					ee_token(p->f, c, HERE_ADDR_CANT_BE_LESS_THAN_DWORD);
 
-				d = new_not_plov(c->view, data->size, LET_HERE_ADDR);
+				d = new_not_plov(c->view, data->size, 0, LET_HERE_ADDR);
 				plist_add(not_plovs, d);
 
 				value = 0x0000000065726568;
+				blat(data, (uc *)&value, size);
+				continue;
+			}
+			if (sc(STR__TUT, c->view)) {
+				if (size < DWORD)
+					ee_token(p->f, c, HERE_ADDR_CANT_BE_LESS_THAN_DWORD);
+
+				d = new_not_plov(c->view, data->size, size, LET_TUT_ADDR);
+				plist_add(not_plovs, d);
+
+				value = 0x0000000000747954;
 				blat(data, (uc *)&value, size);
 				continue;
 			}
@@ -255,9 +267,7 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 					ee_token(p->f, c, LABEL_ADDR_CANT_BE_LESS_THAN_DWORD);
 
 				// add not plov cuz its may be a label
-				d = new_not_plov(c->view, data->size, ADDR);
-				//((struct Usage *)(d->value))->place = data->size;
-				((struct Usage *)(d->value))->cmd_end = size;
+				d = new_not_plov(c->view, data->size, size, ADDR);
 				plist_add(not_plovs, d);
 
 				// zero the future place of an address by size of size

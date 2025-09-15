@@ -17,6 +17,7 @@ enum OCode { // operand type codes
 enum RelFlags {
 	RF_NONE,
 	RF_HERE,
+	RF_TUT,
 };
 
 enum RegCode {

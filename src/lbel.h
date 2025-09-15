@@ -6,6 +6,8 @@ enum UT { // Usage Type
 	REL_ADDR_8,
 	HERE_ADDR,
 	LET_HERE_ADDR,
+	TUT_ADDR,
+	LET_TUT_ADDR,
 };
 
 struct Defn {
@@ -17,8 +19,9 @@ struct Usage {
 	uint64_t place;
 	enum UT type;
 	uint64_t cmd_end;
-	uint64_t hc; // header counter, supposedly ELFPH
+	uint64_t hc;   // header counter, supposedly ELFPH
 	uint64_t ipos; // instruction counter
 };
-struct Usage *new_usage(uint64_t, enum UT);
-struct Defn *new_not_plov(char *view, uint64_t place, enum UT ut);
+struct Usage *new_usage(uint64_t place, uint64_t cmd_end, enum UT type);
+struct Defn *new_not_plov(char *view, uint64_t place, uint64_t cmd_end,
+						  enum UT ut);

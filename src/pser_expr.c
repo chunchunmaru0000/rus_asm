@@ -303,6 +303,12 @@ struct Oper *expression(struct Pser *p) {
 			ot = t0;
 			o->sz = DWORD;
 			break;
+		} else if (sc(t0->view, STR__TUT)) {
+			code = OREL;
+			o->rel_flags = RF_TUT;
+			ot = t0;
+			o->sz = DWORD;
+			break;
 		} else if (search_reg(v, arr_l(E_REGS), E_REGS, o, DWORD))
 			;
 		else if (search_reg(v, arr_l(R_REGS), R_REGS, o, QWORD))

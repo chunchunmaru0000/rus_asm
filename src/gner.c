@@ -407,13 +407,19 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 		usage->ipos = g->pos;
 		usage->place += (uint64_t)(g->text->size) + start_off;
 
+		ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
+
 		if (usage->type == HERE_ADDR) {
-			ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
 			usage->cmd_end = g->eps->phs_cur_sz + ph->vaddr;
 			plist_add(g->heres, usage);
 		} else if (usage->type == LET_HERE_ADDR) {
-			ph = plist_get(g->eps->phs, g->eps->phs_c - 1);
 			usage->cmd_end = g->eps->phs_cur_sz + ph->vaddr + initial_place;
+			plist_add(g->heres, usage);
+		} else if (usage->type == TUT_ADDR) {
+			usage->cmd_end += g->eps->phs_cur_sz + ph->vaddr; // TODO: this invalid
+			plist_add(g->heres, usage);
+		} else if (usage->type == LET_TUT_ADDR) {
+			usage->cmd_end += g->eps->phs_cur_sz + ph->vaddr + initial_place;
 			plist_add(g->heres, usage);
 		} else {
 			// data->size or size of it

@@ -96,6 +96,7 @@ extern const uint32_t ONE_OPS_WORDS_LEN;
 extern const uint32_t TRI_OPS_WORDS_LEN;
 
 extern const char *const STR__HERE;
+extern const char *const STR__TUT;
 #define arr_l(arr) (arr##_LEN)
 
 struct Inst {
