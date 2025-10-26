@@ -8,10 +8,7 @@ d: асм
 	./асм тест.асм тест -о 1
 
 асм:
-	gcc main.c flgs.c gner.c \
-	cmnd.c cmnd_arrs.c cmnd1.c cmnd2.c cmnd3.c \
-	lbel.c pser.c pser_expr.c pser_wrds.c lsts.c tzer.c -o \
-	асм
+	gcc *.c -o асм
 
 1: асм
 	#fasm test.asm
