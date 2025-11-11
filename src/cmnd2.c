@@ -233,9 +233,22 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 		if (is_reg(l) && is_64(l) && is_rm(r) && is_32(r))
 			code = R_64__RM_32;
 		else if (is_rm(l) && is_reg(r)) {
+			if (is_reg(l) && !is_8(l)) {
+				if (is_r8h(r))
+					ee(in->f, in->p, MOVZX_CANT_USE_AH_TO_BH_REGS);
+				else if ((is_8(r) || is_16(r)) && (l->sz > r->sz)) {
+					code = is_8(r) ? R_16_32_64__RM_8 : R_16_32_64__RM_16;
+					break;
+				}
+			}
 			change_m_sz(in, r, l);
 			code = is_8(l) ? RM_8__R_8 : RM_16_32_64__R_16_32_64;
 		} else if (is_reg(l) && is_rm(r)) {
+			if (is_mem(r) && r->forsed_sz && !is_8(l))
+				if ((is_8(r) || is_16(r)) && (l->sz > r->sz)) {
+					code = is_8(r) ? R_16_32_64__RM_8 : R_16_32_64__RM_16;
+					break;
+				}
 			change_m_sz(in, l, r);
 			code = is_8(l) ? R_8__RM_8 : R_16_32_64__RM_16_32_64;
 		} else if (is_seg(r)) {
@@ -613,12 +626,14 @@ void get_two_ops_prefs(struct Ipcd *i, enum OpsCode code) {
 	} else {
 		// 66 16-bit Operand-size OVERRIRE prefix
 		// mov M_16__SREG dont need cuz its always 16-bit
+		// movzx which is mov with R_16_32_64__RM_16 also exclude
 		if ((code == EAX__IMM_8 || code == EAX__DX) && is_16(l))
 			blist_add(i->cmd, 0x66);
 		else if ((code == IMM_8__EAX || code == DX__EAX) && is_16(r))
 			blist_add(i->cmd, 0x66);
 		else if (!is_seg(l) && is_16(l) && !(is_mem(l) && is_seg(r)) &&
-				 !(code == IMM_16__IMM_8 || code == DX__EAX))
+				 !(code == IMM_16__IMM_8 || code == DX__EAX ||
+				   code == R_16_32_64__RM_16))
 			blist_add(i->cmd, 0x66);
 
 		if (is_64(l) || is_64(r))

@@ -13,6 +13,8 @@ const enum OpsCode RM_R[] = {
 	R_16_32_64__RM_16_32_64__IMM_16_32,
 	R_64__RM_32,
 	R_16_32_64__M,
+	R_16_32_64__RM_8,
+	R_16_32_64__RM_16,
 };
 // this doesnt have imm so its needed
 const enum OpsCode RM__R_ARR[] = {
@@ -20,10 +22,11 @@ const enum OpsCode RM__R_ARR[] = {
 	R_16_32_64__SREG, M_32_64__R_32_64,
 };
 const enum OpsCode R__RM_ARR[] = {
-	R_8__RM_8,	   R_16_32_64__RM_16_32_64,
-	R_64__RM_32,   R_16_32_64__RM_16_32_64__IMM_16_32,
-	SREG__RM_16,   R_16_32_64__RM_16_32_64__IMM_8,
-	R_16_32_64__M,
+	R_8__RM_8,		   R_16_32_64__RM_16_32_64,
+	R_64__RM_32,	   R_16_32_64__RM_16_32_64__IMM_16_32,
+	SREG__RM_16,	   R_16_32_64__RM_16_32_64__IMM_8,
+	R_16_32_64__M,	   R_16_32_64__RM_8,
+	R_16_32_64__RM_16,
 };
 const enum OpsCode IMM_R[] = {
 	AL__IMM_8,	RM_16_32_64__IMM_16_32,	  RM_8__IMM_8,	  RM_16_32_64__IMM_8,
@@ -190,6 +193,8 @@ const struct OpsCodeText OPS_CODES_TEXTS[] = {
 	{R_32_64__X, "р32/64\tэ"},
 	{RM_32_64__X, "рп32/64\tэ"},
 	{M_32_64__R_32_64, "п32/64\tр32/64"},
+	{R_16_32_64__RM_8, "р16/32/64\tрп8"},
+	{R_16_32_64__RM_16, "р16/32/64\tрп16"},
 };
 
 const char *get_ops_text(enum OpsCode opsc) {

@@ -109,6 +109,7 @@ struct Inst *new_inst(struct Pser *, enum ICode, struct PList *,
 					  struct Token *);
 void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 
+#define is_r8h(o) ((o)->code == OREG && ((o)->rm >= R_AH && (o)->rm <= R_BH))
 #define is_r8(o) ((o)->code == OREG && ((o)->rm >= R_AL && (o)->rm <= R_R15B))
 #define is_r16(o) ((o)->code == OREG && ((o)->rm >= R_AX && (o)->rm <= R_R15W))
 #define is_r32(o) ((o)->code == OREG && ((o)->rm >= R_EAX && (o)->rm <= R_R15D))

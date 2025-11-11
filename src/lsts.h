@@ -9,6 +9,7 @@
 #define XWORD 16 // эбайт
 #define YWORD 32 // юбайт
 #define ZWORD 64 // ябайт
+#define constr const char *const
 
 struct PList {
 	void **st; // start
