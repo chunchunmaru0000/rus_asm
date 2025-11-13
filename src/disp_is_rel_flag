@@ -1,0 +1,145 @@
+pser/pser.c:47:		   o->t->view, o->code, get_reg_field(o->rm), get_reg_field(o->base),
+pser/pser.c:48:		   1 << o->scale, get_reg_field(o->index), o->disp, o->mod, o->rex);
+pser/pser.c:251:					if (o->code != OINT)
+pser/pser.c:253:					value = o->t->num;
+pser/pser.c:256:					if (o->code != OINT)
+pser/pser.c:259:					blist_add_set(data, size, &value, o->t->num);
+pser/pser.c:281:			if (o->code == OINT)
+pser/pser.c:282:				blat(data, (uc *)&o->t->num, size);
+pser/pser.c:283:			else if (o->code == OFPN) {
+pser/pser.c:284:				c->real = o->t->real;
+pser/pser.c:355:	if (o->code != OINT || o->t->num < 0)
+pser/pser.c:356:		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
+pser/pser.c:362:	if (o->code != OINT || o->t->num < 0)
+pser/pser.c:363:		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
+pser/expr.c:139:			o->rm = regs[i].c;
+pser/expr.c:140:			o->sz = sz;
+pser/expr.c:141:			o->code = OREG;
+pser/expr.c:142:			o->mod = MOD_REG;
+pser/expr.c:152:			o->rm = regs[i].c;
+pser/expr.c:153:			o->code = code;
+pser/expr.c:154:			o->sz = sz;
+pser/expr.c:164:			o->mod = MOD_MEM_D32;
+pser/expr.c:166:			o->mod = MOD_MEM_D8;
+pser/expr.c:167:		o->disp = disp;
+pser/expr.c:169:		o->disp_is_rel_flag = 1;
+pser/expr.c:170:		o->mod = MOD_MEM_D32;
+pser/expr.c:171:		o->rel_view = d->t->view;
+pser/expr.c:183:		o->scale = SCALE_1;
+pser/expr.c:185:		o->scale = SCALE_2;
+pser/expr.c:187:		o->scale = SCALE_4;
+pser/expr.c:189:		o->scale = SCALE_8;
+pser/expr.c:200:		o->rex |= REX_X;
+pser/expr.c:201:	o->index = get_mem_reg(i->rm);
+pser/expr.c:207:	o->rm = R_RSP; // sib
+pser/expr.c:209:		o->mod = MOD_MEM_D8;
+pser/expr.c:211:		o->rex |= REX_B;
+pser/expr.c:212:	o->base = get_mem_reg(b->rm);
+pser/expr.c:219:		o->rm = R_RSP;	  // sib
+pser/expr.c:220:		o->index = R_RSP; // unused
+pser/expr.c:221:		o->base = R_RSP;
+pser/expr.c:223:		o->rm = get_mem_reg(rm->rm);
+pser/expr.c:226:		o->mod = MOD_MEM_D8;
+pser/expr.c:228:		o->rex |= REX_B;
+pser/expr.c:248:	o->disp_is_rel_flag = 0;
+pser/expr.c:249:	o->disp = 0;
+pser/expr.c:250:	o->mem_sz = 0;
+pser/expr.c:251:	o->mod = MOD_REG;
+pser/expr.c:252:	o->scale = SCALE_1;
+pser/expr.c:253:	o->index = R_NONE;
+pser/expr.c:254:	o->base = R_NONE;
+pser/expr.c:255:	o->rm = R_NONE;
+pser/expr.c:256:	o->rex = 0;
+pser/expr.c:257:	o->forsed_sz = 0;
+pser/expr.c:258:	o->sz = DWORD;
+pser/expr.c:259:	o->rel_flags = RF_NONE;
+pser/expr.c:269:		set_tc(&t0, cp, t0, OINT, &o->sz, DWORD);
+pser/expr.c:273:		set_tc(&t0, cp, t0, OFPN, &o->sz, QWORD);
+pser/expr.c:279:			o->sz = BYTE;
+pser/expr.c:282:			o->sz = WORD;
+pser/expr.c:298:		o->sz = DWORD;
+pser/expr.c:306:			o->rel_flags = RF_HERE;
+pser/expr.c:308:			o->sz = DWORD;
+pser/expr.c:312:			o->rel_flags = RF_TUT;
+pser/expr.c:314:			o->sz = DWORD;
+pser/expr.c:338:		if (o->rm != R_NONE) {
+pser/expr.c:339:			code = o->code; // OREG or OSREG for now and OSIMD later
+pser/expr.c:343:		o->sz = DWORD;
+pser/expr.c:354:				if (o->mem_sz) {
+pser/expr.c:355:					if ((is_f_reg64(otmp->rm) && o->mem_sz == DWORD) ||
+pser/expr.c:356:						(is_f_reg32(otmp->rm) && o->mem_sz == QWORD))
+pser/expr.c:360:						o->mem_sz = DWORD;
+pser/expr.c:362:						o->mem_sz = QWORD;
+pser/expr.c:375:		o->mod = MOD_MEM;
+pser/expr.c:386:				o->mod = MOD_MEM;
+pser/expr.c:387:				o->rm = R_RBP;
+pser/expr.c:400:				o->rm = R_RSP; // sib
+pser/expr.c:402:				o->base = R_RBP;
+pser/expr.c:438:				o->rm = R_RSP; // sib
+pser/expr.c:444:				o->base = R_RBP;
+pser/expr.c:448:				o->mod = MOD_MEM;
+pser/expr.c:465:	o->code = code;
+pser/expr.c:466:	o->t = ot;
+pser/bin.c:32:	o->code = OBIN;
+pser/bin.c:33:	o->t = op;
+pser/bin.c:37:	o->sz = l->sz > r->sz ? l->sz : r->sz;
+pser/bin.c:39:	o->disp_is_rel_flag = 0, o->disp = 0, o->mem_sz = 0, o->mod = MOD_REG,
+pser/bin.c:40:	o->scale = SCALE_1, o->index = R_NONE, o->base = R_NONE, o->rm = R_NONE,
+pser/bin.c:41:	o->rex = 0, o->forsed_sz = 0, o->rel_flags = RF_NONE;
+pser/bin.c:75:	l = (struct Oper *)o->t->num;
+pser/bin.c:76:	r = (struct Oper *)(long)o->t->real;
+cmnd/cmnd.c:77:	uc sib = o->scale << 6;
+cmnd/cmnd.c:78:	sib += get_reg_field(o->index) << 3;
+cmnd/cmnd.c:79:	sib += get_reg_field(o->base);
+cmnd/cmnd.c:86:	if (o->disp_is_rel_flag) {
+cmnd/cmnd.c:87:		if (o->rel_flags == RF_HERE)
+cmnd/cmnd.c:88:			ee(i->in->f, o->t->p, _HERE_CANT_BE_USED_AS_REL);
+cmnd/cmnd.c:89:		if (o->rel_flags == RF_TUT)
+cmnd/cmnd.c:90:			ee(i->in->f, o->t->p, _TUT_CANT_BE_USED_AS_REL);
+cmnd/cmnd.c:92:		np = new_not_plov(o->rel_view, i->data->size, 0, REL_ADDR);
+cmnd/cmnd.c:98:		blat(i->data, (uc *)&o->disp, bytes);
+cmnd/cmnd.c:107:	if (o->code == OREL) {
+cmnd/cmnd.c:109:			if (o->rel_flags == RF_HERE)
+cmnd/cmnd.c:110:				ee(i->in->f, o->t->p, _HERE_CANT_BE_USED_AS_REL);
+cmnd/cmnd.c:111:			if (o->rel_flags == RF_TUT)
+cmnd/cmnd.c:112:				ee(i->in->f, o->t->p, _TUT_CANT_BE_USED_AS_REL);
+cmnd/cmnd.c:114:			usage_type = o->sz == BYTE ? REL_ADDR_8 : REL_ADDR;
+cmnd/cmnd.c:115:			np = new_not_plov(o->t->view, i->data->size, 0, usage_type);
+cmnd/cmnd.c:117:			if (o->rel_flags == RF_HERE) {
+cmnd/cmnd.c:119:			} else if (o->rel_flags == RF_TUT) {
+cmnd/cmnd.c:123:			np = new_not_plov(o->t->view, i->data->size, 0, usage_type);
+cmnd/cmnd.c:129:		blat(i->data, (uc *)&some_value, o->sz);
+cmnd/cmnd.c:130:	} else if (o->code == OINT)
+cmnd/cmnd.c:131:		blat(i->data, (uc *)&o->t->num, o->sz);
+cmnd/cmnd.c:132:	else if (o->code == OFPN) {
+cmnd/cmnd.c:133:		if (o->sz == DWORD) {
+cmnd/cmnd.c:134:			float value = o->t->real;
+cmnd/cmnd.c:136:		} else if (o->sz == QWORD)
+cmnd/cmnd.c:137:			blat(i->data, (uc *)&o->t->real, QWORD);
+cmnd/cmnd.c:140:	} else if (o->code == OBIN) {
+cmnd/cmnd.c:143:		np = new_not_plov(lbel_o->t->view, i->data->size, (long)o, BIN_OP_ADDR);
+cmnd/cmnd.c:148:		blat(i->data, (uc *)&some_value, o->sz);
+cmnd/cmnd.c:149:	} else if (o->code == OMOFFS)
+cmnd/cmnd.c:150:		blat(i->data, (uc *)&o->t->num, o->mem_sz);
+cmnd/cmnd.c:825:	if (o->forsed_sz && o->sz != sz)
+cmnd/cmnd.c:827:	o->sz = sz;
+cmnd/cmnd.c:830:	if (o->forsed_sz && o->sz != sz)
+cmnd/cmnd.c:832:	o->sz = sz;
+cmnd/cmnd.c:836:		if (o->forsed_sz && o->sz != BYTE)
+cmnd/cmnd.c:838:		o->sz = BYTE;
+cmnd/1.c:92:				if (o->sz != DWORD && o->forsed_sz)
+cmnd/1.c:94:				o->sz = DWORD;
+cmnd/1.c:102:				o->sz = DWORD;
+cmnd/1.c:129:				o->sz = DWORD;
+cmnd/1.c:178:		rex |= o->rex; // get mem REX's
+cmnd/1.c:208:			modrm += o->mod << 6;
+cmnd/1.c:209:			modrm += get_reg_field(o->rm);
+cmnd/1.c:224:		*(i->cmd->st + i->cmd->size - 1) += get_reg_field(o->rm);
+gner/gner.c:187:	if (o->code == OBIN)
+gner/gner.c:189:	else if (o->code == OREL)
+gner/gner.c:190:		result = find_label(g, o->t->view)->addr;
+gner/gner.c:191:	else if (o->code == OINT)
+gner/gner.c:192:		result = o->t->num;
+gner/gner.c:199:	enum TCode op = o->t->code;
+gner/gner.c:200:	long l_int = get_int_of_bin(g, (struct Oper *)o->t->num);
+gner/gner.c:201:	long r_int = get_int_of_bin(g, (struct Oper *)(long)o->t->real);

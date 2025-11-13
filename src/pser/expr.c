@@ -160,18 +160,21 @@ int search_some_reg(char *v, const int regs_len, const struct Reg regs[],
 void set_disp_to_op(struct Pser *p, struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
 		int disp = d->t->num;
-		if (disp < -128 || disp > 127)
-			o->mod = MOD_MEM_D32;
-		else
-			o->mod = MOD_MEM_D8;
+		o->mod = is_in_byte(disp) ? MOD_MEM_D8 : MOD_MEM_D32;
 		o->disp = disp;
 	} else if (d->code == OREL) {
-		o->disp_is_rel_flag = 1;
+		o->disp_is_rel_flag = OREL;
 		o->mod = MOD_MEM_D32;
 		o->rel_view = d->t->view;
+	} else if (d->code == OBIN) {
+		o->disp_is_rel_flag = OBIN;
+		o->mod = MOD_MEM_D32;
+		o->t->num = (long)d;
 	} else
 		ee_token(p->f, d->t, WRONG_DISP);
-	free(d);
+
+	if (d->code != OBIN)
+		free(d);
 }
 void set_scale_to_op(struct Pser *p, struct Oper *o, struct Oper *s) {
 	if (!(s->code == OINT))
@@ -239,6 +242,8 @@ void get_moffs(struct Pser *p, struct Oper **o) {
 	(*o)->sz = DWORD;
 }
 
+#define is_int_or_rel_or_bin(o)                                                \
+	((o)->code == OINT || (o)->code == OREL || (o)->code == OBIN)
 struct Oper *expression(struct Pser *p) {
 	struct Oper *o = malloc(sizeof(struct Oper)), *otmp, *otmp2;
 	o->disp_is_rel_flag = 0;
@@ -341,7 +346,8 @@ struct Oper *expression(struct Pser *p) {
 	case PAR_L:
 		do {
 			otmp = bin_expr(p);
-			if (otmp->code != OINT && otmp->code != OREL && otmp->code != OREG)
+			if (otmp->code != OINT && otmp->code != OREL &&
+				otmp->code != OREG && otmp->code != OBIN)
 				ee_token(p->f, otmp->t, WRONG_ADDRES_OP);
 			if (is_r8(otmp) || is_r16(otmp))
 				ee_token(p->f, otmp->t, WRONG_ADDR_REG_SZ);
@@ -365,7 +371,7 @@ struct Oper *expression(struct Pser *p) {
 		// [r s r d] = 4 os max
 		if (sib->size > 4 || sib->size == 0)
 			ee_token(p->f, t0, TOO_MUCH_OS);
-		ot = t0;
+		o->t = ot = t0;
 		code = OMEM;
 		o->mod = MOD_MEM;
 
@@ -374,7 +380,7 @@ struct Oper *expression(struct Pser *p) {
 
 		otmp = plist_get(sib, 0);
 		if (sib->size == 1) {
-			if (otmp->code == OREL || otmp->code == OINT) {
+			if (is_int_or_rel_or_bin(otmp)) {
 				// disp
 				set_disp_to_op(p, o, otmp); // changes mod
 				// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
@@ -403,7 +409,7 @@ struct Oper *expression(struct Pser *p) {
 					// reg(base) reg(index) | sib
 					set_base_to_op(p, o, otmp);
 					set_index_to_op(p, o, otmp2);
-				} else if (otmp2->code == OREL || otmp2->code == OINT) {
+				} else if (is_int_or_rel_or_bin(otmp2)) {
 					// reg(rm) disp         | not sib
 					set_rm_to_op(o, otmp);
 					set_disp_to_op(p, o, otmp2); // changes mod to non 00

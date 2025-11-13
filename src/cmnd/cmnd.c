@@ -82,8 +82,10 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 
 void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 	struct Defn *np;
+	uint64_t some_value;
+	struct Oper *lbel_o;
 
-	if (o->disp_is_rel_flag) {
+	if (o->disp_is_rel_flag == OREL) {
 		if (o->rel_flags == RF_HERE)
 			ee(i->in->f, o->t->p, _HERE_CANT_BE_USED_AS_REL);
 		if (o->rel_flags == RF_TUT)
@@ -92,7 +94,18 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 		np = new_not_plov(o->rel_view, i->data->size, 0, REL_ADDR);
 		plist_add(i->not_plovs, np);
 
-		uint64_t some_value = 0x6c6572; // rel
+		some_value = 0x6c6572; // rel
+		blat(i->data, (uc *)&some_value, bytes);
+	} else if (o->disp_is_rel_flag == OBIN) { // meand OBIN
+
+		// o->t->num is disp struct Oper *
+		lbel_o = find_any_label_in_bin_tree((struct Oper *)o->t->num);
+		// cmd_end here is struct Oper *
+		np = new_not_plov(lbel_o->t->view, i->data->size, o->t->num, BIN_OP_ADDR);
+		plist_add(i->not_plovs, np);
+
+		// REMEMBER: FIRST ADD new_not_plov WITH IT i->data->size THEN WRITE
+		some_value = 0x4e49424f; // OBIN
 		blat(i->data, (uc *)&some_value, bytes);
 	} else
 		blat(i->data, (uc *)&o->disp, bytes);
