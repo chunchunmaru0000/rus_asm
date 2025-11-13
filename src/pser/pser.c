@@ -175,6 +175,7 @@ char *HERE_ADDR_CANT_BE_LESS_THAN_DWORD =
 // zero
 const long ZERO = 0;
 
+// TODO: make bin ops in here too as in BIN_OP_ADDR
 enum ICode let_i(struct Pser *p, struct PList *os) {
 	struct BList *data = new_blist(8);
 	struct PList *not_plovs = new_plist(1);

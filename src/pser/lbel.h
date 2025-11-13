@@ -8,6 +8,7 @@ enum UT { // Usage Type
 	LET_HERE_ADDR,
 	TUT_ADDR,
 	LET_TUT_ADDR,
+	BIN_OP_ADDR,
 };
 
 struct Defn {

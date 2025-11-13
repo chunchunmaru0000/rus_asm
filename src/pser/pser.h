@@ -64,6 +64,7 @@ struct Oper { // operand
 struct Oper *expression(struct Pser *);
 struct Oper *add_sub_expr(struct Pser *p);
 #define bin_expr add_sub_expr
+struct Oper *find_any_label_in_bin_tree(struct Oper *o);
 void print_oper(struct Oper *);
 int get_reg_field(enum RegCode);
 
@@ -148,7 +149,9 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_reg(o) ((o)->code == OREG)
 #define is_mem(o) ((o)->code == OMEM)
 #define is_rm(o) (is_reg((o)) || is_mem((o)))
-#define is_imm(o) ((o)->code == OINT || (o)->code == OFPN || (o)->code == OREL)
+#define is_imm(o)                                                              \
+	((o)->code == OINT || (o)->code == OFPN || (o)->code == OREL ||            \
+	 (o)->code == OBIN)
 #define is_seg(o) ((o)->code == OSREG)
 #define is_xmm(o) ((o)->code == OXMM)
 #define is_mm(o) ((o)->code == OMM)

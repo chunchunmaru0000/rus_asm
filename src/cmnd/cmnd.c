@@ -101,6 +101,8 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 void add_imm_data(struct Ipcd *i, struct Oper *o) {
 	enum UT usage_type;
 	struct Defn *np;
+	uint64_t some_value;
+	struct Oper *lbel_o;
 
 	if (o->code == OREL) {
 		if (is_rel(i->c->opsc)) {
@@ -122,7 +124,8 @@ void add_imm_data(struct Ipcd *i, struct Oper *o) {
 		}
 		plist_add(i->not_plovs, np);
 
-		uint64_t some_value = 0x6c6572; // rel
+		// REMEMBER: FIRST ADD new_not_plov WITH IT i->data->size THEN WRITE
+		some_value = 0x6c6572; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
 	} else if (o->code == OINT)
 		blat(i->data, (uc *)&o->t->num, o->sz);
@@ -134,6 +137,15 @@ void add_imm_data(struct Ipcd *i, struct Oper *o) {
 			blat(i->data, (uc *)&o->t->real, QWORD);
 		else
 			ee(i->in->f, i->in->p, WRONG_FPN_SZ);
+	} else if (o->code == OBIN) {
+		lbel_o = find_any_label_in_bin_tree(o);
+		// cmd_end here is struct Oper *
+		np = new_not_plov(lbel_o->t->view, i->data->size, (long)o, BIN_OP_ADDR);
+		plist_add(i->not_plovs, np);
+
+		// REMEMBER: FIRST ADD new_not_plov WITH IT i->data->size THEN WRITE
+		some_value = 0x4e49424f; // OBIN
+		blat(i->data, (uc *)&some_value, o->sz);
 	} else if (o->code == OMOFFS)
 		blat(i->data, (uc *)&o->t->num, o->mem_sz);
 }

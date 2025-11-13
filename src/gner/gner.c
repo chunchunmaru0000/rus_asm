@@ -180,6 +180,41 @@ struct Plov *find_label(struct Gner *g, char *s) {
 	return 0;
 }
 
+long calc_bin(struct Gner *g, struct Oper *o);
+
+long get_int_of_bin(struct Gner *g, struct Oper *o) {
+	long result;
+	if (o->code == OBIN)
+		result = calc_bin(g, o);
+	else if (o->code == OREL)
+		result = find_label(g, o->t->view)->addr;
+	else if (o->code == OINT)
+		result = o->t->num;
+	else
+		exit(125);
+	return result;
+}
+
+long calc_bin(struct Gner *g, struct Oper *o) {
+	enum TCode op = o->t->code;
+	long l_int = get_int_of_bin(g, (struct Oper *)o->t->num);
+	long r_int = get_int_of_bin(g, (struct Oper *)(long)o->t->real);
+
+	if (op == PLUS)
+		l_int += r_int;
+	else if (op == MINUS)
+		l_int -= r_int;
+	else if (op == MUL)
+		l_int *= r_int;
+	else if (op == DIV)
+		l_int /= r_int;
+	else {
+		struct Inst *in = plist_get(g->is, g->pos);
+		ee(in->f, in->p, "ЭЭээ ээ э э э э Эээ.");
+	}
+	return l_int;
+}
+
 void recompile_jmp_rel32_as_jmp_rel8(struct Ipcd *i) {
 	blist_clear(i->cmd);
 	blist_clear(i->data);
@@ -423,8 +458,10 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 			usage->cmd_end += g->eps->phs_cur_sz + ph->vaddr + initial_place;
 			plist_add(g->heres, usage);
 		} else {
-			// data->size or size of it
-			usage->cmd_end += usage->place - ph_start + data_off;
+			// cmd_end in BIN_OP_ADDR is struct Oper *
+			if (usage->type != BIN_OP_ADDR)
+				// data->size or size of it
+				usage->cmd_end += usage->place - ph_start + data_off;
 			l = find_label(g, not_plov->view);
 			plist_add(l->us, usage);
 		}
@@ -671,6 +708,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 				if (usage->type == ADDR) {
 					memcpy(usage_place, &l->addr, DWORD);
+				} else if (usage->type == BIN_OP_ADDR) {
+					long calced = calc_bin(g, (struct Oper *)usage->cmd_end);
+					memcpy(usage_place, &calced, DWORD);
 				} else {
 					ph = plist_get(g->eps->phs, usage->hc - 1);
 					int rel_addr =
