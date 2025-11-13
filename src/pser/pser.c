@@ -119,7 +119,7 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 	int *flags = malloc(sizeof(int));
 	*flags = 0;
 	if (t->code == INT)
-		*flags = t->number;
+		*flags = t->num;
 	else
 		while (t->code != SLASHN && t->code != EF) {
 			if (sc(t->view, STR_SEG_X))
@@ -138,12 +138,12 @@ enum ICode seg_i(struct Pser *p, struct PList *os) {
 enum ICode n_ops_i(struct Pser *p, int n, struct PList *os, enum ICode code) {
 	next_get(p, 0); // skip instruction
 	for (int i = 0; i < n; i++)
-		plist_add(os, expression(p));
+		plist_add(os, bin_expr(p));
 	return code;
 }
 
 enum ICode label_i(struct Pser *p, struct PList *os) {
-	plist_add(os, gettp(p, 0));
+	plist_add(os, cur_token(p));
 	next_get(p, 0); // skip label
 	next_get(p, 0); // skip :
 	return ILABEL;
@@ -246,16 +246,16 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 					size = old_sz;
 					next_get(p, 0); // skip запас word
 
-					o = expression(p);
+					o = bin_expr(p);
 					if (o->code != OINT)
 						ee_token(p->f, c, INVALID_RESERVED_USAGE);
-					value = o->t->number;
+					value = o->t->num;
 
-					o = expression(p);
+					o = bin_expr(p);
 					if (o->code != OINT)
 						ee_token(p->f, c, EXPEXTED_INT_FOR_RESERVED_TIMES);
 
-					blist_add_set(data, size, &value, o->t->number);
+					blist_add_set(data, size, &value, o->t->num);
 					p->pos--; // here expression eats next token so
 				}
 				continue;
@@ -278,22 +278,22 @@ enum ICode let_i(struct Pser *p, struct PList *os) {
 
 			o = d->value;
 			if (o->code == OINT)
-				blat(data, (uc *)&o->t->number, size);
+				blat(data, (uc *)&o->t->num, size);
 			else if (o->code == OFPN) {
-				c->fpn = o->t->fpn;
+				c->real = o->t->real;
 				goto let_i_real;
 			} else
 				ee_token(p->f, c, INVALID_DEFN_USAGE);
 		} else if (c->code == INT)
-			blat(data, (uc *)&c->number, size);
+			blat(data, (uc *)&c->num, size);
 		else if (c->code == STR)
 			blat(data, (uc *)c->str->st, c->str->size);
 		else if (c->code == REAL) {
 		let_i_real:
 			if (size == QWORD)
-				blat(data, (uc *)&c->fpn, QWORD);
+				blat(data, (uc *)&c->real, QWORD);
 			else if (size == DWORD) {
-				float value = c->fpn;
+				float value = c->real;
 				blat(data, (uc *)&value, DWORD);
 			} else
 				ee_token(p->f, c, INVALID_SIZE_OF_FPN);
@@ -322,7 +322,7 @@ enum ICode define_pd(struct Pser *p) {
 	struct Defn *d;
 	char *view = next_get(p, 0)->view;
 	next_get(p, 0); // skip name token
-	struct Oper *value = expression(p);
+	struct Oper *value = bin_expr(p);
 
 	for (long i = 0; i < p->ds->size; i++) {
 		d = plist_get(p->ds, i);
@@ -350,15 +350,15 @@ const char *const EXPECTED_POSITIVE_INT_FOR_ALIGN =
 enum ICode align_pd(struct Pser *p, struct PList *os) {
 	next_get(p, 0); // skip равнять
 
-	struct Oper *o = expression(p);
-	if (o->code != OINT || o->t->number < 0)
+	struct Oper *o = bin_expr(p);
+	if (o->code != OINT || o->t->num < 0)
 		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
 	plist_add(os, o);
-	if (gettp(p, 0)->code == SLASHN)
+	if (cur_token(p)->code == SLASHN)
 		return IALIGN;
 
-	o = expression(p);
-	if (o->code != OINT || o->t->number < 0)
+	o = bin_expr(p);
+	if (o->code != OINT || o->t->num < 0)
 		ee(p->f, o->t->p, EXPECTED_POSITIVE_INT_FOR_ALIGN);
 	plist_add(os, o);
 	return IALIGN;
@@ -385,8 +385,8 @@ int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 		if (sc(view, VAR_OPS_WORDS[i].view)) {
 			struct Token *cur = next_get(p, 0);
 			while (cur->code != SLASHN && cur->code != SEP && cur->code != EF) {
-				plist_add(os, expression(p));
-				cur = gettp(p, 0);
+				plist_add(os, bin_expr(p));
+				cur = cur_token(p);
 			}
 			// this is still can be a wrong instruction because its just
 			// wont have the right opsCode in cmnd so dont care here about it
@@ -419,7 +419,7 @@ int ops_i(struct Pser *p, struct PList *os, char *view, enum ICode *c) {
 
 struct Inst *get_inst(struct Pser *p) {
 	struct PList *os = new_plist(4);
-	struct Token *cur = gettp(p, 0), *n;
+	struct Token *cur = cur_token(p), *n;
 	while (cur->code == SLASHN || cur->code == SEP)
 		cur = next_get(p, 0);
 	char *cv = cur->view;

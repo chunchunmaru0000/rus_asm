@@ -56,7 +56,7 @@ int search_size(struct Pser *p, struct Oper **o, char *v) {
 		if (sc(v, STRS_SIZES[i])) {
 			free(*o); // free o that was malloced in expression before
 
-			*o = expression(p);
+			*o = bin_expr(p);
 			if (is_reg(*o) || is_xmm(*o) || is_mm(*o))
 				ee_token(p->f, (*o)->t, CANT_CHANGE_REG_SZ);
 			(*o)->sz = 1 << i;
@@ -159,7 +159,7 @@ int search_some_reg(char *v, const int regs_len, const struct Reg regs[],
 
 void set_disp_to_op(struct Pser *p, struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
-		int disp = d->t->number;
+		int disp = d->t->num;
 		if (disp < -128 || disp > 127)
 			o->mod = MOD_MEM_D32;
 		else
@@ -176,7 +176,7 @@ void set_disp_to_op(struct Pser *p, struct Oper *o, struct Oper *d) {
 void set_scale_to_op(struct Pser *p, struct Oper *o, struct Oper *s) {
 	if (!(s->code == OINT))
 		ee_token(p->f, s->t, WRONG_SCALE);
-	int scale = s->t->number;
+	int scale = s->t->num;
 	if (scale == 1)
 		o->scale = SCALE_1;
 	else if (scale == 2)
@@ -228,7 +228,7 @@ void set_rm_to_op(struct Oper *o, struct Oper *rm) {
 }
 
 void get_moffs(struct Pser *p, struct Oper **o) {
-	*o = expression(p);
+	*o = bin_expr(p);
 	if ((*o)->code != OINT)
 		ee_token(p->f, (*o)->t, WRONG_MOFFS);
 	if ((*o)->sz != DWORD && (*o)->sz != QWORD)
@@ -271,10 +271,10 @@ struct Oper *expression(struct Pser *p) {
 		break;
 	case STR:
 		if (t0->str->size == 1) {
-			t0->number = (uint64_t)t0->str->st[0];
+			t0->num = (uint64_t)t0->str->st[0];
 			o->sz = BYTE;
 		} else if (t0->str->size == 2) {
-			t0->number = *(uint16_t *)(t0->str->st);
+			t0->num = *(uint16_t *)(t0->str->st);
 			o->sz = WORD;
 		} else
 			ee_token(p->f, t0, INVALID_STR_LEN);
@@ -284,10 +284,10 @@ struct Oper *expression(struct Pser *p) {
 	case MINUS:
 		t0 = next_get(p, -1);
 		if (t0->code == INT) {
-			t0->number *= -1;
+			t0->num *= -1;
 			code = OINT;
 		} else if (t0->code == REAL) {
-			t0->fpn *= -1;
+			t0->real *= -1;
 			code = OFPN;
 		} else
 			ee_token(p->f, t0, ERR_WRONG_MINUS);
@@ -340,7 +340,7 @@ struct Oper *expression(struct Pser *p) {
 		break;
 	case PAR_L:
 		do {
-			otmp = expression(p);
+			otmp = bin_expr(p);
 			if (otmp->code != OINT && otmp->code != OREL && otmp->code != OREG)
 				ee_token(p->f, otmp->t, WRONG_ADDRES_OP);
 			if (is_r8(otmp) || is_r16(otmp))
@@ -358,7 +358,7 @@ struct Oper *expression(struct Pser *p) {
 				}
 			}
 			plist_add(sib, otmp);
-			t0 = gettp(p, 0);
+			t0 = cur_token(p);
 		} while (t0->code != PAR_R);
 		next_get(p, 0); // skip )
 

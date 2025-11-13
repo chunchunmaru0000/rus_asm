@@ -228,7 +228,7 @@ int try_to_short_to_rel_8(struct Gner *g, struct Ipcd *i, struct Plov **l) {
 					is_shorted = SHORTABLE;
 			}
 		} else
-			rel_addr = oper->code == OINT ? oper->t->number : oper->t->fpn;
+			rel_addr = oper->code == OINT ? oper->t->num : oper->t->real;
 
 		if (is_in_byte(rel_addr)) {
 			recompile_jmp_rel32_as_jmp_rel8(i);
@@ -416,7 +416,8 @@ void adjust_plist_of_usages(struct Gner *g, struct PList *not_plovs,
 			usage->cmd_end = g->eps->phs_cur_sz + ph->vaddr + initial_place;
 			plist_add(g->heres, usage);
 		} else if (usage->type == TUT_ADDR) {
-			usage->cmd_end += g->eps->phs_cur_sz + ph->vaddr; // TODO: this invalid
+			// TODO: this invalid
+			usage->cmd_end += g->eps->phs_cur_sz + ph->vaddr;
 			plist_add(g->heres, usage);
 		} else if (usage->type == LET_TUT_ADDR) {
 			usage->cmd_end += g->eps->phs_cur_sz + ph->vaddr + initial_place;
@@ -583,9 +584,9 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 			blat(data, data_bl->st, data_bl->size);
 			break;
 		case IALIGN:
-			ui = ((struct Oper *)plist_get(in->os, 0))->t->number;
+			ui = ((struct Oper *)plist_get(in->os, 0))->t->num;
 			if (in->os->size == 2) {
-				uj = ((struct Oper *)plist_get(in->os, 1))->t->number;
+				uj = ((struct Oper *)plist_get(in->os, 1))->t->num;
 				get_align(ipcd, g->text->size + g->eps->all_h_sz, ui, uj);
 			} else
 				get_align(ipcd, g->text->size + g->eps->all_h_sz, ui, -1);

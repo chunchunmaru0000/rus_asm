@@ -1,5 +1,5 @@
-#include "cdes.h"
 #include "../tzer/tzer.h"
+#include "cdes.h"
 #include "lbel.h"
 #include <stdint.h>
 
@@ -28,6 +28,7 @@ struct Pser {
 
 void ee_token(struct Fpfc *f, struct Token *t, char *msg);
 struct Token *gettp(struct Pser *p, long off);
+#define cur_token(p) (gettp((p), 0))
 struct Token *next_get(struct Pser *p, long off);
 int is_size_word(char *v);
 struct Defn *is_defn(struct Pser *p, char *v);
@@ -61,6 +62,8 @@ struct Oper { // operand
 };
 
 struct Oper *expression(struct Pser *);
+struct Oper *add_sub_expr(struct Pser *p);
+#define bin_expr add_sub_expr
 void print_oper(struct Oper *);
 int get_reg_field(enum RegCode);
 
@@ -167,8 +170,7 @@ void pw(struct Fpfc *f, struct Pos *p, const char *const msg);
 #define is_addr32(o)                                                           \
 	(((o)->code == OMEM || (o)->code == OMOFFS) && (o)->mem_sz == DWORD)
 #define is_in_byte(i) ((i) >= -128 && (i) <= 127)
-#define is_imm_can_be_a_byte(o)                                                \
-	((o)->code == OINT && is_in_byte((o)->t->number))
+#define is_imm_can_be_a_byte(o) ((o)->code == OINT && is_in_byte((o)->t->num))
 #define is_rel8_shortable(c) ((c) >= IJMP && (c) <= IJG)
 #define is_NO(code)                                                            \
 	((code) > I_XMM_NO_PREFIX_BEGIN && (code) < I_XMM_NO_PREFIX_END)

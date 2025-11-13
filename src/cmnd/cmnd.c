@@ -125,17 +125,17 @@ void add_imm_data(struct Ipcd *i, struct Oper *o) {
 		uint64_t some_value = 0x6c6572; // rel
 		blat(i->data, (uc *)&some_value, o->sz);
 	} else if (o->code == OINT)
-		blat(i->data, (uc *)&o->t->number, o->sz);
+		blat(i->data, (uc *)&o->t->num, o->sz);
 	else if (o->code == OFPN) {
 		if (o->sz == DWORD) {
-			float value = o->t->fpn;
+			float value = o->t->real;
 			blat(i->data, (uc *)&value, DWORD);
 		} else if (o->sz == QWORD)
-			blat(i->data, (uc *)&o->t->fpn, QWORD);
+			blat(i->data, (uc *)&o->t->real, QWORD);
 		else
 			ee(i->in->f, i->in->p, WRONG_FPN_SZ);
 	} else if (o->code == OMOFFS)
-		blat(i->data, (uc *)&o->t->number, o->mem_sz);
+		blat(i->data, (uc *)&o->t->num, o->mem_sz);
 }
 
 void add_mem(struct Ipcd *i, struct Oper *m) {

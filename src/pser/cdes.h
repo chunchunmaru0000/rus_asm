@@ -12,6 +12,7 @@ enum OCode { // operand type codes
 	// OIOR // i/o registers? are there even these
 	OFPU, // FPU registers and things
 	OMM,  // mm registers
+	OBIN,
 };
 
 enum RelFlags {

@@ -57,7 +57,7 @@ struct Token {
 	enum TCode code;
 	struct Pos *p;
 	// literals reserved than may not always be used
-	long number;
-	double fpn; // Floatimg Point Number
+	long num;
+	double real;
 	struct BList *str;
 };

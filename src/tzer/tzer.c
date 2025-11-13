@@ -163,7 +163,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 				continue;
 			}
 			if (c < '0' || c > '9') {
-				token->number = value * minus_flag;
+				token->num = value * minus_flag;
 				goto __parsed;
 			}
 			value *= 10;
@@ -173,7 +173,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 		if (c == '.')
 			c = next(t);
 		else {
-			token->number = value * minus_flag;
+			token->num = value * minus_flag;
 			goto __parsed;
 		}
 		code = REAL;
@@ -189,7 +189,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 			c = next(t);
 			mnt_len_10_pow *= 10.0;
 		}
-		token->fpn = (value + mnt / mnt_len_10_pow) * minus_flag;
+		token->real = (value + mnt / mnt_len_10_pow) * minus_flag;
 	} else if (base == 2) {
 		while (c == '_' || c == '0' || c == '1') {
 			if (c != '_') {
@@ -198,7 +198,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 			}
 			c = next(t);
 		}
-		token->number = value * minus_flag;
+		token->num = value * minus_flag;
 	} else { // base = 16
 		// абвгде
 		// abcdef
@@ -255,7 +255,7 @@ enum TCode num_token(struct Tzer *t, struct Token *token) {
 				break;
 			c = next(t); // skip n, get next
 		}
-		token->number = value * minus_flag;
+		token->num = value * minus_flag;
 	}
 __parsed:
 	num_len = t->pos - start_pos;
