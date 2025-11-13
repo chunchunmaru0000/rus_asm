@@ -1,4 +1,4 @@
-#include "tpes.h"
+#include "../some/tpes.h"
 #include <string.h>
 
 #define loop while (1)

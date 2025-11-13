@@ -1,6 +1,6 @@
 #include "cdes.h"
+#include "../tzer/tzer.h"
 #include "lbel.h"
-#include "tzer.h"
 #include <stdint.h>
 
 #define RESERVED -1

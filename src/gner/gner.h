@@ -1,4 +1,4 @@
-#include "cmnd.h"
+#include "../cmnd/cmnd.h"
 #include <stdint.h>
 
 struct ELFH { // ELF Header

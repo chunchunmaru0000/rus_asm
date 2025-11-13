@@ -1,4 +1,4 @@
-#include "gner.h"
+#include "../gner/gner.h"
 
 enum CMD_FLAG {
 	CF_DEBUG,
