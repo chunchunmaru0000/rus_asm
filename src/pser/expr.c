@@ -9,17 +9,19 @@ char *TOO_MUCH_OS =
 	"Слишком много или мало выражений в адресанте, максимум может быть "
 	"4, минимум 1, в следующих порядках:\n"
 	"\t[<регистр> <множитель: 1,2,4,8> регистр <смещение>]\n"
+	"\t[множитель: 1,2,4,8 регистр регистр смещение]\n"
 	"\t[смещение]\n";
 char *POSSIBLE_WRONG_ORDER =
 	"Возможно выражения в адресанте были в неверном порядке, "
 	"всевозможные порядки:\n"
 	"\t[<регистр> <множитель: 1,2,4,8> регистр <смещение>]\n"
+	"\t[множитель: 1,2,4,8 регистр регистр смещение]\n"
 	"\t[смещение]\n";
 char *WRONG_ADDRES_OP = "Неверное выражение внутри адресанта, ими могут быть "
 						"только регистры, метки или целые числа.";
 char *WRONG_DISP = "Неверное смещение, ожидалось число 32 бит или метка.";
 char *WRONG_SCALE =
-	"Неверный множитель, ожидалось число(0, 2, 4, 8) или его отсутствие.";
+	"Неверный множитель, ожидалось число(1, 2, 4, 8) или его отсутствие.";
 char *WRONG_INDEX = "Неверный индекс, ожидался регистр.";
 char *WRONG_RM = "Неверное выражение, ожидался регистр.";
 char *WRONG_BASE = "Неверная основа, ожидался регистр.";
@@ -455,6 +457,12 @@ struct Oper *expression(struct Pser *p) {
 			set_base_to_op(p, o, otmp); // sets sib
 			set_scale_to_op(p, o, plist_get(sib, 1));
 			set_index_to_op(p, o, plist_get(sib, 2));
+			set_disp_to_op(p, o, plist_get(sib, 3)); // changes mod
+		} else if (otmp->code == OINT) {
+			// sc reg(index) reg(base) disp | sib
+			set_scale_to_op(p, o, otmp);
+			set_index_to_op(p, o, plist_get(sib, 1));
+			set_base_to_op(p, o, plist_get(sib, 2)); // sets sib
 			set_disp_to_op(p, o, plist_get(sib, 3)); // changes mod
 		} else
 			ee_token(p->f, t0, POSSIBLE_WRONG_ORDER);
