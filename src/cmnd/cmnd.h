@@ -16,7 +16,6 @@ extern const char *const ERR_WRONG_OPS_FOR_THIS_INST;
 extern const char *const OPS_CODE_INVALID;
 extern const char *const WARN_IMM_SIZE_WILL_BE_CHANGED;
 extern const char *const WARN_CHANGE_IMM_SIZE;
-extern const char *const MEM_IMM_SIZE_QWORD;
 extern const char *const ERR_WRONG_BYTE_REG;
 extern const char *const EXPEXTED_DWORD_OR_QWORD;
 extern constr MOVZX_CANT_USE_AH_TO_BH_REGS;

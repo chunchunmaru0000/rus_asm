@@ -289,9 +289,8 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 				}
 			} else if (is_mem(l)) {
 				if (is_64(l) && is_64(r))
-					ee(in->f, in->p, MEM_IMM_SIZE_QWORD);
-
-				if (is_8(l))
+					;
+				else if (is_8(l))
 					code = RM_8__IMM_8;
 				else if (!is_8(l))
 					code = RM_16_32_64__IMM_16_32;
