@@ -162,8 +162,10 @@ int search_some_reg(char *v, const int regs_len, const struct Reg regs[],
 void set_disp_to_op(struct Pser *p, struct Oper *o, struct Oper *d) {
 	if (d->code == OINT) {
 		int disp = d->t->num;
-		o->mod = is_in_byte(disp) ? MOD_MEM_D8 : MOD_MEM_D32;
-		o->disp = disp;
+		if (disp) { // if disp is 0 then no meaning in adding it
+			o->mod = is_in_byte(disp) ? MOD_MEM_D8 : MOD_MEM_D32;
+			o->disp = disp;
+		} // else printf("here disp was 0 on line %d\n", o->t->p->line);
 	} else if (d->code == OREL) {
 		o->disp_is_rel_flag = OREL;
 		o->mod = MOD_MEM_D32;
