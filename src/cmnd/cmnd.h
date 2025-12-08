@@ -18,7 +18,7 @@ extern const char *const WARN_IMM_SIZE_WILL_BE_CHANGED;
 extern const char *const WARN_CHANGE_IMM_SIZE;
 extern const char *const ERR_WRONG_BYTE_REG;
 extern const char *const EXPEXTED_DWORD_OR_QWORD;
-extern constr MOVZX_CANT_USE_AH_TO_BH_REGS;
+extern constr MOVSX_CANT_USE_AH_TO_BH_REGS;
 
 // for label and maybe variables that have a string view and ptr to value
 struct Plov {		   // Pointer Label Of Value
@@ -185,7 +185,7 @@ extern const long cmnds3_len;
 const struct Cmnd *get_cmnd(struct Ipcd *, const struct Cmnd[], const long,
 							enum OpsCode);
 void add_sib(struct BList *, struct Oper *);
-void add_disp(struct Ipcd *, struct Oper *, uc);
+void add_disp(struct Ipcd *, struct Oper *, uc, uc);
 void add_imm_data(struct Ipcd *, struct Oper *);
 void add_mem(struct Ipcd *, struct Oper *m);
 // * ___

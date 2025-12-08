@@ -155,7 +155,7 @@ enum ICode {
 	IXOR,
 	ICMP,
 	ITEST,
-	IMOV, // IMOVSXD and IMOVZX, its just mov here
+	IMOV, // IMOVSXD and IMOVSX, its just mov here
 	IMUL,
 	IIMUL,
 	IDIV,

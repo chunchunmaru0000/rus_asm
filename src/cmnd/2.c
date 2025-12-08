@@ -235,7 +235,7 @@ enum OpsCode get_two_opscode(struct Ipcd *i) {
 		else if (is_rm(l) && is_reg(r)) {
 			if (is_reg(l) && !is_8(l)) {
 				if (is_r8h(r))
-					ee(in->f, in->p, MOVZX_CANT_USE_AH_TO_BH_REGS);
+					ee(in->f, in->p, MOVSX_CANT_USE_AH_TO_BH_REGS);
 				else if ((is_8(r) || is_16(r)) && (l->sz > r->sz)) {
 					code = is_8(r) ? R_16_32_64__RM_8 : R_16_32_64__RM_16;
 					break;

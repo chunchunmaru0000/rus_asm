@@ -42,7 +42,7 @@ const char *const _HERE_CANT_BE_USED_AS_REL =
 const char *const _TUT_CANT_BE_USED_AS_REL =
 	"Операнд _ТУТ не может использоваться как относительный адрес, потому "
 	"что логически он будет просто равен всегда 0, используйте просто 0.";
-constr MOVZX_CANT_USE_AH_TO_BH_REGS =
+constr MOVSX_CANT_USE_AH_TO_BH_REGS =
 	"Инструкция 'movzx', которая в этом ассембелре равна мнемонике 'быть', не "
 	"может в качестве второго операнда использовать регистры 'аг', 'дг', 'сг', "
 	"'бг', потому что это не имеет смысла, так как эти регистры являются "
@@ -77,7 +77,7 @@ void add_sib(struct BList *cmd, struct Oper *o) {
 	blist_add(cmd, sib);
 }
 
-void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
+void add_disp(struct Ipcd *i, struct Oper *o, uc bytes, uc is_orel_is_addr) {
 	struct Defn *np;
 	uint64_t some_value;
 	struct Oper *lbel_o;
@@ -88,7 +88,8 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 		if (o->rel_flags == RF_TUT)
 			ee(i->in->f, o->t->p, _TUT_CANT_BE_USED_AS_REL);
 
-		np = new_not_plov(o->rel_view, i->data->size, 0, REL_ADDR);
+		np = new_not_plov(o->rel_view, i->data->size, 0,
+						  is_orel_is_addr ? ADDR : REL_ADDR);
 		plist_add(i->not_plovs, np);
 
 		some_value = 0x6c6572; // rel
@@ -98,7 +99,8 @@ void add_disp(struct Ipcd *i, struct Oper *o, uc bytes) {
 		// o->t->num is disp struct Oper *
 		lbel_o = find_any_label_in_bin_tree((struct Oper *)o->t->num);
 		// cmd_end here is struct Oper *
-		np = new_not_plov(lbel_o->t->view, i->data->size, o->t->num, BIN_OP_ADDR);
+		np = new_not_plov(lbel_o->t->view, i->data->size, o->t->num,
+						  BIN_OP_ADDR);
 		plist_add(i->not_plovs, np);
 
 		// REMEMBER: FIRST ADD new_not_plov WITH IT i->data->size THEN WRITE
@@ -164,23 +166,23 @@ void add_mem(struct Ipcd *i, struct Oper *m) {
 	if (m->mod == MOD_MEM) {
 		// REMEMBER: mod = 00, rm = 101 == [RIP+disp32]
 		if (m->rm == R_RBP)
-			add_disp(i, m, DWORD);
+			add_disp(i, m, DWORD, 0);
 		else if (m->rm == R_RSP) {
 			add_sib(i->cmd, m);
 			// mod = 00, rm = 100, base = 101 == no base register
 			// and REMEMBER: do disp 32 although mod is 00
 			if (m->base == R_RBP)
-				add_disp(i, m, DWORD);
+				add_disp(i, m, DWORD, 0);
 		}
 		// else nothing because doesnt care about modrm byte
 	} else if (m->mod == MOD_MEM_D8) {
 		if (m->rm == R_RSP)
 			add_sib(i->cmd, m);
-		add_disp(i, m, BYTE);
+		add_disp(i, m, BYTE, 0);
 	} else { // l->mod == MOD_MEM_D32
 		if (m->rm == R_RSP)
 			add_sib(i->cmd, m);
-		add_disp(i, m, DWORD);
+		add_disp(i, m, DWORD, 1);
 	}
 }
 
@@ -677,8 +679,8 @@ const struct Cmnd cmnds2[] = {
 	{IMOVDQA, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
 	{IMOVDQU, {0x0f, 0x7f}, 2, REG_FIELD, 0, XM_128__X},
 
-	{IMOV, {0x0f, 0xb6}, 2, REG_FIELD, 0, R_16_32_64__RM_8},
-	{IMOV, {0x0f, 0xb7}, 2, REG_FIELD, 0, R_16_32_64__RM_16},
+	{IMOV, {0x0f, 0xbe}, 2, REG_FIELD, 0, R_16_32_64__RM_8},
+	{IMOV, {0x0f, 0xbf}, 2, REG_FIELD, 0, R_16_32_64__RM_16},
 
 	{IMOVNTI, {0x0f, 0xc3}, 2, REG_FIELD, 0, M_32_64__R_32_64},
 
