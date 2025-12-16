@@ -604,9 +604,15 @@ void gen_Linux_ELF_86_64_text(struct Gner *g) {
 
 			if (code == ILET) {
 				adjust_plist_of_usages(g, plist_get(in->os, 2), 0, 0);
-				plist_free(plist_get(in->os, 2));
-
+				// you cant free it here cuz if its freed while in opt loop
+				// the data may be in need once more time
+				// plist_free(plist_get(in->os, 2));
 				data_bl = plist_get(in->os, 1);
+
+				if (g->debug & 1) {
+					printf("данные метки: ");
+					blist_print(data_bl);
+				}
 				blat(data, data_bl->st, data_bl->size);
 			}
 			break;
