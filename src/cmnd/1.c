@@ -153,6 +153,13 @@ enum OpsCode get_one_opscode(struct Ipcd *i) {
 		} else if (is_reg(o) && is_8(o))
 			code = __RM_8;
 		break;
+	case ILDMXCSR:
+	case ISTMXCSR:
+		if (is_mem(o)) {
+			change_mem_size(in, o, DWORD);
+			code = __M_32;
+		}
+		break;
 	default:
 		ee(in->f, in->p, ERR_WRONG_OPS_FOR_THIS_INST);
 	}

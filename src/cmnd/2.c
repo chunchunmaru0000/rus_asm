@@ -1,4 +1,5 @@
 #include "cmnd.h"
+#include <stdio.h>
 
 void get_two_ops_code(struct Ipcd *i) {
 	i->l = plist_get(i->in->os, 0);

@@ -336,6 +336,8 @@ enum ICode {
 	// ILFENCE,
 	// IMFENCE,
 	// ISFENCE,
+	ILDMXCSR,
+	ISTMXCSR,
 	// xmm
 	I_XMM_INSTRUCTIONS_BEGIN,
 	// __

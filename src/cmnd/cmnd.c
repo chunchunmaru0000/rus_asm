@@ -385,6 +385,8 @@ const struct Cmnd cmnds1[] = {
 	{ISETNL, {0x0f, 0x9d}, 2, NUM_FIELD, 0, __RM_8},
 	{ISETLE, {0x0f, 0x9e}, 2, NUM_FIELD, 0, __RM_8},
 	{ISETG, {0x0f, 0x9f}, 2, NUM_FIELD, 0, __RM_8},
+	{ILDMXCSR, {0x0f, 0xae}, 2, NUM_FIELD, 2, __M_32},
+	{ISTMXCSR, {0x0f, 0xae}, 2, NUM_FIELD, 3, __M_32},
 };
 const struct Cmnd cmnds2[] = {
 	{IIMUL, {0x0f, 0xaf}, 2, REG_FIELD, 0, R_16_32_64__RM_16_32_64},

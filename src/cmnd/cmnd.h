@@ -44,6 +44,7 @@ enum OpsCode {
 	__FS,
 	__RM_8, // inc and dec
 	__RM_16_32_64,
+	__M_32,
 
 	RM_8__R_8,
 	RM_16_32_64__R_16_32_64,
